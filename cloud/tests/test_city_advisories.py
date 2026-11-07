@@ -1,4 +1,8 @@
-"""Offline coverage of OP-110 using recorded City responses and explicit mutations."""
+"""Purpose: check snow/trail rules and failure handling without live City APIs.
+
+Recorded responses cover the real field names. Modified copies exercise grouping,
+time boundaries, invalid data, pagination, retries, and keeping the previous cache.
+"""
 
 import asyncio
 import copy

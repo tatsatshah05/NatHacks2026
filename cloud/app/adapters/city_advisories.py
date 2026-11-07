@@ -1,7 +1,9 @@
-"""OP-110: City of Edmonton snow advisories and trail disruptions.
+"""Purpose: turn City snow complaints and trail notices into map advisories.
 
-Returns the existing PLAN.md obstruction fields without introducing a shared
-schema. Register these adapters with OP-101/OP-103 when their interface is merged.
+Snow complaints are counted by neighbourhood and shown as area cautions.
+Trail notices become either blocked paths or cautions, based on the City's type.
+Both adapters fetch every page, validate the data, and save a successful snapshot.
+Results use PLAN.md's obstruction fields for later OP-101/OP-103 integration.
 """
 
 from __future__ import annotations
@@ -87,6 +89,7 @@ def text(row: dict[str, Any], field: str) -> str:
 
 
 def point(row: dict[str, Any], field: str) -> dict[str, Any]:
+    """Validate a City map marker before it reaches the shared map/store."""
     value = row.get(field)
     if not isinstance(value, dict) or value.get("type") != "Point":
         raise ValueError("Missing or invalid City point geometry")
@@ -104,6 +107,7 @@ def point(row: dict[str, Any], field: str) -> dict[str, Any]:
 
 
 def unique_rows(rows: list[dict[str, Any]], field: str) -> list[dict[str, Any]]:
+    """Count identical IDs once; reject conflicting copies rather than guessing."""
     seen: dict[str, dict[str, Any]] = {}
     for row in rows:
         key = text(row, field)
@@ -114,6 +118,8 @@ def unique_rows(rows: list[dict[str, Any]], field: str) -> list[dict[str, Any]]:
 
 
 class CityAdapter:
+    """Share HTTP requests, pagination, and cache handling between both sources."""
+
     dataset = ""
     source = ""
     poll_interval_seconds = 0
@@ -149,6 +155,7 @@ class CityAdapter:
         raise NotImplementedError
 
     async def _page(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Request one page, retrying failures after 1, 2, then 4 seconds."""
         headers = {"X-App-Token": self.app_token} if self.app_token else {}
         for attempt in range(self.retries + 1):
             try:
@@ -175,9 +182,11 @@ class CityAdapter:
         raise AssertionError("Unreachable")
 
     async def fetch(self, now: datetime) -> list[Obstruction]:
+        """Build a complete refresh; leave last_good untouched if any step fails."""
         now = utc(now)
         try:
             rows = []
+            # Fetch the full source before replacing the previous snapshot.
             for page in range(self.max_pages):
                 batch = await self._page(
                     {
@@ -205,6 +214,7 @@ class CityAdapter:
             # Retain the complete previous snapshot; let the scheduler mark failure.
             self.last_error = type(exc).__name__
             raise
+        # Keep a separate copy so callers cannot accidentally change the cache.
         self.last_good = copy.deepcopy(items)
         self.last_success = now
         self.last_error = None
@@ -224,6 +234,7 @@ class CityAdapter:
         starts_at: Optional[datetime] = None,
         ends_at: Optional[datetime] = None,
     ) -> Obstruction:
+        """Build an item in the planned shared format, with a freshness deadline."""
         expires = now + timedelta(seconds=self.poll_interval_seconds * 2)
         if ends_at is not None:
             expires = min(expires, ends_at)
@@ -248,12 +259,16 @@ class CityAdapter:
 
 
 class SnowComplaintsAdapter(CityAdapter):
+    """Count recent open complaints per neighbourhood; refresh hourly."""
+
     dataset = "9i6v-cqzn"
     source = "city_311_snow"
     poll_interval_seconds = 3600
     order_by = "row_id"
 
     def query(self, now: datetime) -> dict[str, str]:
+        """Ask the City for open complaints inside the 72-hour local-time window."""
+
         def local(value: datetime) -> str:
             return (
                 value.astimezone(self.source_timezone).replace(tzinfo=None).isoformat()
@@ -268,8 +283,10 @@ class SnowComplaintsAdapter(CityAdapter):
         }
 
     def normalize(self, rows: list[dict[str, Any]], now: datetime) -> list[Obstruction]:
+        """Filter requests, group by neighbourhood ID, and create area cautions."""
         now = utc(now)
         groups: dict[str, list[tuple[dict[str, Any], datetime]]] = defaultdict(list)
+        # Check dates/status again so recorded data follows the same rules as live data.
         for row in unique_rows(rows, "row_id"):
             status = text(row, "request_status").casefold()
             if status == "closed":
@@ -284,9 +301,11 @@ class SnowComplaintsAdapter(CityAdapter):
         for neighbourhood_id, entries in sorted(groups.items()):
             first = entries[0][0]
             name = text(first, "neighbourhood")
+            # This marker locates the neighbourhood, not an individual complaint.
             geometry = point(first, "nbhd_location")
             if any(point(row, "nbhd_location") != geometry for row, _ in entries):
                 raise ValueError("Inconsistent neighbourhood centroids")
+            # The count becomes outdated when its oldest complaint leaves the window.
             first_expiry = min(created + timedelta(hours=72) for _, created in entries)
             item = self.item(
                 neighbourhood_id,
@@ -305,6 +324,8 @@ class SnowComplaintsAdapter(CityAdapter):
 
 
 class TrailClosuresAdapter(CityAdapter):
+    """Convert current trail notices to blocked/caution items; refresh every 15 min."""
+
     dataset = "k4mi-dkvi"
     source = "city_trail_closures"
     poll_interval_seconds = 900
@@ -313,6 +334,7 @@ class TrailClosuresAdapter(CityAdapter):
     timestamp_timezone = ZoneInfo("UTC")
 
     def normalize(self, rows: list[dict[str, Any]], now: datetime) -> list[Obstruction]:
+        """Keep active notices and use the City's structured closure type."""
         now = utc(now)
         items = []
         for row in unique_rows(rows, "id_number"):
@@ -323,10 +345,12 @@ class TrailClosuresAdapter(CityAdapter):
             )
             # Human-readable finish dates refer to the local calendar day.
             ends = end_time(row.get("end_date") or "", EDMONTON)
+            # Exclude future and finished notices; unclear finish dates stay unknown.
             if (starts is not None and starts > now) or (
                 ends is not None and ends <= now
             ):
                 continue
+            # Use the official type instead of guessing severity from the description.
             closure = text(row, "type_of_closure").casefold()
             if closure not in ("permanent", "temporary", "caution"):
                 raise ValueError("Unknown trail closure type")

@@ -1,4 +1,9 @@
-"""Run OP-110 independently while the shared API/scheduler is being built."""
+"""Purpose: preview OP-110 advisories from the terminal.
+
+Read recorded City responses by default, or fetch current data with --live.
+Print the mode, counts, and advisory items as JSON for an easy manual check.
+This runs once while the shared API/scheduler is being built.
+"""
 
 from __future__ import annotations
 
@@ -19,11 +24,13 @@ from cloud.app.adapters.city_advisories import (
 
 
 async def preview(live: bool) -> dict:
+    """Choose the data source, run both adapters, and label the preview output."""
     fixture_dir = Path(__file__).parents[1] / "tests/fixtures/city_advisories"
     if live:
         now = datetime.now(timezone.utc)
     else:
         recording = json.loads((fixture_dir / "recording.json").read_text())
+        # Use the recording's time so replay results remain repeatable.
         now = city_time(recording["replay_at"])
     async with httpx.AsyncClient() as client:
         snow = SnowComplaintsAdapter(client, app_token=os.getenv("SOCRATA_APP_TOKEN"))
