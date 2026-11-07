@@ -13,9 +13,11 @@ __pycache__/
 !.env.example
 secrets.h
 
-# Node and Next.js (web/ has its own .gitignore too)
+# Node, Next.js and Vercel (web/)
 node_modules/
 .next/
+.vercel/
+*.tsbuildinfo
 web/openapi.json
 
 # Vision: weights and images are never committed (PLAN.md section 7.5)
@@ -23,6 +25,7 @@ web/openapi.json
 *.pt
 *.pth
 vision/data/
+vision/.cache/
 
 # Editors and OS
 .DS_Store
