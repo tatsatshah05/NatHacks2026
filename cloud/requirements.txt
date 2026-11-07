@@ -1,0 +1,6 @@
+# Cloud API dependencies (OP-101). OP-102 adds the rest of the skeleton here.
+fastapi>=0.115,<1
+pydantic>=2.9,<3
+sqlmodel>=0.0.22,<0.1
+psycopg[binary]>=3.2,<4
+httpx>=0.27,<0.29
