@@ -1,4 +1,8 @@
-"""OP-107: official construction permits affecting sidewalks.
+"""OP-107: help pedestrians avoid sidewalks affected by construction.
+
+Read City permits, keep active pedestrian impacts, and turn their locations
+into blocked-sidewalk records. Report missing locations and keep the last
+working data when a fetch fails.
 
 Dictionary output follows PLAN.md section 10 until OP-101 supplies the shared
 Obstruction/SourceAdapter types. This module does not change shared contracts.
@@ -38,6 +42,8 @@ class FeedError(ValueError):
 
 @dataclass
 class NormalizedPermits:
+    """Keep mapped closures and missing-location warnings together."""
+
     obstructions: list[Row]
     warnings: list[str]
 
@@ -49,6 +55,8 @@ class PermitReader(Protocol):
 
 
 class ConstructionReader:
+    """Download active permits from the official City API."""
+
     def __init__(
         self,
         app_token: str | None = None,
@@ -67,6 +75,8 @@ class ConstructionReader:
         self.sleep = sleep
 
     def read(self, today: date) -> list[Row]:
+        """Read every page of permits that can affect pedestrians today."""
+        # Include the entire finish day, even though City dates use midnight.
         tomorrow = today + timedelta(days=1)
         where = (
             "pedestrian_affected = 'Yes' "
@@ -92,10 +102,12 @@ class ConstructionReader:
             )
             page = self._request(request)
             result.extend(page)
+            # A short page means the complete matching feed has been read.
             if len(page) < self.page_size:
                 return result
 
     def _request(self, request: Request) -> list[Row]:
+        """Retry temporary failures; let permanent errors reach the caller."""
         for attempt in range(self.retries + 1):
             try:
                 with urlopen(request, timeout=self.timeout_s) as response:
@@ -154,6 +166,8 @@ def _position(value: Any) -> list[float]:
 
 
 def _geometry(row: Row) -> Row | None:
+    """Prefer the affected road line; use a point when no line is supplied."""
+    # A malformed line is an error: a midpoint could hide the affected area.
     multiline = row.get("geometry_multiline")
     if multiline is not None:
         if (
@@ -221,6 +235,7 @@ def normalize_permits(
         permit = _required(row, "file_number")
         geometry = _geometry(row)
         if geometry is None:
+            # Report the missing permit without guessing a map location.
             warnings.add(f"{permit}: no City geometry or coordinates; omitted from map")
             continue
         street = str(row.get("street_full_name") or "Street not specified").strip()
@@ -232,6 +247,7 @@ def normalize_permits(
         # them by file_number; keep IDs stable across row ordering/date edits.
         digest = hashlib.sha256(identity.encode()).hexdigest()[:16]
         source_ref = f"{permit}:{digest}"
+        # The closure ends at the next midnight because the finish day is inclusive.
         ends_at = datetime.combine(
             finish + timedelta(days=1), day_time.min, tzinfo=local_timezone
         )
@@ -265,6 +281,7 @@ def normalize_permits(
         }
         if source_ref in obstructions and obstructions[source_ref] != item:
             raise FeedError(f"Conflicting construction rows for {permit}")
+        # Identical copies share an ID and therefore appear only once on the map.
         obstructions[source_ref] = item
     return NormalizedPermits(
         obstructions=[obstructions[key] for key in sorted(obstructions)],
@@ -284,14 +301,17 @@ class ConstructionAdapter:
 
     @property
     def last_good(self) -> NormalizedPermits:
+        """Return a copy so callers cannot change the saved snapshot."""
         return deepcopy(self._last_good)
 
     def fetch(self, *, now: datetime | None = None) -> NormalizedPermits:
+        """Refresh hourly or at local midnight, saving only successful results."""
         now = now or datetime.now(UTC)
         if now.tzinfo is None:
             raise ValueError("now must include a timezone")
         today = now.astimezone(self.local_timezone).date()
         if self.last_success is not None:
+            # Recheck at midnight so permits that ended yesterday disappear promptly.
             same_day = self.last_success.astimezone(self.local_timezone).date() == today
             if same_day and now - self.last_success < POLL_INTERVAL:
                 return self.last_good
@@ -303,12 +323,14 @@ class ConstructionAdapter:
                 rows, observed_at=now, local_timezone=self.local_timezone
             )
             if result.warnings and not result.obstructions:
+                # Missing all locations must not look like every sidewalk has cleared.
                 raise FeedError(
                     "No active pedestrian permits have usable map locations"
                 )
         except FeedError as exc:
             self.last_error = str(exc)
             raise
+        # Replace the snapshot only after the full fetch and conversion succeed.
         self._last_good = result
         self.last_success = now.astimezone(UTC)
         self.last_error = None
@@ -316,6 +338,7 @@ class ConstructionAdapter:
 
 
 def main() -> None:
+    """Preview recorded or live permits without writing to the application."""
     parser = argparse.ArgumentParser(description="Preview OP-107 construction closures")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument(

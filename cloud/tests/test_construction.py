@@ -1,4 +1,8 @@
-"""OP-107 recorded-feed regressions; network access is blocked in every test."""
+"""Check which permits block sidewalks and how failures preserve saved data.
+
+Use recorded City responses and small edited copies for edge cases. Every
+test blocks network access so results do not depend on the live City feed.
+"""
 
 from __future__ import annotations
 
