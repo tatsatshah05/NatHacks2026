@@ -15,7 +15,7 @@ Plan first. Show me the file list and the order of work, then build it in this o
    - SQLModel tables for hazards, reports, push subscriptions and saved routes; SQLite locally.
    - `graph.py` loads `data/graph.json`. Until the real OSM graph exists, generate a synthetic walkable grid of about 40 nodes around the places, with one edge tagged `highway=steps`, and save it in the same format `build_graph.py` will produce: `{"nodes": {id: [lat, lng]}, "edges": [{"id", "u", "v", "length_m", "geometry": [[lng, lat], ...], "highway"}]}`.
    - `routing.py`: profile costs, impassable removal, best route plus up to 2 distinct alternates, `eta_min`, a human-readable reason for any change, and Google and Apple Maps URL builders.
-   - `hazards.py`: source precedence (edge > report > weather), expiry, mapping from model segment to edges.
+   - `hazards.py`: source precedence (edge > report > weather), expiry, mapping from segment to edges.
    - `main.py` exposes every endpoint in the contract table. Ingest checks `X-Device-Key`; override and dispatch check `X-Admin-Key`. `ws.py` broadcasts hazard and route events. CORS comes from `CORS_ORIGINS`.
    - `weather.py` and `push.py` are stubs with their real interfaces and TODOs. `priority.py` returns an empty list for now.
    - Tests cover: each profile's impassable rules, stairs, alternates are distinct, ETA math, ingest auth, hazard precedence and expiry.
