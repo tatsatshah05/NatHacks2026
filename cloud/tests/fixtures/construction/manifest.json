@@ -1,0 +1,37 @@
+[
+  {
+    "file": "pedestrian_lines.json",
+    "url": "https://data.edmonton.ca/resource/7wiq-4rgy.json?$limit=3&$order=file_number,street_full_name&$where=pedestrian_affected%20%3D%20'Yes'%20AND%20geometry_multiline%20IS%20NOT%20NULL",
+    "captured_at": "2026-11-07T21:32:14.8958942Z",
+    "rows": 3,
+    "sha256_lf": "3ef28d5e54ba131aa25fa6d32b2b787d48727be036f303970202ee1e9070c1bb"
+  },
+  {
+    "file": "pedestrian_points.json",
+    "url": "https://data.edmonton.ca/resource/7wiq-4rgy.json?$limit=3&$order=file_number,street_full_name&$where=pedestrian_affected%20%3D%20'Yes'%20AND%20geometry_multiline%20IS%20NULL%20AND%20location%20IS%20NOT%20NULL",
+    "captured_at": "2026-11-07T21:32:15.1886382Z",
+    "rows": 3,
+    "sha256_lf": "28734186378722f00afac2f51410ca041690a93be49131344841a49c9e886c33"
+  },
+  {
+    "file": "other_permits.json",
+    "url": "https://data.edmonton.ca/resource/7wiq-4rgy.json?$limit=3&$order=file_number,street_full_name&$where=pedestrian_affected%20!%3D%20'Yes'",
+    "captured_at": "2026-11-07T21:32:15.4597572Z",
+    "rows": 3,
+    "sha256_lf": "e7b5483a07b45893838463b97930f0b25a29f9306b118f2934d4f05021cb4a33"
+  },
+  {
+    "file": "unlocated_permits.json",
+    "url": "https://data.edmonton.ca/resource/7wiq-4rgy.json?$limit=3&$order=file_number,street_full_name&$where=pedestrian_affected%20%3D%20'Yes'%20AND%20geometry_multiline%20IS%20NULL%20AND%20location%20IS%20NULL",
+    "captured_at": "2026-11-07T21:32:15.6835818Z",
+    "rows": 3,
+    "sha256_lf": "5cd415014049322d43e86f2bf3b3cd22eb366126266e7e7b0507bcaa813d87e5"
+  },
+  {
+    "file": "repeated_permit.json",
+    "url": "https://data.edmonton.ca/resource/7wiq-4rgy.json?$limit=3&$order=file_number,street_full_name&$where=file_number%20%3D%20'P2021-001303'",
+    "captured_at": "2026-11-07T21:32:15.8826525Z",
+    "rows": 3,
+    "sha256_lf": "e7b5483a07b45893838463b97930f0b25a29f9306b118f2934d4f05021cb4a33"
+  }
+]
