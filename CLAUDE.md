@@ -2,7 +2,7 @@
 
 PathSense detects when accessible winter pathways become inaccessible (snow, black ice, obstructions) and reroutes people live, based on how they get around (wheelchair, walker or cane, low vision, standard). It is our natHACKS 2026 project: a 48-hour build by a team of four.
 
-A tabletop model of a real Edmonton neighbourhood carries the sensors. Its segments map to real streets, so the live web platform shows real routes, walking times, alerts and Google Maps hand-off.
+A camera at a window watches a real snowy Edmonton sidewalk, and an outdoor distance sensor watches its curb cut. The 4 to 6 marked segments in the camera view map to real street edges, so the live web platform shows real routes, walking times, alerts and Google Maps hand-off.
 
 - Repo: https://github.com/tatsatshah05/NatHacks2026
 - Technical spec (editable; discuss in comments; it is the source of truth for open decisions): https://claude.ai/artifact/RXvZzsyhUkjnyc4ix92ZjE
@@ -14,9 +14,9 @@ Six people (Tatsat, Ipsa, Estella, Kaleb, Matthew, Kashish) move together throug
 
 | Phase | Hours | Gate |
 | --- | --- | --- |
-| 1. Hardware connections and hardware code | 0-10 | The Pi shows camera frames of the whole board, reads both ultrasonics, moves both servos |
+| 1. Hardware connections and hardware code | 0-10 | The Pi shows a clear view of the real sidewalk by day and night, records footage, reads the curb-cut sensor |
 | 2. Vision model (from overhead camera frames of the model) | 10-22 | Target 45/50 test placements correct, under 2 s, no false changes in 10 min |
-| 3. Web app | 22-34 | Snow on the model reroutes the deployed site on a phone; push and Google Maps hand-off work |
+| 3. Web app | 22-34 | Blocking the real sidewalk reroutes the deployed site on a phone; push and Google Maps hand-off work |
 | 4. Finish | 34-48 | Freeze at hour 40; demo rehearsed 5 times; submit by hour 46 |
 
 When working an issue, stay inside that phase's scope. Do not build next-phase features early, except the code skeleton (`prompts/00-kickoff.md`), which runs during Phase 1.
@@ -36,32 +36,32 @@ When working an issue, stay inside that phase's scope. Do not build next-phase f
 | --- | --- |
 | Must | Live accessible map of the demo neighbourhood; routes per profile with up to 2 alternates, distance and minutes; black-ice detection (ice station plus weather watch); live updates over WebSocket; Web Push alerts on saved routes; "Open in Google Maps" with waypoints |
 | Should | Apple Maps hand-off; community hazard reports; city dashboard with clear-first ranking |
-| Could | v2 temperature sensors (ice station, after the camera works); servo plow dispatch; SMS alerts; on-device detection on the ESP32-CAM; ML classifier |
+| Could | v2 temperature sensors (ice station, after the camera works); servo camera pan; SMS alerts; on-device detection on the ESP32-CAM; ML classifier |
 | Won't (this weekend) | User accounts, native apps, writing data into Google or Apple Maps, real city cameras |
 
 ## Architecture
 
 ```
-MODEL (venue, our own 2.4 GHz router)
-  Camera ........... overhead; CAM_SOURCE=picamera (Pi Camera Module) or url (phone or any JPEG snapshot URL)
+STREET (a real sidewalk near the venue; our own 2.4 GHz router)
+  Camera ........... indoors at a window facing the sidewalk; CAM_SOURCE=picamera (Pi Camera Module) or url (phone or any JPEG snapshot URL)
                      (source still open; the OV7670 in our kit is NOT used)
-  Arduino Uno ...... HC-SR04 x2, 2 SG90 servos (plow, barrier), optional LEDs  <-> USB serial to the Pi
+  Arduino Uno ...... HC-SR04 at the curb cut (sealed box, 5 m USB), optional SG90 camera pan  <-> USB serial to the Pi
                      v2: DS18B20 surface temp + water sensor (+ DHT22 if we have one) on the same Arduino
   Feather ESP32 .... spare; optional wireless HC-SR04 node over MQTT later
         |
 EDGE HUB (Raspberry Pi; a laptop is the backup)                  edge/
   Mosquitto broker
-  vision: grab camera frames -> ArUco warp -> per-segment snow + obstruction scores
-  fusion: camera + ultrasonic (+ v2 temperature) -> one state per model segment (EMA + hysteresis)
+  vision: grab camera frames -> segment polygons marked on the camera image -> per-segment snow + obstruction scores
+  fusion: camera + ultrasonic (+ v2 temperature) -> one state per segment (EMA + hysteresis)
   uplink: POST /api/ingest/segments on change + every 10 s; listens to cloud WS for route + dispatch
   serial bridge: ultrasonic (+ v2 T/W/H) in; servo commands (+ optional LED frame) out
         |  HTTPS + X-Device-Key
 CLOUD API (Render: FastAPI + Postgres)                            cloud/
-  hazard store: one state per street edge; sources = model > report > weather
+  hazard store: one state per street edge; sources = edge > report > weather
   weather job: Open-Meteo freeze-thaw "black-ice watch" every 10 min
   routing: prebuilt walking graph (networkx), 4 profiles, best + 2 alternates, ETAs, reasons
   live: WebSocket /ws broadcast; Web Push to saved routes when their route changes
-  clear-first ranking; dispatch -> WS -> hub -> servo plow
+  clear-first ranking; dispatch marks a crew as sent on the dashboard
         |  REST + WSS
 WEB APP (Vercel: Next.js App Router)                               web/
   /        planner: MapLibre map + hazard layer + route cards + Google/Apple Maps links + report
@@ -70,13 +70,13 @@ WEB APP (Vercel: Next.js App Router)                               web/
   /demo    big QR code to the live site for judges
 ```
 
-The model's segments `e1` to `e14` map to real OpenStreetMap edges through `config/model_map.json`. A model segment's state applies to every real edge it maps to. If the hub goes silent for more than 30 s, model-sourced states expire and the cloud falls back to reports and weather.
+The 4 to 6 segments marked on the camera image (`s1` to `s6`) map to real OpenStreetMap edges through `config/segments.json`. A segment's state applies to every real edge it maps to. If the hub goes silent for more than 30 s, model-sourced states expire and the cloud falls back to reports and weather.
 
 ## Repo layout
 
 ```
 CLAUDE.md  Makefile  render.yaml  .env.example
-config/      profiles.json  model_map.json  places.json  thresholds.json
+config/      profiles.json  segments.json  places.json  thresholds.json
 cloud/       app/{main,schemas,db,models,graph,routing,hazards,weather,push,priority,ws}.py
              data/graph.json (committed)   scripts/build_graph.py (OSMnx, run locally once)   tests/
 edge/        pathsense_edge/{camera,calibrate,detect,fusion,serial_bridge,mqtt,uplink,run,sim}.py   tests/
@@ -96,11 +96,11 @@ prompts/     00-kickoff  01-edge-vision  02-firmware  03-cloud  04-web  05-integ
 **Arduino serial** (115200 baud, newline-terminated ASCII):
 - Arduino to hub: `U<i>,<mm>` ultrasonic reading at 5 Hz (e.g. `U0,182`); `OK` replies to `P`
 - v2, Arduino to hub at 1 Hz: `T<surface_c>` (DS18B20, e.g. `T-0.8`), `W<0-1023>` (water sensor, higher = wetter), `H<air_c>,<rh>` (DHT22, only if fitted)
-- Hub to Arduino: `S<i>,<deg>` servo `i` (0 = plow arm, 1 = sidewalk-closed barrier); `P` ping; optional `L<chars>` LED frame with one char per segment in `model_map` order (`G` clear, `W` snow, `C` ice risk, `R` blocked, `B` on route, `.` off)
+- Hub to Arduino: `S<i>,<deg>` servo `i` (0 = optional camera pan); `P` ping; optional `L<chars>` LED frame with one char per segment in `segments` order (`G` clear, `W` snow, `C` ice risk, `R` blocked, `B` on route, `.` off)
 
 **Hub to cloud:** `POST /api/ingest/segments`, header `X-Device-Key`
 ```json
-{"device_id": "edge-1", "segments": [{"model_segment_id": "e4", "state": "snow", "severity": 0.72,
+{"device_id": "edge-1", "segments": [{"segment_id": "s2", "state": "snow", "severity": 0.72,
   "sources": ["camera", "ultrasonic"], "observed_at": "2026-11-14T15:02:11Z"}]}
 ```
 
@@ -132,7 +132,7 @@ prompts/     00-kickoff  01-edge-vision  02-firmware  03-cloud  04-web  05-integ
 - **v1, Path B, `ICE_MODE=weather_camera`** (default; no temperature or water sensors): the edge computes a per-segment **gloss score**: the share of near-saturated specular pixels compared with the baseline, which shows up when a clear plastic film sits under the angled lamp. The segment is `ice_risk` when gloss is over its threshold **and** the cloud's weather watch is active. Gloss without freezing weather is ignored (wet, not icy). The edge gets the watch from `GET /api/weather`. Sources: `["camera_sheen", "weather"]`.
 - **Weather watch (cloud, both pathways; Open-Meteo, no API key):** hourly `temperature_2m, dew_point_2m, relative_humidity_2m, precipitation, soil_temperature_0cm`, `past_days=1`. Active when (air <= 0 C or ground <= 0 C) and one of: precipitation > 0 in the last 6 h; air > 0 C in the last 12 h (melt and refreeze); or air minus dew point <= 1 C (frost). It is applied at low confidence to every edge without fresher data.
 - **`WEATHER_MODE=live|replay`:** replay feeds a real past freeze-thaw night from Open-Meteo's historical API (`REPLAY_DATE`). The UI must show a visible "Replay" badge whenever replay is on. Never present replayed weather as live.
-- **Precedence:** model > report > weather. Reports expire after 2 h, and model states after 30 s without a heartbeat.
+- **Precedence:** edge > report > weather. Reports expire after 2 h, and model states after 30 s without a heartbeat.
 
 **Alternates:** use `networkx.shortest_simple_paths` on the profile-weighted graph. Keep at most 3 routes, and only keep a route if it shares under 70% of its length with the ones already kept.
 
@@ -165,7 +165,7 @@ Generate VAPID keys with `npx web-push generate-vapid-keys`.
 ## Conventions
 
 - **Python 3.12:** type hints everywhere, Pydantic v2, SQLModel, `ruff format` + `ruff check`, `pytest`. Put units in names (`length_m`, `eta_min`, `surface_c`, `distance_mm`). Use UTC everywhere: ISO 8601 in HTTP, epoch seconds on MQTT.
-- **Logging:** one line per state change, e.g. `STATE e4 clear->snow camera=0.72 ultrasonic=0.10`. These logs are our demo debugging tool.
+- **Logging:** one line per state change, e.g. `STATE s2 clear->snow camera=0.72 ultrasonic=0.10`. These logs are our demo debugging tool.
 - **TypeScript:** strict mode, no `any`. API types come only from the generated `api-types.ts`. Small components, Tailwind, no extra state library.
 - **Firmware:** Arduino framework, non-blocking `loop()` built on `millis()`, no `delay()` over 20 ms, a serial debug line on boot, Wi-Fi and MQTT auto-reconnect.
 - **Git:** one branch per workstream (`edge/...`, `hw/...`, `cloud/...`, `web/...`). Merge to `main` at gates. Write commit messages that say what changed and why.
@@ -180,7 +180,7 @@ Generate VAPID keys with `npx web-push generate-vapid-keys`.
 - **HC-SR04:** a 5 V part, so it stays on the Arduino. Fire the sensors one at a time to avoid crosstalk, and use `pulseIn` with a 25 ms timeout.
 - **WS2812B with the servo on one Arduino:** `show()` blocks interrupts, which makes the servo jitter. Only call `show()` when the frame changes, and `detach()` the servo after each move.
 - **LED power:** give the LEDs their own 5 V supply with a common ground, a 330 Ohm resistor on data, and a 1000 uF capacitor across power.
-- **Vision:** paint the board matte dark gray, put ArUco `DICT_4X4_50` IDs 0 to 3 at the corners, and light it with our own lamp. When markers are hidden or more than 40% of the board changes at once (a hand in frame), freeze states.
+- **Vision:** mount the camera against the window glass and shade it to cut reflections. Test at night early. Mark 4 to 6 sidewalk segments as polygons on the camera image (`config/segments.json`). Freeze a segment when more than 40% of it changes at once (a person or vehicle in view). Never store frames that show people.
 
 ## Accessibility requirements (web; judges will check)
 

@@ -12,13 +12,13 @@ Do the following, one at a time. Plan each first.
    - ESP32-CAM `/capture` returns a JPEG under 1 s old
    - an ice-station message arrived in the last 5 s
    - the Arduino answers `P` with `OK`
-   - calibration markers are visible
+   - the camera view matches the marked segments
    - cloud `/health` responds
    - the WebSocket connects
    - a test push can be sent
    - the Vercel URL loads
    - the Render instance is warm
-2. **`scripts/demo_reset.py`.** Clears all hazards and reports, re-baselines vision, sets the LEDs to the clear route, centres the servo, and loads the saved route "Maya: Home to Clinic, wheelchair" for the demo phone.
+2. **`scripts/demo_reset.py`.** Clears all hazards and reports, re-baselines vision, and loads the saved route "Maya: Home to Clinic, wheelchair" for the demo phone.
 3. **`make local` offline mode.** The cloud API runs on the hub with SQLite and the same graph. The web app runs locally pointed at it. The edge points `CLOUD_URL` at localhost. Test it with Wi-Fi off. Write the switch-over steps in `DEMO.md` (target: under 60 s).
 4. **Timing.** Add an end-to-end latency measurement: the time from a camera threshold crossing to the web client receiving the event, logged to `edge/metrics.csv`. Report the median and the 95th percentile over 20 placements, for the pitch.
 5. **Rehearsal runbook (`DEMO.md`).**
@@ -29,6 +29,6 @@ Do the following, one at a time. Plan each first.
 6. **Freeze (hour 40).**
    - Tag `v1.0-demo`.
    - Record the backup video of the full demo.
-   - Generate the Devpost draft from README plus metrics, and list the honest limitations (miniature model, simulated snow, placeholder speeds, weather-based ice watch is a heuristic).
+   - Generate the Devpost draft from README plus metrics, and list the honest limitations (one camera on one street, conditions depend on the weather, placeholder speeds, the weather-based ice watch is a heuristic).
 
 **Rules from here:** bug fixes only, each on its own commit with a one-line reason. Run `demo_check` after every merge. If a fix risks the demo, don't ship it.

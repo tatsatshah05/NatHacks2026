@@ -4,11 +4,11 @@ Real-time accessible routing for winter sidewalks. Built for natHACKS 2026.
 
 ## What It Does
 
-PathSense uses a camera and sensors to detect snow, ice and obstructions on sidewalks. When a sidewalk becomes unsafe, it finds an accessible alternative route and notifies the people who use it. The demo runs on a model of real Edmonton streets.
+PathSense uses a camera and sensors to detect snow, ice and obstructions on sidewalks. When a sidewalk becomes unsafe, it finds an accessible alternative route and notifies the people who use it. The demo watches a real snowy sidewalk in Edmonton.
 
 ## How It Works
 
-- **Hardware:** a Raspberry Pi with a camera watches the model. An Arduino reads distance sensors and controls two servos.
+- **Hardware:** a Raspberry Pi with a camera watches a real sidewalk from a window. An Arduino reads a distance sensor at the curb cut.
 - **Vision:** the Pi identifies the condition of each sidewalk segment.
 - **Server:** a Python API on Render stores conditions and calculates routes.
 - **Web app:** a Next.js site on Vercel shows a live map, routes and notifications.
