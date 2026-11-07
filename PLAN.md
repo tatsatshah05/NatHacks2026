@@ -67,7 +67,7 @@ These personas are fictional and guide design decisions.
 | **Must** | City-wide routing for 4 profiles with up to 2 alternates, distance and minutes · route report from every Must source · LRT elevator and escalator outages · construction sidewalk closures · traffic disruptions · trail closures · 311 snow complaints · black-ice watch · road-condition vision model on public cameras · live updates · push alerts on saved routes · Google Maps and Apple Maps hand-off · address search · source freshness page · Replay mode · WCAG 2.2 AA |
 | **Should** | Snow-clearing status (plow passed, check curb ramps) · community reports with photo check · city dashboard with clear-first ranking · walk and LRT trips |
 | **Could** | Lit-route preference at night (streetlights) · nearest sandbox · 311 filing through Open311 · 511 road weather stations to calibrate the ice model · SMS alerts · French |
-| **Won't (this weekend)** | Hardware · native apps · writing data into Google or Apple Maps · storing camera images · scraping any site without permission |
+| **Won't (this weekend)** | Hardware · user accounts · native apps · writing data into Google or Apple Maps · storing camera images · scraping any site without permission |
 
 ## 6. Data Sources
 
@@ -942,7 +942,7 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-- Uptime checks on `/health` and `/api/status` (service chosen in decision D-2).
+- Uptime checks on `/health` and `/api/status` (service chosen in decision D-1).
 - Structured logs with one line per state change.
 - `docs/RUNBOOK.md` gives the fix for each known failure; `scripts/demo_check.py` prints green or red for each dependency.
 
@@ -1094,22 +1094,23 @@ Acceptance criteria:
 | A City dataset changes format or goes down | Medium | Pydantic validation, fixture tests, last-good cache, status page, data quality checks |
 | Wrong elevator-to-map matches | Medium | Manual table reviewed by two people; station-level warnings are always shown |
 | Overclaiming black-ice detection | Medium | Always say "ice risk", show confidence and source, publish the model card |
-| Render cold starts or free-tier limits during judging | Medium | Always-on instance or keep-warm (decision D-3); `demo_check` before judging |
+| Render cold starts or free-tier limits during judging | Medium | Always-on instance or keep-warm (decision D-2); `demo_check` before judging |
 | iOS push needs a home-screen install | High | Clear in-app guidance; test on Android and iOS |
 | Scope creep | Medium | Must before Should; feature freeze at hour 40 |
 
 ## 16. Open Decisions
 
-Discuss these in the Technical Spec comments; the lead decides by the time shown.
+Discuss these as a team; the lead records each decision in this table by the time shown.
 
 | ID | Decision | Recommendation | Decide by |
 | --- | --- | --- | --- |
-| D-1 | **User accounts.** Kashish has started login pages (`app/login`). | Launch without accounts: settings and saved routes stay on the device, and push uses an anonymous ID. This keeps privacy simple and removes auth risk. Add sign-in after launch if needed. | Hour 0 |
-| D-2 | Error tracking and uptime service (for example Sentry and UptimeRobot, both with free tiers) | Use both; they are free and quick to set up | Hour 10 |
-| D-3 | Render plan: always-on paid instances or free tier with keep-warm | Always-on for the API during judging; check current pricing first | Hour 22 |
-| D-4 | Training data: RSCD licence and 511 image terms | Use only what the terms allow; record it in `docs/DATA_SOURCES.md` | Hour 10 |
-| D-5 | Walk and LRT trips in version 1 | Build behind the `LRT_TRIPS` flag; keep it only if it passes its tests by hour 34 | Hour 22 |
-| D-6 | Open-Meteo commercial use (its free API is for non-commercial use) | Use Environment Canada as the primary source; buy an Open-Meteo plan before any commercial launch | After the hackathon |
+| D-1 | Error tracking and uptime service (for example Sentry and UptimeRobot, both with free tiers) | Use both; they are free and quick to set up | Hour 10 |
+| D-2 | Render plan: always-on paid instances or free tier with keep-warm | Always-on for the API during judging; check current pricing first | Hour 22 |
+| D-3 | Training data: RSCD licence and 511 image terms | Use only what the terms allow; record it in `docs/DATA_SOURCES.md` | Hour 10 |
+| D-4 | Walk and LRT trips in version 1 | Build behind the `LRT_TRIPS` flag; keep it only if it passes its tests by hour 34 | Hour 22 |
+| D-5 | Open-Meteo commercial use (its free API is for non-commercial use) | Use Environment Canada as the primary source; buy an Open-Meteo plan before any commercial launch | After the hackathon |
+
+**Decided:** version 1 has no user accounts (November 7). Settings and saved routes stay on the device, and push alerts use an anonymous ID.
 
 ## 17. Sources
 

@@ -65,7 +65,7 @@ gh pr create --title "PS-105: LRT elevator and escalator adapter" --body "Closes
 
 - **Stay in the current phase.** When your stories are done, help a teammate in the same phase.
 - **Check in.** 15-minute kickoff at each phase start; 5-minute stand-up every 4 hours (done, next, blocked); checkpoint review at each phase end.
-- **Agree before changing shared contracts.** Discuss changes to `config/`, `cloud/app/schemas.py` or the API in the Technical Spec comments first.
+- **Agree before changing shared contracts.** Discuss changes to `config/`, `cloud/app/schemas.py` or the API with the team first, and record the decision in PLAN.md.
 - **Use official data access only.** No scraping. City camera streams only with written permission.
 - **Protect privacy.** Never commit keys, secrets or images. Camera frames and report photos are never stored.
 - **Measure, never guess.** Every number in the app, the slides or the Devpost comes from a measurement or a cited source.

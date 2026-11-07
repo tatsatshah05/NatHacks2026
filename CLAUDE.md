@@ -5,7 +5,6 @@ PathSense plans accessible routes across Edmonton and lists every known barrier 
 - **Plan (source of truth for scope, architecture and stories):** [PLAN.md](PLAN.md), also as [PDF](docs/PathSense%20Plan.pdf)
 - **Live status of every story:** GitHub issues `PS-<id>`, labelled by person, phase, points and priority
 - **Repo:** https://github.com/tatsatshah05/NatHacks2026
-- **Technical Spec (team discussion in comments):** https://claude.ai/artifact/RXvZzsyhUkjnyc4ix92ZjE
 
 ## Team and phases
 
@@ -23,7 +22,7 @@ When working a story, stay inside its acceptance criteria. Do not build later-ph
 ## Priorities (apply to every task)
 
 1. **The live demo must never fail.** Reliability beats features. Every source has a timeout, retries and a last-good cache. A failed source never clears data and never breaks routing.
-2. **Contracts are shared.** Change `cloud/app/schemas.py`, `config/` or the API only after the team agrees in the Technical Spec comments. If a story seems to need a contract change, stop and say so.
+2. **Contracts are shared.** Change `cloud/app/schemas.py`, `config/` or the API only after the team agrees, and record the decision in PLAN.md. If a story seems to need a contract change, stop and say so.
 3. **Must, then Should, then Could** (PLAN.md section 5). Feature freeze at hour 40; bug fixes only after that.
 4. **Everything runs without keys.** `make dev` runs the full app locally from recorded fixtures. Never break it.
 5. **Small, working steps.** Plan first for any change that touches more than one file. Run `make test` after changes. `main` always passes.
@@ -164,7 +163,7 @@ docs/      DATA_SOURCES.md  ARCHITECTURE.md  RUNBOOK.md  PERFORMANCE.md  adr/  d
 
 ## Do not
 
-- Add accounts, auth providers, new services or state libraries without the lead's sign-off. Accounts are open decision D-1.
+- Add accounts, auth providers, new services or state libraries without the lead's sign-off. Version 1 has no user accounts (decided November 7).
 - Commit secrets, `.env`, API keys, model weights or images.
 - Scrape any website, use private endpoints, or use City camera streams without written permission.
 - Fake data in the demo path. Override endpoints are for testing and are labelled.
