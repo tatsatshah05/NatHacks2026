@@ -1,10 +1,10 @@
-# PathSense
+# OpenPath
 
 Every barrier between A and B, in one place. Accessible routing for Edmonton. Built for natHACKS 2026 by Team ClaudesPlan.
 
 ## What It Does
 
-Enter where you are and where you are going, and choose how you get around: wheelchair, walker or cane, low vision, or standard. PathSense finds the best route and lists every known barrier along it:
+Enter where you are and where you are going, and choose how you get around: wheelchair, walker or cane, low vision, or standard. OpenPath finds the best route and lists every known barrier along it:
 
 - **Indoor:** LRT elevators and escalators that are out of service
 - **Sidewalks and paths:** construction closures, trail closures, snow complaints and community reports
@@ -24,7 +24,7 @@ There is no hardware.
 
 ## How We Work
 
-The team works through four phases together. Each person owns about 8 story points per phase.
+The team works through four phases together. Each person owns about 8 story points per phase. Each phase has its own branch (`phase_1` to `phase_4`): pull requests go into the current phase branch, and each finished phase is released into `main`. Tatsat is the scrum master. Every pull request needs a passing CI run and an approval from Tatsat, Ipsa or Kashish.
 
 | Phase | Hours | Milestone |
 | --- | --- | --- |
@@ -42,12 +42,13 @@ Tatsat (lead), Ipsa, Estella, Kaleb, Matthew and Kashish.
 1. Read [PLAN.md](PLAN.md) for the product, architecture and backlog.
 2. Read [User Stories](docs/USER_STORIES.md) to see your stories, and [GUIDELINE.md](GUIDELINE.md) for the workflow.
 3. Find your stories under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) using your name label.
-4. See [CLAUDE.md](CLAUDE.md) for the technical rules Claude Code follows.
+4. Coding agents (Claude Code, Codex, Cursor, Copilot and others) follow [AGENTS.md](AGENTS.md), which holds the project context and rules.
 
 ## Documents
 
-- [PathSense Plan (PDF)](docs/PathSense%20Plan.pdf): the full plan, ready to share
-- [User Stories](docs/USER_STORIES.md) ([PDF](docs/PathSense%20User%20Stories.pdf)): all 53 user stories, who owns each one, and story points
+- [OpenPath Plan (PDF)](docs/OpenPath%20Plan.pdf): the full plan, ready to share
+- [CI/CD and Merge Rules](docs/CI_CD.md): checks, scrum master approval and deployment
+- [User Stories](docs/USER_STORIES.md) ([PDF](docs/OpenPath%20User%20Stories.pdf)): all 53 user stories, who owns each one, and story points
 - [Version 1 hardware design](docs/archive/v1-hardware/) (superseded)
 
 ## Data Attribution
