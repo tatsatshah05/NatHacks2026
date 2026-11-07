@@ -1,6 +1,6 @@
 # PathSense
 
-Real-time accessible routing for winter sidewalks. Built for natHACKS 2026 by Team ClaudesPlan.
+Every barrier between A and B, in one place. Accessible routing for Edmonton. Built for natHACKS 2026 by Team ClaudesPlan.
 
 ## What It Does
 
