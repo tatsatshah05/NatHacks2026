@@ -187,6 +187,8 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 
 ## Commands
 
+OP-109's standalone weather app: `.venv/bin/python -m uvicorn cloud.app.weather_app:create_app --factory --port 8001`; replay requires `DATA_MODE=replay` and `REPLAY_SNAPSHOT` pointing to the snapshot described in [Estella's weather guide](docs/ESTELLA_PHASE1.md).
+
 These live in the root Makefile and are available after OP-102.
 
 | Command | What it does |
