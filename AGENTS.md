@@ -19,7 +19,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
-- **November 7, 2026:** planning is complete and there is no application code yet. Phase 1 starts with OP-101 (contracts) and OP-102 (skeleton and CI), which create the folders described below.
+- **November 7, 2026:** planning is complete and there is no application code yet. Phase 1 starts with OP-101 (contracts) and OP-102 (skeleton), which create the folders described below.
+- **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
 ## Where to Find Context
@@ -30,6 +31,7 @@ Update this section whenever the status changes.
 | Every user story with its owner and story points | [docs/USER_STORIES.md](docs/USER_STORIES.md) |
 | Acceptance criteria and live status of a story | GitHub issues `OP-101` to `OP-414` (#29 to #81) |
 | Team workflow and Definition of Done | [GUIDELINE.md](GUIDELINE.md) |
+| CI checks, merge rules and deployment | [docs/CI_CD.md](docs/CI_CD.md) |
 | Data source details and licences (created in Phase 1) | `docs/DATA_SOURCES.md` |
 
 `PLAN.md` section 14 and `docs/USER_STORIES.md` are generated from the backlog. To change a story, edit its GitHub issue and tell the lead; do not edit those sections by hand.
@@ -38,7 +40,7 @@ Update this section whenever the status changes.
 
 | Person | GitHub | Label |
 | --- | --- | --- |
-| Tatsat (lead) | `tatsatshah05` | `person: Tatsat` |
+| Tatsat (lead and scrum master) | `tatsatshah05` | `person: Tatsat` |
 | Ipsa | `ipsamanhas` | `person: Ipsa` |
 | Estella | `estella1221` | `person: Estella` |
 | Kaleb | `kalebpham` | `person: Kaleb` |
@@ -81,9 +83,10 @@ Open decisions D-1 to D-5 are in PLAN.md section 16.
 2. Branch from `main` as `op-<id>-<short-name>`.
 3. For any change that touches more than one file, plan first. Stay inside the acceptance criteria, and do not build later-phase stories.
 4. Add tests and run `make test`.
-5. Open a pull request titled `OP-<id>: <story title>` with `Closes #<issue number>`. One teammate reviews it before merge.
-6. If the story needs a change to a shared contract, stop and ask the lead.
-7. If you add a command, an endpoint, an environment variable or a decision, update this file in the same pull request.
+5. Open a pull request titled `OP-<id>: <story title>` with `Closes #<issue number>`. Work outside a story uses a `docs:`, `chore:`, `ci:` or `fix:` title. CI checks the title, the link, the files, the Python code and the web app.
+6. The pull request merges only when `CI passed` is green and the scrum master (`@tatsatshah05`) approves. Merges are squash-only, and a merge to `main` deploys to production.
+7. If the story needs a change to a shared contract, stop and ask the lead.
+8. If you add a command, an endpoint, an environment variable or a decision, update this file in the same pull request.
 
 ## Priorities for Every Task
 
@@ -115,6 +118,7 @@ web/     Next.js on Vercel: planner, route report, alerts (PWA), city dashboard,
 
 ```
 PLAN.md  AGENTS.md  CLAUDE.md  GUIDELINE.md  README.md  Makefile  render.yaml  .env.example
+.github/   workflows/ci.yml  CODEOWNERS  pull_request_template.md  ISSUE_TEMPLATE/
 cloud/     app/{main,schemas,db,store,scheduler,status,matching,routing,report,search,weather,push,ws}.py
            app/adapters/  one file per source   data/ prebuilt walking network   tests/ (fixtures in tests/fixtures/)
 vision/    train.py  worker.py  tools/label.py  LABELS.md  MODEL_CARD.md  tests/
@@ -158,6 +162,7 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 - **Apple Maps:** `https://maps.apple.com/?saddr=LAT,LNG&daddr=LAT,LNG&dirflg=w`, and the UI notes that it may not keep the detour.
 
 **API:**
+- **Health:** `GET /health` returns `{"status": "ok", "version": "<git commit>"}` from `RENDER_GIT_COMMIT`. The deploy job waits for this version.
 - **Read:** `GET /health`, `/api/status`, `/api/obstructions?bbox=`, `/api/route?from=&to=&profile=&mode=walk|walk_lrt`, `/api/search?q=`, `/api/weather`, `/api/cameras`, `/api/priority`.
 - **Write:** `POST /api/reports`, `/api/push/subscribe`, `/api/saved-routes`, `/api/ingest/camera` (`X-Worker-Key`), `/api/admin/override` (`X-Admin-Key`, testing only).
 - **Live:** `WS /ws` with events `obstruction_changed`, `route_changed` and `source_status`.

@@ -39,8 +39,8 @@ Story points measure effort on the Fibonacci scale: 1, 2, 3, 5. As a rough team 
 3. Comment on the issue to show that you are working on it.
 4. Create a branch from `main` named `op-<id>-<short-name>`.
 5. Give the issue to your coding agent (Claude Code, Codex, Cursor or Copilot) as the task. Every agent follows [AGENTS.md](AGENTS.md).
-6. Open a pull request titled `OP-<id>: <story title>` that includes `Closes #<issue number>`, and ask a teammate to review it.
-7. Merge after the review and a passing CI run, then check the preview deploy.
+6. Open a pull request titled `OP-<id>: <story title>` that includes `Closes #<issue number>`. The template lists the Definition of Done.
+7. Wait for the `CI passed` check. The scrum master (Tatsat) reviews and approves. Turn on **Enable auto-merge**, and the pull request merges itself once both are green. See [docs/CI_CD.md](docs/CI_CD.md).
 
 ```bash
 git checkout main && git pull
@@ -55,7 +55,7 @@ gh pr create --title "OP-105: LRT elevator and escalator adapter" --body "Closes
 
 - All acceptance criteria are met
 - Tests are added and `make test` passes
-- One teammate has reviewed and approved the pull request
+- `CI passed` is green and the scrum master has approved the pull request
 - The preview deploy works
 - Documentation is updated
 - Any UI change passes the accessibility checklist in `web/ACCESSIBILITY.md`
@@ -63,6 +63,7 @@ gh pr create --title "OP-105: LRT elevator and escalator adapter" --body "Closes
 
 ## Team Rules
 
+- **Never push to `main`.** It is protected: every change goes through a pull request.
 - **Stay in the current phase.** When your stories are done, help a teammate in the same phase.
 - **Check in.** 15-minute kickoff at each phase start; 5-minute stand-up every 4 hours (done, next, blocked); checkpoint review at each phase end.
 - **Agree before changing shared contracts.** Discuss changes to `config/`, `cloud/app/schemas.py` or the API with the team first, and record the decision in PLAN.md.

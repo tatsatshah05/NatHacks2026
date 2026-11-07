@@ -24,7 +24,7 @@ There is no hardware.
 
 ## How We Work
 
-The team works through four phases together. Each person owns about 8 story points per phase.
+The team works through four phases together. Each person owns about 8 story points per phase. Tatsat is the scrum master: every pull request into `main` needs a passing CI run and Tatsat's approval.
 
 | Phase | Hours | Milestone |
 | --- | --- | --- |
@@ -47,6 +47,7 @@ Tatsat (lead), Ipsa, Estella, Kaleb, Matthew and Kashish.
 ## Documents
 
 - [OpenPath Plan (PDF)](docs/OpenPath%20Plan.pdf): the full plan, ready to share
+- [CI/CD and Merge Rules](docs/CI_CD.md): checks, scrum master approval and deployment
 - [User Stories](docs/USER_STORIES.md) ([PDF](docs/OpenPath%20User%20Stories.pdf)): all 53 user stories, who owns each one, and story points
 - [Version 1 hardware design](docs/archive/v1-hardware/) (superseded)
 

@@ -329,7 +329,7 @@ Each person plans for about 8 points per phase, which leaves time for reviews, h
 - Any UI change passes the accessibility checklist
 - No secrets or images are committed
 
-**Workflow:** branch `op-<id>-<short-name>` from `main` → commit → pull request titled `OP-<id>: <story title>` with `Closes #<issue>` → review → merge. See [GUIDELINE.md](GUIDELINE.md).
+**Workflow:** branch `op-<id>-<short-name>` from `main` → commit → pull request titled `OP-<id>: <story title>` with `Closes #<issue>` → `CI passed` → scrum master approval → squash merge → automatic deploy. See [GUIDELINE.md](GUIDELINE.md) and [docs/CI_CD.md](docs/CI_CD.md).
 
 **Check-ins:**
 - 15-minute kickoff at the start of each phase
@@ -399,7 +399,8 @@ Acceptance criteria:
 
 - Repository layout matches PLAN.md section 9; hardware folders are removed.
 - FastAPI on Render with `GET /health`, Postgres on Render, Next.js on Vercel; every variable is listed in `.env.example`.
-- GitHub Actions runs lint, typecheck, tests and build on every pull request; `main` requires a passing run and one review.
+- The existing CI pipeline (`.github/workflows/ci.yml`) passes for the skeleton: `ruff`, `pytest`, `npm run lint`, `npm run typecheck` and `npm run build`.
+- `GET /health` returns `{"status": "ok", "version": "<git commit>"}` from `RENDER_GIT_COMMIT`; Render auto-deploy is off and the deploy hooks, `API_URL` and `WEB_URL` are set up as in `docs/CI_CD.md`.
 - `make dev` runs the API and web app locally from recorded fixtures, with no API keys.
 
 #### OP-103: Source scheduler and status page
