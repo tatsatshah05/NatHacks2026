@@ -1,4 +1,4 @@
 -r requirements.txt
-pytest==9.2.0
+pytest>=8
+# The same ruff version CI pins.
 ruff==0.17.4
-httpx==0.28.1

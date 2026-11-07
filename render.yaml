@@ -1,7 +1,7 @@
 # Render Blueprint: the OpenPath API and its Postgres database.
 # Plans are free tier until decision D-2 (PLAN.md section 16) picks always-on instances.
 # The vision worker (OP-204) is added here as a background worker when it exists.
-# Render sets RENDER_GIT_COMMIT itself; /health reports it as `version`.
+# Render sets RENDER_GIT_COMMIT itself; /health reports it as `version`, and DATA_MODE as `mode`.
 
 services:
   - type: web
