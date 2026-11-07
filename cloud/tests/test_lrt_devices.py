@@ -1,4 +1,8 @@
-"""Recorded City data plus explicit mutations for cases absent in the snapshot."""
+"""Check outage status, station matching, timestamps and failure recovery.
+
+Use recorded City responses and small edited copies for edge cases. Every
+test blocks network access so results do not depend on the live City feed.
+"""
 
 import json
 import sys

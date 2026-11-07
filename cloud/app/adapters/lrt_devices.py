@@ -1,4 +1,8 @@
-"""OP-105: fetch official LRT outages without depending on the pending app skeleton.
+"""OP-105: help travelers avoid broken LRT elevators and escalators.
+
+Read City outages, add device details and station locations, and return map
+records. Elevator outages block access; escalator outages add a caution.
+Keep the last working data when a fetch fails.
 
 Output dictionaries follow PLAN.md section 10. The shared SourceAdapter/Obstruction
 integration belongs to OP-101; this module does not define a competing schema.
@@ -66,6 +70,7 @@ class SocrataReader:
         self.sleep = sleep
 
     def read(self, dataset: str) -> list[Row]:
+        """Download every page so larger City feeds are not cut off."""
         order = {
             OUTAGES: "device_id",
             DEVICES: "device_id",
@@ -91,10 +96,12 @@ class SocrataReader:
             )
             page = self._request(request)
             rows.extend(page)
+            # A short page marks the end of the dataset.
             if len(page) < self.page_size:
                 return rows
 
     def _request(self, request: Request) -> list[Row]:
+        """Retry temporary failures; let permanent errors reach the caller."""
         for attempt in range(self.retries + 1):
             try:
                 with urlopen(request, timeout=self.timeout_s) as response:
@@ -126,10 +133,12 @@ def _required(row: Row, field: str) -> str:
 
 
 def _instant(value: str, source_timezone: tzinfo) -> datetime:
+    """Convert a source timestamp to UTC using the explicitly supplied timezone."""
     try:
         parsed = datetime.fromisoformat(value)
         if parsed.tzinfo is None:
             local = parsed.replace(tzinfo=source_timezone)
+            # Reject times that need a daylight-saving offset we cannot confirm.
             if local.utcoffset() != local.replace(fold=1).utcoffset():
                 raise ValueError("Ambiguous or nonexistent local timestamp")
             parsed = local
@@ -151,6 +160,7 @@ def _station_key(name: str) -> str:
 
 
 def _coordinates(station: Row) -> list[float]:
+    """Return the City's coordinates in GeoJSON order: longitude, latitude."""
     try:
         lon = float(station["longitude"])
         lat = float(station["latitude"])
@@ -203,6 +213,7 @@ def normalize_outages(
     for outage in outages:
         device_id = _required(outage, "device_id")
         code = _required(outage, "device_op_status_code")
+        # City status 0 means in service; only status 1 represents an outage.
         if code == "0":
             continue
         if code != "1":
@@ -224,6 +235,7 @@ def normalize_outages(
         if since > observed:
             raise FeedError(f"Outage starts after observation for device {device_id}")
         location = _required(row, "lrt_device_location")
+        # Keep the City's observation time so another download cannot refresh old data.
         result.append(
             {
                 "id": f"{SOURCE}:{device_id}",
@@ -267,9 +279,11 @@ class LrtDevicesAdapter:
 
     @property
     def last_good(self) -> list[Row]:
+        """Return a copy so callers cannot change the saved snapshot."""
         return deepcopy(self._last_good)
 
     def fetch(self, *, now: datetime | None = None) -> list[Row]:
+        """Refresh outages every two minutes and device/station lookups daily."""
         now = now or datetime.now(UTC)
         if now.tzinfo is None:
             raise ValueError("now must include a timezone")
@@ -294,6 +308,7 @@ class LrtDevicesAdapter:
         except FeedError as exc:
             self.last_error = str(exc)
             raise
+        # Save the new data only after every required read and conversion succeeds.
         self._devices, self._stations = deepcopy(devices), deepcopy(stations)
         if refresh:
             self._lookup_success = now
@@ -304,6 +319,7 @@ class LrtDevicesAdapter:
 
 
 def main() -> None:
+    """Preview recorded or live outages without writing to the application."""
     parser = argparse.ArgumentParser(description="Preview OP-105 LRT obstructions")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument(
