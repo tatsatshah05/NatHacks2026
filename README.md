@@ -36,5 +36,6 @@ Tatsat, Ipsa, Estella, Kaleb, Matthew and Kashish.
 
 ## Documents
 
+- [Work Divided](docs/Work%20Divided.docx): phases, flowcharts and who does what, in order (Word document)
 - [Technical Spec](https://claude.ai/artifact/RXvZzsyhUkjnyc4ix92ZjE) (team access)
 - [Team Plan](https://claude.ai/artifact/D7hBPDBBxcMad9je8PTQ63) (team access)
