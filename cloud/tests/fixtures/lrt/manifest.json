@@ -1,0 +1,30 @@
+{
+  "attribution": "City of Edmonton Open Data",
+  "timezone": "Not identified by source metadata; explicit caller setting required",
+  "files": [
+    {
+      "file": "outages.json",
+      "dataset": "snws-u3zx",
+      "url": "https://data.edmonton.ca/resource/snws-u3zx.json?$limit=1000",
+      "captured_at": "2026-11-07T21:05:17.175205+00:00",
+      "rows": 7,
+      "sha256": "f4b628d28cb5697d8c541729e83f9537b4df52242d2b28e860f357009f7c21f1"
+    },
+    {
+      "file": "devices.json",
+      "dataset": "javh-pjj2",
+      "url": "https://data.edmonton.ca/resource/javh-pjj2.json?$limit=1000",
+      "captured_at": "2026-11-07T21:05:17.441071+00:00",
+      "rows": 73,
+      "sha256": "dab55818a3d579a14adaf68a37dd7e2aa3946af4b07e1ae0b9856c0e2c1a6a5d"
+    },
+    {
+      "file": "stations.json",
+      "dataset": "fhxi-cnhe",
+      "url": "https://data.edmonton.ca/resource/fhxi-cnhe.json?$limit=1000",
+      "captured_at": "2026-11-07T21:05:17.624726+00:00",
+      "rows": 54,
+      "sha256": "4b92a34b645052ddc54b19d779f30ee49e0b83bb8e037084c508a6ba8a7e1b03"
+    }
+  ]
+}
