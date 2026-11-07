@@ -47,12 +47,16 @@ def feeds() -> Feeds:
     }
 
 
-def normalize(feeds: Feeds) -> list[lrt.Row]:
+def normalize(
+    feeds: Feeds, *, now: datetime = NOW, diagnostics: lrt.RowDiagnostics | None = None
+) -> list[lrt.Row]:
     return lrt.normalize_outages(
         feeds[lrt.OUTAGES],
         feeds[lrt.DEVICES],
         feeds[lrt.STATIONS],
+        observed_at=now,
         source_timezone=EDMONTON,
+        diagnostics=diagnostics,
     )
 
 
@@ -71,7 +75,8 @@ def test_recorded_outages_have_station_coordinates_and_provenance(feeds: Feeds) 
         assert tuple(item["geometry"]["coordinates"]) in city_coordinates
         assert item["url"] == "https://data.edmonton.ca/d/snws-u3zx"
         assert item["attribution"] == "City of Edmonton Open Data"
-        assert "since " in item["detail"]
+        assert "since " not in item["detail"]
+        assert item["starts_at"].endswith("Z")
 
 
 def test_master_status_never_creates_an_outage(feeds: Feeds) -> None:
@@ -146,7 +151,7 @@ def test_churchill_prefers_station_over_surface_stop(feeds: Feeds) -> None:
     assert item["geometry"]["coordinates"][0] == float(station["longitude"])
 
 
-def test_timestamps_use_explicit_timezone_and_do_not_refresh_old_observations(
+def test_start_uses_source_timezone_but_freshness_uses_our_fetch_time(
     feeds: Feeds,
 ) -> None:
     feeds[lrt.OUTAGES] = [feeds[lrt.OUTAGES][0]]
@@ -155,8 +160,8 @@ def test_timestamps_use_explicit_timezone_and_do_not_refresh_old_observations(
     feeds[lrt.OUTAGES][0]["polled_time_stamp"] = "2024-11-07T15:03:03.000"
     item = normalize(feeds)[0]
     assert item["starts_at"] == "2024-07-30T21:09:03Z"  # Daylight time
-    assert item["observed_at"] == "2024-11-07T22:03:03Z"  # Standard time
-    assert item["expires_at"] == "2024-11-07T22:13:03Z"
+    assert item["observed_at"] == "2026-11-07T23:00:00Z"
+    assert item["expires_at"] == "2026-11-07T23:10:00Z"
 
 
 def test_explicit_timestamp_offsets_are_preserved(feeds: Feeds) -> None:
@@ -168,18 +173,20 @@ def test_explicit_timestamp_offsets_are_preserved(feeds: Feeds) -> None:
 @pytest.mark.parametrize(
     "value", ["not-a-date", "2024-11-03T01:30:00", "2024-03-10T02:30:00"]
 )
-def test_invalid_or_ambiguous_timestamps_fail_snapshot(
+def test_invalid_or_ambiguous_timestamp_skips_only_its_row(
     feeds: Feeds, value: str
 ) -> None:
     feeds[lrt.OUTAGES][0]["since_time_stamp"] = value
-    with pytest.raises(lrt.FeedError, match="timestamp"):
-        normalize(feeds)
+    diagnostics = lrt.RowDiagnostics()
+    assert len(normalize(feeds, diagnostics=diagnostics)) == len(feeds[lrt.OUTAGES]) - 1
+    assert "timestamp" in diagnostics.issues[0].message
 
 
-def test_outage_start_after_observation_fails(feeds: Feeds) -> None:
+def test_outage_start_after_observation_skips_only_its_row(feeds: Feeds) -> None:
     feeds[lrt.OUTAGES][0]["since_time_stamp"] = "2099-01-01T00:00:00Z"
-    with pytest.raises(lrt.FeedError, match="starts after"):
-        normalize(feeds)
+    diagnostics = lrt.RowDiagnostics()
+    assert len(normalize(feeds, diagnostics=diagnostics)) == len(feeds[lrt.OUTAGES]) - 1
+    assert "starts after" in diagnostics.issues[0].message
 
 
 @pytest.mark.parametrize(
@@ -187,32 +194,43 @@ def test_outage_start_after_observation_fails(feeds: Feeds) -> None:
     [
         ("device_id", None, "device_id"),
         ("since_time_stamp", None, "since_time_stamp"),
-        ("polled_time_stamp", None, "polled_time_stamp"),
         ("device_op_status_code", "7", "status code"),
         ("device_type", "Travelator", "device type"),
         ("lrt_station_name", "Unknown Station", "No City station"),
     ],
 )
-def test_changed_schema_or_unknown_records_fail_instead_of_silently_clearing(
-    feeds: Feeds, field: str, value: str | None, message: str
+def test_bad_row_is_logged_and_other_outages_still_flow(
+    feeds: Feeds,
+    field: str,
+    value: str | None,
+    message: str,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     feeds[lrt.OUTAGES][0][field] = value
-    with pytest.raises(lrt.FeedError, match=message):
-        normalize(feeds)
+    diagnostics = lrt.RowDiagnostics()
+    result = normalize(feeds, diagnostics=diagnostics)
+    assert len(result) == len(feeds[lrt.OUTAGES]) - 1
+    assert len(diagnostics.issues) == 1
+    assert message in diagnostics.issues[0].message
+    assert message in caplog.text
 
 
 @pytest.mark.parametrize("value", ["NaN", "Infinity", "not-a-number", "181"])
 def test_invalid_station_coordinates_fail(feeds: Feeds, value: str) -> None:
     for station in feeds[lrt.STATIONS]:
         station["longitude"] = value
-    with pytest.raises(lrt.FeedError, match="coordinates"):
+    with pytest.raises(lrt.FeedError, match="no valid rows"):
         normalize(feeds)
 
 
-def test_duplicate_outages_fail(feeds: Feeds) -> None:
+def test_duplicate_outage_is_logged_without_dropping_other_outages(
+    feeds: Feeds,
+) -> None:
+    expected = normalize(feeds)
     feeds[lrt.OUTAGES].append(deepcopy(feeds[lrt.OUTAGES][0]))
-    with pytest.raises(lrt.FeedError, match="Duplicate"):
-        normalize(feeds)
+    diagnostics = lrt.RowDiagnostics()
+    assert normalize(feeds, diagnostics=diagnostics) == expected
+    assert "Duplicate" in diagnostics.issues[0].message
 
 
 def test_in_service_record_is_not_an_obstruction(feeds: Feeds) -> None:
@@ -241,27 +259,32 @@ class FakeReader:
         return deepcopy(self.feeds[dataset])
 
 
-def test_poll_every_two_minutes_and_refresh_lookups_daily(feeds: Feeds) -> None:
+def test_scheduler_owns_poll_timing_while_lookups_refresh_daily(feeds: Feeds) -> None:
     reader = FakeReader(feeds)
     adapter = lrt.LrtDevicesAdapter(reader, source_timezone=EDMONTON)
     initial = adapter.fetch(now=NOW)
     assert reader.calls == [lrt.DEVICES, lrt.STATIONS, lrt.OUTAGES]
-    assert adapter.fetch(now=NOW + timedelta(seconds=119)) == initial
-    assert len(reader.calls) == 3
-    adapter.fetch(now=NOW + timedelta(minutes=2))
+    cached_devices, cached_stations = adapter._devices, adapter._stations
+    second = adapter.fetch(now=NOW + timedelta(seconds=119))
+    assert len(second) == len(initial)
+    assert second[0]["observed_at"] != initial[0]["observed_at"]
     assert reader.calls[3:] == [lrt.OUTAGES]
+    assert adapter._devices is cached_devices and adapter._stations is cached_stations
+    assert adapter.source == lrt.SOURCE
+    assert adapter.cadence_s == 120
+    adapter.fetch(now=NOW + timedelta(minutes=2))
+    assert reader.calls[3:] == [lrt.OUTAGES, lrt.OUTAGES]
     adapter.fetch(now=NOW + timedelta(days=1))
-    assert reader.calls[4:] == [lrt.DEVICES, lrt.STATIONS, lrt.OUTAGES]
+    assert reader.calls[5:] == [lrt.DEVICES, lrt.STATIONS, lrt.OUTAGES]
 
 
-@pytest.mark.parametrize("failed_dataset", [lrt.OUTAGES, lrt.DEVICES, lrt.STATIONS])
 def test_failure_preserves_last_good_data_and_freshness(
-    feeds: Feeds, failed_dataset: str
+    feeds: Feeds,
 ) -> None:
     reader = FakeReader(feeds)
     adapter = lrt.LrtDevicesAdapter(reader, source_timezone=EDMONTON)
     initial = adapter.fetch(now=NOW)
-    reader.fail = failed_dataset
+    reader.fail = lrt.OUTAGES
     with pytest.raises(lrt.FeedError):
         adapter.fetch(now=NOW + timedelta(days=1))
     assert adapter.last_good == initial
@@ -273,15 +296,29 @@ def test_failure_preserves_last_good_data_and_freshness(
     assert adapter.last_success == NOW + timedelta(days=1, seconds=1)
 
 
-def test_invalid_schema_preserves_previous_snapshot(feeds: Feeds) -> None:
+def test_bad_row_retains_its_last_good_outage_without_stalling_valid_rows(
+    feeds: Feeds,
+) -> None:
     reader = FakeReader(feeds)
     adapter = lrt.LrtDevicesAdapter(reader, source_timezone=EDMONTON)
     initial = adapter.fetch(now=NOW)
+    bad_id = feeds[lrt.OUTAGES][0]["device_id"]
     del feeds[lrt.OUTAGES][0]["since_time_stamp"]
-    with pytest.raises(lrt.FeedError):
-        adapter.fetch(now=NOW + timedelta(minutes=2))
-    assert adapter.last_good == initial
-    assert adapter.last_success == NOW
+    updated = adapter.fetch(now=NOW + timedelta(minutes=2))
+    assert len(updated) == len(initial)
+    previous = next(item for item in initial if item["source_ref"] == bad_id)
+    assert next(item for item in updated if item["source_ref"] == bad_id) == previous
+    assert all(
+        item["observed_at"] == "2026-11-07T23:02:00Z"
+        for item in updated
+        if item["source_ref"] != bad_id
+    )
+    assert adapter.last_success == NOW + timedelta(minutes=2)
+    assert adapter.last_error == "Skipped 1 invalid row"
+    feeds[lrt.OUTAGES] = feeds[lrt.OUTAGES][1:]
+    resolved = adapter.fetch(now=NOW + timedelta(minutes=4))
+    assert bad_id not in {item["source_ref"] for item in resolved}
+    assert adapter.last_error is None
 
 
 def test_successful_empty_feed_clears_previous_outages(feeds: Feeds) -> None:
@@ -342,10 +379,9 @@ def test_http_pagination_token_ordering_and_timeout(
         IncompleteRead(b"partial"),
     ],
 )
-def test_http_failure_has_three_retries_with_backoff(
+def test_http_failure_is_attempted_once_for_the_scheduler_to_retry(
     monkeypatch: pytest.MonkeyPatch, error: Exception
 ) -> None:
-    sleeps = []
     calls = []
 
     def failed_open(*args: object, **kwargs: object) -> None:
@@ -353,41 +389,44 @@ def test_http_failure_has_three_retries_with_backoff(
         raise error
 
     monkeypatch.setattr(lrt, "urlopen", failed_open)
-    reader = lrt.SocrataReader(sleep=sleeps.append)
+    reader = lrt.SocrataReader()
     with pytest.raises(lrt.FeedError):
         reader.read(lrt.OUTAGES)
-    assert len(calls) == 4
-    assert sleeps == [1, 2, 4]
+    assert len(calls) == 1
 
 
-def test_rate_limit_then_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    sleeps = []
+def test_rate_limit_is_passed_to_scheduler_before_a_later_call_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     calls = []
 
     def fake_open(*args: object, **kwargs: object) -> BytesIO:
         calls.append(True)
         if len(calls) == 1:
-            raise HTTPError("x", 429, "rate limited", {}, None)
+            raise HTTPError("x", 429, "rate limited", {"Retry-After": "120"}, None)
         return BytesIO(b"[]")
 
     monkeypatch.setattr(lrt, "urlopen", fake_open)
-    assert lrt.SocrataReader(sleep=sleeps.append).read(lrt.OUTAGES) == []
-    assert sleeps == [1]
+    reader = lrt.SocrataReader()
+    with pytest.raises(lrt.FeedError) as error:
+        reader.read(lrt.OUTAGES)
+    assert error.value.retry_after_s == 120
+    assert len(calls) == 1
+    assert reader.read(lrt.OUTAGES) == []
+    assert len(calls) == 2
 
 
 def test_permanent_http_error_does_not_retry_or_leak_token(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    sleeps = []
 
     def failed_open(*args: object, **kwargs: object) -> None:
         raise HTTPError("x", 403, "Forbidden", {}, None)
 
     monkeypatch.setattr(lrt, "urlopen", failed_open)
     with pytest.raises(lrt.FeedError, match="HTTP 403") as error:
-        lrt.SocrataReader("secret-token", sleep=sleeps.append).read(lrt.OUTAGES)
+        lrt.SocrataReader("secret-token").read(lrt.OUTAGES)
     assert "secret-token" not in str(error.value)
-    assert not sleeps
 
 
 @pytest.mark.parametrize(
@@ -413,6 +452,8 @@ def test_offline_cli_labels_replay_and_timezone_assumption(
             str(FIXTURES),
             "--source-timezone",
             "America/Edmonton",
+            "--at",
+            NOW.isoformat(),
         ],
     )
     lrt.main()
@@ -420,6 +461,9 @@ def test_offline_cli_labels_replay_and_timezone_assumption(
     assert result["mode"] == "replay"
     assert result["source_timezone_assumption"] == "America/Edmonton"
     assert result["obstructions"]
+    assert all(
+        item["observed_at"] == "2026-11-07T23:00:00Z" for item in result["obstructions"]
+    )
 
 
 def test_cli_requires_an_explicit_timezone(monkeypatch: pytest.MonkeyPatch) -> None:

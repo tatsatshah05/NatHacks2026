@@ -12,13 +12,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import math
 import os
 import re
-import time
 from collections.abc import Callable
 from copy import deepcopy
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, tzinfo
+from email.utils import parsedate_to_datetime
 from http.client import HTTPException
 from pathlib import Path
 from typing import Any, Protocol
@@ -33,14 +35,65 @@ DEVICES = "javh-pjj2"
 STATIONS = "fhxi-cnhe"
 POLL_INTERVAL = timedelta(minutes=2)
 LOOKUP_INTERVAL = timedelta(days=1)
-# PLAN.md's example gives an observation a ten-minute lifetime. Confirm this
-# default when integrating with the shared scheduler/store (OP-101/OP-103).
+# Each successful fetch confirms the outage for another ten minutes. The City's
+# own poll timestamp can be much older and must not shorten that lifetime.
 DEFAULT_LIFETIME = timedelta(minutes=10)
 Row = dict[str, Any]
+LOGGER = logging.getLogger(__name__)
 
 
 class FeedError(ValueError):
     """A feed could not be fetched or safely converted; retain previous data."""
+
+    def __init__(self, message: str, *, retry_after_s: float | None = None) -> None:
+        super().__init__(message)
+        # OP-103 owns retry timing. Carry the server's delay without sleeping here.
+        self.retry_after_s = retry_after_s
+
+
+@dataclass(frozen=True)
+class RowIssue:
+    dataset: str
+    row_number: int
+    device_id: str | None
+    message: str
+
+
+@dataclass
+class RowDiagnostics:
+    issues: list[RowIssue] = field(default_factory=list)
+    cleared_device_ids: set[str] = field(default_factory=set)
+    valid_outage_rows: int = 0
+
+    def skip(self, dataset: str, index: int, row: Row, error: ValueError) -> None:
+        device_id = str(row["device_id"]).strip() if row.get("device_id") else None
+        issue = RowIssue(dataset, index, device_id, str(error))
+        self.issues.append(issue)
+        LOGGER.warning(
+            "Skipping %s row %s (device %s): %s",
+            dataset,
+            index,
+            device_id or "unknown",
+            error,
+        )
+
+
+def _utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        raise ValueError("Fetch time must include a timezone")
+    return value.astimezone(UTC)
+
+
+def _retry_after(value: str | None, now: datetime) -> float | None:
+    if not value:
+        return None
+    try:
+        if value.strip().isdigit():
+            return float(value)
+        retry_at = parsedate_to_datetime(value)
+        return max(0.0, (_utc(retry_at) - _utc(now)).total_seconds())
+    except (TypeError, ValueError, OverflowError):
+        return None
 
 
 class DatasetReader(Protocol):
@@ -50,24 +103,22 @@ class DatasetReader(Protocol):
 
 
 class SocrataReader:
-    """Read complete datasets with bounded requests, retries and an app token."""
+    """Read complete datasets once per call; the scheduler owns retries."""
 
     def __init__(
         self,
         app_token: str | None = None,
         *,
         timeout_s: float = 10,
-        retries: int = 3,
         page_size: int = 1000,
-        sleep: Callable[[float], None] = time.sleep,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
-        if timeout_s <= 0 or retries < 0 or page_size <= 0:
-            raise ValueError("Invalid HTTP timeout, retry count or page size")
+        if timeout_s <= 0 or page_size <= 0:
+            raise ValueError("Invalid HTTP timeout or page size")
         self.app_token = app_token
         self.timeout_s = timeout_s
-        self.retries = retries
         self.page_size = page_size
-        self.sleep = sleep
+        self.clock = clock
 
     def read(self, dataset: str) -> list[Row]:
         """Download every page so larger City feeds are not cut off."""
@@ -101,22 +152,21 @@ class SocrataReader:
                 return rows
 
     def _request(self, request: Request) -> list[Row]:
-        """Retry temporary failures; let permanent errors reach the caller."""
-        for attempt in range(self.retries + 1):
-            try:
-                with urlopen(request, timeout=self.timeout_s) as response:
-                    return _rows(json.load(response))
-            except HTTPError as exc:
-                retryable = exc.code == 429 or 500 <= exc.code < 600
-                if not retryable or attempt == self.retries:
-                    raise FeedError(f"LRT feed HTTP {exc.code}") from exc
-            except (URLError, TimeoutError, OSError, HTTPException) as exc:
-                if attempt == self.retries:
-                    raise FeedError("LRT feed unavailable after retries") from exc
-            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-                raise FeedError("LRT feed returned invalid JSON") from exc
-            self.sleep(2**attempt)
-        raise AssertionError("Retry loop exhausted without a result")
+        """Make one bounded request and pass retry guidance to OP-103."""
+        try:
+            with urlopen(request, timeout=self.timeout_s) as response:
+                return _rows(json.load(response))
+        except HTTPError as exc:
+            delay = (
+                _retry_after(exc.headers.get("Retry-After"), self.clock())
+                if exc.code == 429 and exc.headers
+                else None
+            )
+            raise FeedError(f"LRT feed HTTP {exc.code}", retry_after_s=delay) from exc
+        except (URLError, TimeoutError, OSError, HTTPException) as exc:
+            raise FeedError("LRT feed unavailable") from exc
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise FeedError("LRT feed returned invalid JSON") from exc
 
 
 def _rows(value: Any) -> list[Row]:
@@ -173,26 +223,52 @@ def _coordinates(station: Row) -> list[float]:
         raise FeedError("Invalid LRT station coordinates") from exc
 
 
+def _valid_lookup_rows(
+    dataset: str, rows: list[Row], diagnostics: RowDiagnostics
+) -> list[Row]:
+    valid = []
+    for index, row in enumerate(_rows(rows), start=1):
+        try:
+            if dataset == DEVICES:
+                _required(row, "device_id")
+            else:
+                _required(row, "lrt_stop_description")
+                int(_required(row, "lrt_stop_number"))
+                _coordinates(row)
+            valid.append(row)
+        except ValueError as exc:
+            diagnostics.skip(dataset, index, row, exc)
+    if not valid:
+        raise FeedError(f"LRT lookup {dataset} has no valid rows")
+    return valid
+
+
 def normalize_outages(
     outages: list[Row],
     devices: list[Row],
     stations: list[Row],
     *,
+    observed_at: datetime,
     source_timezone: tzinfo,
     lifetime: timedelta = DEFAULT_LIFETIME,
+    diagnostics: RowDiagnostics | None = None,
 ) -> list[Row]:
-    """Translate an entire successful snapshot; fail rather than silently lose rows.
+    """Convert valid rows and report bad rows without discarding other outages.
 
     Only the outage feed can create an obstruction. Station coordinates are a
     representative station point, not a verified elevator/entrance position.
     """
     if lifetime <= timedelta(0):
         raise ValueError("Observation lifetime must be positive")
+    observed_at = _utc(observed_at)
+    diagnostics = diagnostics if diagnostics is not None else RowDiagnostics()
     _rows(outages)
     _rows(devices)
     _rows(stations)
     if not devices or not stations:
         raise FeedError("LRT lookup datasets must not be empty")
+    devices = _valid_lookup_rows(DEVICES, devices, diagnostics)
+    stations = _valid_lookup_rows(STATIONS, stations, diagnostics)
     device_by_id = {_required(row, "device_id"): row for row in devices}
     station_by_name: dict[str, Row] = {}
     # Multiple stops can represent a station. Prefer a Station over a Stop
@@ -201,7 +277,7 @@ def normalize_outages(
         stations,
         key=lambda row: (
             not _required(row, "lrt_stop_description").casefold().endswith("station"),
-            _required(row, "lrt_stop_number"),
+            int(_required(row, "lrt_stop_number")),
         ),
     )
     for station in ordered_stations:
@@ -210,69 +286,103 @@ def normalize_outages(
 
     result: list[Row] = []
     seen: set[str] = set()
-    for outage in outages:
-        device_id = _required(outage, "device_id")
-        code = _required(outage, "device_op_status_code")
-        # City status 0 means in service; only status 1 represents an outage.
-        if code == "0":
-            continue
-        if code != "1":
-            raise FeedError(f"Unknown LRT status code for device {device_id}")
-        if device_id in seen:
-            raise FeedError(f"Duplicate LRT outage for device {device_id}")
-        seen.add(device_id)
-        # Master fields fill missing metadata only; never use its live status.
-        row = {**device_by_id.get(device_id, {}), **outage}
-        device_type = _required(row, "device_type").casefold()
-        if device_type not in {"elevator", "escalator"}:
-            raise FeedError(f"Unknown LRT device type for {device_id}")
-        station_name = _required(row, "lrt_station_name")
-        station = station_by_name.get(_station_key(station_name))
-        if station is None:
-            raise FeedError(f"No City station coordinates for {station_name}")
-        since = _instant(_required(outage, "since_time_stamp"), source_timezone)
-        observed = _instant(_required(outage, "polled_time_stamp"), source_timezone)
-        if since > observed:
-            raise FeedError(f"Outage starts after observation for device {device_id}")
-        location = _required(row, "lrt_device_location")
-        # Keep the City's observation time so another download cannot refresh old data.
-        result.append(
-            {
-                "id": f"{SOURCE}:{device_id}",
-                "source": SOURCE,
-                "source_ref": device_id,
-                "category": "indoor",
-                "kind": f"{device_type}_out",
-                "effect": "blocked" if device_type == "elevator" else "caution",
-                "title": f"{device_type.capitalize()} out of service",
-                "detail": f"{station_name}, {location}; since {_iso(since)}",
-                "geometry": {"type": "Point", "coordinates": _coordinates(station)},
-                "confidence": "high",
-                "starts_at": _iso(since),
-                "ends_at": None,
-                "observed_at": _iso(observed),
-                "expires_at": _iso(observed + lifetime),
-                "url": f"https://data.edmonton.ca/d/{OUTAGES}",
-                "attribution": "City of Edmonton Open Data",
-            }
+    for index, outage in enumerate(outages, start=1):
+        try:
+            item = _normalize_outage(
+                outage,
+                device_by_id,
+                station_by_name,
+                source_timezone,
+                observed_at,
+                lifetime,
+            )
+            device_id = _required(outage, "device_id")
+            if device_id in seen:
+                raise FeedError(f"Duplicate LRT outage for device {device_id}")
+            seen.add(device_id)
+            diagnostics.valid_outage_rows += 1
+            if item is None:
+                diagnostics.cleared_device_ids.add(device_id)
+            else:
+                result.append(item)
+        except FeedError as exc:
+            diagnostics.skip(OUTAGES, index, outage, exc)
+    if outages and diagnostics.valid_outage_rows == 0:
+        raise FeedError(
+            f"All {len(outages)} outage rows were invalid; keep last-good data"
         )
     return sorted(result, key=lambda row: row["source_ref"])
+
+
+def _normalize_outage(
+    outage: Row,
+    device_by_id: dict[str, Row],
+    station_by_name: dict[str, Row],
+    source_timezone: tzinfo,
+    observed_at: datetime,
+    lifetime: timedelta,
+) -> Row | None:
+    """Convert one outage; callers isolate and log any row validation error."""
+    device_id = _required(outage, "device_id")
+    code = _required(outage, "device_op_status_code")
+    # City status 0 means in service; only status 1 represents an outage.
+    if code == "0":
+        return None
+    if code != "1":
+        raise FeedError(f"Unknown LRT status code for device {device_id}")
+    # Master fields fill missing metadata only; never use its live status.
+    row = {**device_by_id.get(device_id, {}), **outage}
+    device_type = _required(row, "device_type").casefold()
+    if device_type not in {"elevator", "escalator"}:
+        raise FeedError(f"Unknown LRT device type for {device_id}")
+    station_name = _required(row, "lrt_station_name")
+    station = station_by_name.get(_station_key(station_name))
+    if station is None:
+        raise FeedError(f"No City station coordinates for {station_name}")
+    since = _instant(_required(outage, "since_time_stamp"), source_timezone)
+    if since > observed_at:
+        raise FeedError(f"Outage starts after observation for device {device_id}")
+    location = _required(row, "lrt_device_location")
+    # A successful fetch confirms that this outage is still listed. Keep the
+    # source's start time, but measure freshness from our own fetch time.
+    return {
+        "id": f"{SOURCE}:{device_id}",
+        "source": SOURCE,
+        "source_ref": device_id,
+        "category": "indoor",
+        "kind": f"{device_type}_out",
+        "effect": "blocked" if device_type == "elevator" else "caution",
+        "title": f"{device_type.capitalize()} out of service",
+        "detail": f"{station_name}, {location}",
+        "geometry": {"type": "Point", "coordinates": _coordinates(station)},
+        "confidence": "high",
+        "starts_at": _iso(since),
+        "ends_at": None,
+        "observed_at": _iso(observed_at),
+        "expires_at": _iso(observed_at + lifetime),
+        "url": f"https://data.edmonton.ca/d/{OUTAGES}",
+        "attribution": "City of Edmonton Open Data",
+    }
 
 
 class LrtDevicesAdapter:
     """Provisional polling helper until OP-101/103 supply the shared interface.
 
     Fetch errors propagate, so the store can retain its last snapshot. Successful
-    empty outage lists are valid. Lookup/cache updates are atomic; failed polls
-    neither clear last_good nor advance last_success.
+    empty outage lists are valid. Invalid rows keep their previous records with
+    unchanged timestamps, while valid rows continue flowing. OP-103 owns cadence,
+    retries and backoff; every call polls the outage feed once.
     """
+
+    source = SOURCE
+    cadence_s = int(POLL_INTERVAL.total_seconds())
 
     def __init__(self, reader: DatasetReader, *, source_timezone: tzinfo) -> None:
         self.reader = reader
         self.source_timezone = source_timezone
         self.last_success: datetime | None = None
         self.last_error: str | None = None
-        self._lookup_success: datetime | None = None
+        self._lookup_success: dict[str, datetime] = {}
         self._devices: list[Row] = []
         self._stations: list[Row] = []
         self._last_good: list[Row] = []
@@ -282,40 +392,77 @@ class LrtDevicesAdapter:
         """Return a copy so callers cannot change the saved snapshot."""
         return deepcopy(self._last_good)
 
-    def fetch(self, *, now: datetime | None = None) -> list[Row]:
-        """Refresh outages every two minutes and device/station lookups daily."""
-        now = now or datetime.now(UTC)
-        if now.tzinfo is None:
-            raise ValueError("now must include a timezone")
-        now = now.astimezone(UTC)
-        if self.last_success is not None and now - self.last_success < POLL_INTERVAL:
-            return self.last_good
+    def _lookup(
+        self, dataset: str, now: datetime, diagnostics: RowDiagnostics, notes: list[str]
+    ) -> list[Row]:
+        cached = self._devices if dataset == DEVICES else self._stations
+        refreshed_at = self._lookup_success.get(dataset)
+        if refreshed_at is not None and now - refreshed_at < LOOKUP_INTERVAL:
+            return cached
         try:
-            devices, stations = self._devices, self._stations
-            refresh = (
-                self._lookup_success is None
-                or now - self._lookup_success >= LOOKUP_INTERVAL
-            )
-            if refresh:
-                devices = self.reader.read(DEVICES)
-                stations = self.reader.read(STATIONS)
+            rows = _valid_lookup_rows(dataset, self.reader.read(dataset), diagnostics)
+        except FeedError as exc:
+            if not cached:
+                raise
+            note = f"Using cached {dataset} lookup after refresh failed: {exc}"
+            notes.append(note)
+            LOGGER.warning(note)
+            return cached
+        # Cache the validated rows by reference; conversion only reads them.
+        if dataset == DEVICES:
+            self._devices = rows
+        else:
+            self._stations = rows
+        self._lookup_success[dataset] = now
+        return rows
+
+    def fetch(self, now: datetime | None = None) -> list[Row]:
+        """Poll once when the scheduler calls, with daily cached lookup refresh."""
+        now = _utc(now or datetime.now(UTC))
+        diagnostics = RowDiagnostics()
+        notes: list[str] = []
+        try:
+            devices = self._lookup(DEVICES, now, diagnostics, notes)
+            stations = self._lookup(STATIONS, now, diagnostics, notes)
             result = normalize_outages(
                 self.reader.read(OUTAGES),
                 devices,
                 stations,
+                observed_at=now,
                 source_timezone=self.source_timezone,
+                diagnostics=diagnostics,
             )
         except FeedError as exc:
-            self.last_error = str(exc)
+            self.last_error = _diagnostic_summary(diagnostics, [*notes, str(exc)])
             raise
-        # Save the new data only after every required read and conversion succeeds.
-        self._devices, self._stations = deepcopy(devices), deepcopy(stations)
-        if refresh:
-            self._lookup_success = now
+        # A bad row must not delete a previously known outage during the store's
+        # source reconciliation. Preserve it without making its old data fresh.
+        invalid_ids = {
+            issue.device_id for issue in diagnostics.issues if issue.dataset == OUTAGES
+        }
+        current_ids = {item["source_ref"] for item in result}
+        for previous in self._last_good:
+            device_id = previous["source_ref"]
+            if (
+                device_id not in current_ids
+                and device_id not in diagnostics.cleared_device_ids
+                and (device_id in invalid_ids or None in invalid_ids)
+            ):
+                result.append(previous)
+        result.sort(key=lambda row: row["source_ref"])
         self._last_good = result
         self.last_success = now
-        self.last_error = None
+        self.last_error = _diagnostic_summary(diagnostics, notes)
         return self.last_good
+
+
+def _diagnostic_summary(diagnostics: RowDiagnostics, notes: list[str]) -> str | None:
+    summary = []
+    if diagnostics.issues:
+        count = len(diagnostics.issues)
+        summary.append(f"Skipped {count} invalid {'row' if count == 1 else 'rows'}")
+    summary.extend(notes)
+    return "; ".join(summary) or None
 
 
 def main() -> None:
@@ -333,24 +480,40 @@ def main() -> None:
         required=True,
         help="Timezone for unlabeled feed times; confirm with the source owner",
     )
+    parser.add_argument("--at", help="Timezone-aware confirmation time for a replay")
     args = parser.parse_args()
+    if args.live and args.at:
+        parser.error("--at is only allowed with --fixtures")
+    observed_at = (
+        _utc(datetime.fromisoformat(args.at)) if args.at else datetime.now(UTC)
+    )
     source_timezone = ZoneInfo(args.source_timezone)
+    diagnostics = RowDiagnostics()
+    last_error = None
     if args.fixtures:
         payloads = [
             _rows(json.loads((args.fixtures / name).read_text(encoding="utf-8")))
             for name in ("outages.json", "devices.json", "stations.json")
         ]
-        obstructions = normalize_outages(*payloads, source_timezone=source_timezone)
+        obstructions = normalize_outages(
+            *payloads,
+            observed_at=observed_at,
+            source_timezone=source_timezone,
+            diagnostics=diagnostics,
+        )
+        last_error = _diagnostic_summary(diagnostics, [])
     else:
         reader = SocrataReader(os.environ.get("SOCRATA_APP_TOKEN"))
-        obstructions = LrtDevicesAdapter(
-            reader, source_timezone=source_timezone
-        ).fetch()
+        adapter = LrtDevicesAdapter(reader, source_timezone=source_timezone)
+        obstructions = adapter.fetch(observed_at)
+        last_error = adapter.last_error
     print(
         json.dumps(
             {
                 "mode": "replay" if args.fixtures else "live",
                 "source_timezone_assumption": args.source_timezone,
+                "row_warnings": [issue.message for issue in diagnostics.issues],
+                "last_error": last_error,
                 "obstructions": obstructions,
             },
             indent=2,
