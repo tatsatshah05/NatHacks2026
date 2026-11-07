@@ -102,10 +102,12 @@ jobs:
           if [ -n "$env_files" ]; then
             echo "::error::Secret files must never be committed: $env_files"; bad=1
           fi
+          # 5 MB for everything, except the prebuilt walking network in cloud/data/ (50 MB).
           while IFS= read -r f; do
             [ -f "$f" ] || continue
-            if [ "$(stat -c%s "$f")" -gt 5242880 ]; then
-              echo "::error file=$f::Larger than 5 MB. Keep large files out of git."; bad=1
+            limit=5242880; case "$f" in cloud/data/*) limit=52428800 ;; esac
+            if [ "$(stat -c%s "$f")" -gt "$limit" ]; then
+              echo "::error file=$f::Larger than $((limit / 1048576)) MB. Keep large files out of git."; bad=1
             fi
           done <<<"$files"
           weights="$(grep -Ei '\.(onnx|pt|pth|ckpt|safetensors)$' <<<"$files" || true)"

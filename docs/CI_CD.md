@@ -46,7 +46,7 @@ All checks run in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), for
 | Check | Runs when | What it checks |
 | --- | --- | --- |
 | PR rules | Every pull request | The title is one of: `OP-<id>: <story title>` (must target the story's phase branch: `OP-105` into `phase_1`); `Phase <n>: <name>` (from `phase_n` into `main`); or a `docs:`, `chore:`, `ci:` or `fix:` prefix. Story pull requests contain `Closes #<issue>`. The branch name should be `op-<id>-<short-name>` (a warning only) |
-| Repo hygiene | Always | No `.env` or `secrets.h` files, nothing over 5 MB, no model weights, and no images outside `web/public/`, `web/src/`, `docs/` and `vision/tests/fixtures/`. Also scans for leaked keys (gitleaks) and new dependencies with high-severity vulnerabilities |
+| Repo hygiene | Always | No `.env` or `secrets.h` files, nothing over 5 MB (50 MB for the prebuilt network in `cloud/data/`), no model weights, and no images outside `web/public/`, `web/src/`, `docs/` and `vision/tests/fixtures/`. Also scans for leaked keys (gitleaks) and new dependencies with high-severity vulnerabilities |
 | Python | Once `cloud/` or `vision/` contains Python files | Installs every `requirements*.txt` under `cloud/` and `vision/`, then runs `ruff check`, `ruff format --check`, and `pytest` for `cloud/tests` and `vision/tests`. The repository root, `cloud/` and `vision/` are on the import path |
 | Web | Once `web/package.json` exists | `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build` |
 
