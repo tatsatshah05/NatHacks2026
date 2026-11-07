@@ -42,7 +42,7 @@ Story points measure effort on the Fibonacci scale: 1, 2, 3, 5. As a rough team 
 4. Create a branch from the current phase branch (for example `phase_1`) named `op-<id>-<short-name>`.
 5. Give the issue to your coding agent (Claude Code, Codex, Cursor or Copilot) as the task. Every agent follows [AGENTS.md](AGENTS.md).
 6. Open a pull request **into the phase branch** (`OP-1xx` into `phase_1`, `OP-2xx` into `phase_2`, and so on), titled `OP-<id>: <story title>`, that includes `Closes #<issue number>`. The template lists the Definition of Done.
-7. Wait for the `CI passed` check. The scrum master (Tatsat) reviews and approves. Turn on **Enable auto-merge**, and the pull request merges itself once both are green. See [docs/CI_CD.md](docs/CI_CD.md).
+7. Wait for the `CI passed` check. Tatsat or Ipsa reviews and approves; one approval is enough. Turn on **Enable auto-merge**, and the pull request merges itself once both are green. See [docs/CI_CD.md](docs/CI_CD.md).
 
 ```bash
 git checkout phase_1 && git pull
@@ -57,7 +57,7 @@ gh pr create --base phase_1 --title "OP-105: LRT elevator and escalator adapter"
 
 - All acceptance criteria are met
 - Tests are added and `make test` passes
-- `CI passed` is green and the scrum master has approved the pull request
+- `CI passed` is green, and Tatsat or Ipsa has approved the pull request
 - The preview deploy works
 - Documentation is updated
 - Any UI change passes the accessibility checklist in `web/ACCESSIBILITY.md`

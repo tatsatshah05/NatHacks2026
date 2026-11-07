@@ -2,7 +2,7 @@
 
 Work moves through one branch per phase. During a phase, every pull request goes into that phase's branch (`phase_1`, `phase_2`, `phase_3` or `phase_4`). When the phase passes its checkpoint, the scrum master, Tatsat (`@tatsatshah05`), releases the whole phase into `main` with one pull request. Then the next phase branch starts from `main`.
 
-Every pull request must pass the automatic checks and be approved by the scrum master.
+Every pull request must pass the automatic checks and be approved by one of the two reviewers: Tatsat (`@tatsatshah05`) or Ipsa (`@ipsamanhas`).
 
 ```mermaid
 flowchart LR
@@ -31,13 +31,13 @@ The current phase branch is the repository's **default branch**. New pull reques
 | Pull request required | Nobody pushes directly to `main` or a phase branch |
 | `CI passed` check required | Every check below must pass |
 | Branch up to date | Click **Update branch** if the target branch moved since you branched |
-| Scrum master approval | `@tatsatshah05` owns every file (`.github/CODEOWNERS`), so their approval is required |
+| Reviewer approval | `@tatsatshah05` and `@ipsamanhas` own every file (`.github/CODEOWNERS`). An approval from either one is enough |
 | New commits reset approval | Pushing after approval needs a fresh review |
 | Conversations resolved | Every review comment must be resolved |
 | Squash merge | Each story becomes one commit on the phase branch; each phase becomes one commit on `main` |
 | No force pushes or deletions | Phase branches stay as the record of each phase |
 
-Repository admins (Tatsat) can merge their own pull requests by bypassing the rules, because GitHub does not let authors approve their own work. Use the bypass only after `CI passed` is green.
+GitHub does not let authors approve their own work, so Tatsat's pull requests are approved by Ipsa, and Ipsa's by Tatsat. The admin bypass is only for emergencies, and only after `CI passed` is green.
 
 ## The Checks
 
@@ -66,7 +66,7 @@ Vercel's Git integration builds a preview for every pull request and branch, and
 ## Moving to the Next Phase (Scrum Master)
 
 1. Run the checkpoint demo on staging. Everything for the phase must be merged into `phase_N`.
-2. Open the release pull request: `scripts/phase.sh finish N`. CI runs, and you merge it (bypass). `main` deploys to production.
+2. Open the release pull request: `scripts/phase.sh finish N`. CI runs, Ipsa approves, and you merge it. `main` deploys to production.
 3. Start the next phase: `scripts/phase.sh start N+1`. This creates `phase_N+1` from `main`, protects it with the same rules, and makes it the default branch. It also lists any open pull requests for the new phase that still target the wrong branch.
 4. Tell the team to branch from `phase_N+1`.
 
@@ -91,7 +91,7 @@ These steps need the Render and Vercel projects, which OP-102 creates.
 1. Branch from the current phase branch: `git checkout phase_1 && git pull && git checkout -b op-105-lrt-outages`.
 2. Open the pull request into the phase branch, titled `OP-<id>: <story title>`, with `Closes #<issue>`. The template fills in the rest.
 3. Wait for **CI passed**. If it fails, open the failed job, fix the problem, and push again.
-4. The scrum master reviews it (GitHub requests the review automatically).
+4. Tatsat or Ipsa reviews it (GitHub requests both automatically; one approval is enough).
 5. Turn on **Enable auto-merge**. It merges by itself once the review and CI pass, and the issue closes.
 
 ## Troubleshooting

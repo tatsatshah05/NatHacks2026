@@ -8,7 +8,6 @@
 set -euo pipefail
 
 REPO="${REPO:-tatsatshah05/NatHacks2026}"
-SCRUM_MASTER="tatsatshah05"
 phase_name() {
   case "$1" in
     1) echo "Data Foundation" ;;
@@ -56,7 +55,7 @@ case "$action" in
       echo "Created $branch from main ($sha)."
     fi
     protect "$branch"
-    echo "Protected $branch: CI passed + approval from @$SCRUM_MASTER."
+    echo "Protected $branch: CI passed + approval from a code owner (see .github/CODEOWNERS)."
     gh api -X PATCH "repos/$REPO" -f default_branch="$branch" >/dev/null
     echo "Default branch is now $branch, so new pull requests target it automatically."
     open_prs="$(gh pr list -R "$REPO" --state open --json number,title,baseRefName \
