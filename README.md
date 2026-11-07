@@ -24,7 +24,7 @@ There is no hardware.
 
 ## How We Work
 
-The team works through four phases together. Each person owns about 8 story points per phase. Each phase has its own branch (`phase_1` to `phase_4`): pull requests go into the current phase branch, and each finished phase is released into `main`. Tatsat is the scrum master. Every pull request needs a passing CI run and an approval from Tatsat or Ipsa.
+The team works through four phases together. Each person owns about 8 story points per phase. Each phase has its own branch (`phase_1` to `phase_4`): pull requests go into the current phase branch, and each finished phase is released into `main`. Tatsat is the scrum master. Every pull request needs a passing CI run and an approval from Tatsat, Ipsa or Kashish.
 
 | Phase | Hours | Milestone |
 | --- | --- | --- |
