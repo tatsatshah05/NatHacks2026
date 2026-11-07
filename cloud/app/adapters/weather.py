@@ -1,4 +1,9 @@
-"""Official weather-source access and normalization for OP-109."""
+"""Purpose: turn two official weather responses into inputs for the ice rule.
+
+Environment Canada supplies Blatchford's observed air and dew-point temperatures.
+Open-Meteo supplies modelled ground temperature and recent hourly history.
+Fetch both, validate their timestamps/units, then return one consistent reading.
+"""
 
 from __future__ import annotations
 
@@ -16,6 +21,7 @@ MAX_OBSERVATION_AGE = timedelta(hours=2)
 
 
 def timestamp(value: str) -> datetime:
+    """Read provider timestamps and compare them in UTC."""
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)  # Open-Meteo requests UTC.
@@ -23,6 +29,7 @@ def timestamp(value: str) -> datetime:
 
 
 def number(value: Any) -> float:
+    """Reject missing or unusable numbers instead of treating them as zero."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError("Missing or nonnumeric weather value")
     if not isfinite(value):
@@ -39,6 +46,7 @@ def normalize_weather(
     a clear-weather result. Forecast hours after the station observation are
     excluded. Open-Meteo precipitation is a preceding-hour total.
     """
+    # Use the newest recent observation from the correct station.
     candidates = []
     for feature in eccc["features"]:
         props = feature["properties"]
@@ -58,6 +66,7 @@ def normalize_weather(
     air_c = number(props["air_temp"])
     dew_c = number(props["dwpt_temp"])
 
+    # Check units before combining station readings with modelled data.
     units = meteo["hourly_units"]
     fields = ("temperature_2m", "soil_temperature_0cm", "precipitation")
     if meteo.get("utc_offset_seconds") != 0:
@@ -72,6 +81,7 @@ def normalize_weather(
     if any(len(hourly[field]) != len(times) for field in fields):
         raise ValueError("Mismatched hourly arrays")
     indices = {t: i for i, t in enumerate(times)}
+    # Align the hourly history to the station reading, excluding future hours.
     anchor = observed.replace(minute=0, second=0, microsecond=0)
 
     def value_at(field: str, at: datetime) -> float:
@@ -79,6 +89,7 @@ def normalize_weather(
             raise ValueError("Incomplete hourly weather history")
         return number(hourly[field][indices[at]])
 
+    # The rule checks melting over 12 hours and precipitation over 6 hours.
     temperatures = [
         value_at("temperature_2m", anchor - timedelta(hours=h)) for h in range(12)
     ]
@@ -98,7 +109,7 @@ def normalize_weather(
 
 
 class WeatherSources:
-    """Inject the HTTP client so source tests never need network access."""
+    """Fetch both providers; tests can supply a fake HTTP client."""
 
     def __init__(
         self,
@@ -115,6 +126,7 @@ class WeatherSources:
         self.retries = retries
 
     async def _get(self, url: str, params: dict[str, Any]) -> dict[str, Any]:
+        """Fetch JSON with a timeout, retrying failures after 1, 2, then 4 seconds."""
         for attempt in range(self.retries + 1):
             try:
                 response = await asyncio.wait_for(
@@ -132,6 +144,7 @@ class WeatherSources:
         raise AssertionError("Unreachable")
 
     async def __call__(self, now: datetime) -> dict[str, Any]:
+        """Fetch and combine readings for one refresh of the weather service."""
         station_params = {
             "f": "json",
             "msc_id-value": BLATCHFORD_ID,

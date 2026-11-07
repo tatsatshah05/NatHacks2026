@@ -1,7 +1,8 @@
-"""Standalone OP-109 app until the shared OP-102 app is available.
+"""Purpose: let us run and test the weather API on its own.
 
-The shared app can include weather_service.router and install the same lifespan.
-No shared schema, config or main.py is created here.
+Choose live providers or a recorded replay, start the refresh loop, and attach
+the weather endpoint. On shutdown, stop the loop and close the HTTP client.
+The shared OP-102 app can reuse the router and this startup/shutdown pattern.
 """
 
 from __future__ import annotations
@@ -22,6 +23,8 @@ from .weather_service import WeatherService, router
 
 
 def create_app(service: Optional[WeatherService] = None) -> FastAPI:
+    """Build the app; tests may provide their own service with fake readings."""
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         async with httpx.AsyncClient() as client:
@@ -54,11 +57,13 @@ def create_app(service: Optional[WeatherService] = None) -> FastAPI:
                     )
                 else:
                     raise ValueError("DATA_MODE must be live or replay")
+            # Make the service available to the route, then start background work.
             app.state.weather_service = chosen
             task = asyncio.create_task(chosen.run())
             try:
                 yield
             finally:
+                # Stop work before closing the HTTP client used by the providers.
                 task.cancel()
                 with suppress(asyncio.CancelledError):
                     await task

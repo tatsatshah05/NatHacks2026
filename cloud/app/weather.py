@@ -1,7 +1,8 @@
-"""OpenPath's city-wide weather watch, following PLAN.md section 7.4.
+"""Purpose: decide whether the weather suggests a city-wide ice risk.
 
-This module evaluates normalized readings. Fetching, caching, scheduling and
-the API endpoint are separate integration steps in OP-109.
+The rule needs freezing air or ground plus rain/snow, recent melting, or frost
+conditions. It returns a yes/no decision and a readable reason. Source fetching
+and API responses live in the other weather modules. See PLAN.md section 7.4.
 """
 
 from dataclasses import dataclass
@@ -38,14 +39,17 @@ def evaluate_weather_watch(
         precipitation_last_6h_mm,
         max_air_last_12h_c,
     )
+    # Invalid readings should fail the refresh so the service keeps its cache.
     if not all(isfinite(value) for value in readings):
         raise ValueError("Weather readings must be finite numbers")
     if precipitation_last_6h_mm < 0:
         raise ValueError("Precipitation cannot be negative")
 
+    # First require freezing conditions; moisture alone does not activate a watch.
     if air_c > 0 and ground_c > 0:
         return WatchDecision(False, "Air and ground are above freezing.")
 
+    # Then collect the moisture, melt/refreeze, and frost triggers that apply.
     reasons = []
     if precipitation_last_6h_mm > 0:
         reasons.append("precipitation in the last 6 hours")

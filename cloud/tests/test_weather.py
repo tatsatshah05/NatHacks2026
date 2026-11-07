@@ -1,4 +1,8 @@
-"""Offline tests for the OP-109 rule; also discoverable by pytest."""
+"""Purpose: check the ice-risk rule with controlled temperatures and moisture.
+
+These tests cover freezing/dew-point boundaries and invalid input values.
+They use no network calls and can run with either unittest or pytest.
+"""
 
 import unittest
 

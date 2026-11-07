@@ -1,4 +1,8 @@
-"""Recorded-source, failure, retry, lifecycle and endpoint tests for OP-109."""
+"""Purpose: check how the weather modules work together without live APIs.
+
+Recorded responses test parsing; fake HTTP failures test retries and caching.
+Endpoint tests check the response fields, replay mode, and unavailable/stale data.
+"""
 
 import asyncio
 import copy

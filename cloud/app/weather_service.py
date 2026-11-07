@@ -1,4 +1,9 @@
-"""Weather-watch refresh, last-good cache and reusable FastAPI router."""
+"""Purpose: refresh the weather watch and serve the last successful result.
+
+Each refresh fetches readings, runs the ice rule, and saves a complete response.
+A failed refresh keeps the previous response and marks it stale. The API reads
+this cache, so opening the endpoint does not make extra calls to the providers.
+"""
 
 from __future__ import annotations
 
@@ -20,6 +25,8 @@ def utcnow() -> datetime:
 
 
 class WeatherService:
+    """Manage one weather cache and its refresh/error state."""
+
     def __init__(
         self,
         fetch: Callable[[datetime], Awaitable[dict[str, Any]]],
@@ -38,9 +45,11 @@ class WeatherService:
         self._lock: Optional[asyncio.Lock] = None
 
     async def refresh(self) -> bool:
+        """Return True after saving a new result, or False after a failed refresh."""
         # Python 3.9 requires constructing locks inside a running event loop.
         if self._lock is None:
             self._lock = asyncio.Lock()
+        # Let only one refresh update the cache at a time.
         async with self._lock:
             try:
                 readings = dict(await self.fetch(self.clock()))
@@ -62,6 +71,7 @@ class WeatherService:
                 self.last_error = type(exc).__name__ + ": " + str(exc)
                 logger.warning("Weather refresh failed: %s", self.last_error)
                 return False
+            # Publish only after fetching, validation, and calculation all succeed.
             self.last_good = snapshot
             self.last_success = self.clock()
             self.last_error = None
@@ -69,6 +79,7 @@ class WeatherService:
 
     @property
     def stale(self) -> bool:
+        """Flag missing data, a failed refresh, or three missed refresh intervals."""
         return (
             self.last_success is None
             or self.last_error is not None
@@ -76,6 +87,7 @@ class WeatherService:
         )
 
     async def run(self) -> None:
+        """Refresh immediately, then wait 10 minutes before the next refresh."""
         while True:
             await self.refresh()
             await asyncio.sleep(REFRESH_SECONDS)
@@ -86,8 +98,10 @@ router = APIRouter()
 
 @router.get("/api/weather")
 async def get_weather(request: Request, response: Response) -> dict[str, Any]:
+    """Serve cached weather, with a header showing whether it is stale."""
     service: WeatherService = request.app.state.weather_service
     response.headers["Cache-Control"] = "no-store"
+    # No successful reading yet means unavailable; it cannot imply safe weather.
     if service.last_good is None:
         raise HTTPException(
             status_code=503,
