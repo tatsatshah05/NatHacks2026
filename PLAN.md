@@ -199,7 +199,7 @@ flowchart TB
 **Repository layout**
 
 ```
-PLAN.md  CLAUDE.md  GUIDELINE.md  README.md  Makefile  render.yaml  .env.example
+PLAN.md  AGENTS.md  CLAUDE.md  GUIDELINE.md  README.md  Makefile  render.yaml  .env.example
 cloud/     app/{main,schemas,db,store,scheduler,status,matching,routing,report,search,weather,push,ws}.py
            app/adapters/   one file per source
            data/           prebuilt walking network (committed)

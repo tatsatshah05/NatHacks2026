@@ -38,14 +38,14 @@ Story points measure effort on the Fibonacci scale: 1, 2, 3, 5. As a rough team 
 2. Check that the story's dependencies are merged, or that you can mock them.
 3. Comment on the issue to show that you are working on it.
 4. Create a branch from `main` named `op-<id>-<short-name>`.
-5. Use Claude Code with the issue as the task. Claude Code follows [CLAUDE.md](CLAUDE.md).
+5. Give the issue to your coding agent (Claude Code, Codex, Cursor or Copilot) as the task. Every agent follows [AGENTS.md](AGENTS.md).
 6. Open a pull request titled `OP-<id>: <story title>` that includes `Closes #<issue number>`, and ask a teammate to review it.
 7. Merge after the review and a passing CI run, then check the preview deploy.
 
 ```bash
 git checkout main && git pull
 git checkout -b op-105-lrt-outages
-# ...work with Claude Code...
+# ...work with your coding agent...
 git add -A && git commit -m "Add LRT elevator and escalator outage adapter"
 git push -u origin op-105-lrt-outages
 gh pr create --title "OP-105: LRT elevator and escalator adapter" --body "Closes #<issue number>"

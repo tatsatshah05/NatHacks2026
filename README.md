@@ -42,7 +42,7 @@ Tatsat (lead), Ipsa, Estella, Kaleb, Matthew and Kashish.
 1. Read [PLAN.md](PLAN.md) for the product, architecture and backlog.
 2. Read [User Stories](docs/USER_STORIES.md) to see your stories, and [GUIDELINE.md](GUIDELINE.md) for the workflow.
 3. Find your stories under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) using your name label.
-4. See [CLAUDE.md](CLAUDE.md) for the technical rules Claude Code follows.
+4. Coding agents (Claude Code, Codex, Cursor, Copilot and others) follow [AGENTS.md](AGENTS.md), which holds the project context and rules.
 
 ## Documents
 
