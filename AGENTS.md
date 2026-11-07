@@ -120,7 +120,7 @@ web/     Next.js on Vercel: planner, route report, alerts (PWA), city dashboard,
 ```
 PLAN.md  AGENTS.md  CLAUDE.md  GUIDELINE.md  README.md  Makefile  render.yaml  .env.example
 .github/   workflows/ci.yml  CODEOWNERS  pull_request_template.md  ISSUE_TEMPLATE/
-cloud/     app/{main,schemas,db,store,network,scheduler,status,matching,routing,report,search,weather,push,ws}.py
+cloud/     app/{main,schemas,db,store,network,obstructions_api,scheduler,status,matching,routing,report,search,weather,push,ws}.py
            app/adapters/  one file per source   data/network.npz (prebuilt walking network, committed)   tests/ (fixtures in tests/fixtures/)
 vision/    train.py  worker.py  tools/label.py  LABELS.md  MODEL_CARD.md  tests/
 web/       src/app/{page.tsx, alerts/, city/, sources/, about/, privacy/, demo/}  src/lib/api-types.ts (generated)  public/sw.js
@@ -233,6 +233,8 @@ These apply to the web app, and judges will check them.
 - Fully keyboard operable with visible focus, 44 px touch targets, `prefers-reduced-motion` respected, text resizable to 200%.
 
 ## Testing
+
+Until OP-102 adds `make test`, run the cloud tests from the repository root with `PYTHONPATH=.:cloud pytest -q cloud/tests`. Tests import code as `cloud.app.<module>`.
 
 - **cloud:**
   - Each adapter with recorded fixtures, including a failing source and a changed schema.
