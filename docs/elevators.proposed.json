@@ -10,7 +10,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "4",
@@ -21,7 +23,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "29",
@@ -32,7 +36,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "30",
@@ -43,7 +49,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "31",
@@ -54,7 +62,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "32",
@@ -65,7 +75,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "84",
@@ -76,7 +88,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "85",
@@ -87,7 +101,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "86",
@@ -98,7 +114,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "87",
@@ -109,7 +127,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "88",
@@ -129,7 +149,9 @@
         "https://data.edmonton.ca/d/javh-pjj2",
         "https://www.openstreetmap.org/way/1168890851",
         "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/way-1168890851.json"
-      ]
+      ],
+      "anchor_node_id": 13296108642,
+      "edge_pairs": []
     },
     {
       "device_id": "89",
@@ -149,7 +171,9 @@
         "https://data.edmonton.ca/d/javh-pjj2",
         "https://www.openstreetmap.org/way/1168890847",
         "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/way-1168890847.json"
-      ]
+      ],
+      "anchor_node_id": 13296108602,
+      "edge_pairs": []
     },
     {
       "device_id": "90",
@@ -160,7 +184,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "91",
@@ -171,7 +197,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "92",
@@ -182,7 +210,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "93",
@@ -193,7 +223,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "94",
@@ -204,7 +236,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "96",
@@ -215,7 +249,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "97",
@@ -226,7 +262,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "98",
@@ -237,7 +275,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "100",
@@ -248,7 +288,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "111",
@@ -259,7 +301,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "112",
@@ -270,7 +314,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "113",
@@ -281,7 +327,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "114",
@@ -292,7 +340,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "115",
@@ -303,7 +353,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "116",
@@ -314,7 +366,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "117",
@@ -334,7 +388,9 @@
         "https://data.edmonton.ca/d/javh-pjj2",
         "https://www.openstreetmap.org/node/662687994",
         "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/node-662687994.json"
-      ]
+      ],
+      "anchor_node_id": 662687994,
+      "edge_pairs": []
     },
     {
       "device_id": "118",
@@ -354,7 +410,9 @@
         "https://data.edmonton.ca/d/javh-pjj2",
         "https://www.openstreetmap.org/node/5206760179",
         "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/node-5206760179.json"
-      ]
+      ],
+      "anchor_node_id": 5206760179,
+      "edge_pairs": []
     },
     {
       "device_id": "130",
@@ -365,7 +423,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "602",
@@ -376,7 +436,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     },
     {
       "device_id": "610",
@@ -387,7 +449,9 @@
       "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
     }
   ]
 }

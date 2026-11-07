@@ -21,6 +21,7 @@ Update this section whenever the status changes.
 
 - **November 7, 2026:** Phase 1 is in progress. OP-104's walking network is merged through PR #97. OP-101 (contracts) and OP-102 (skeleton) remain integration dependencies on this branch.
 - **OP-106 preparation on this branch:** `cloud/app/elevator_mapping.py` audits City elevators and adapts the merged OP-104 arrays for outage masking. The network tests are required, not optional. `docs/elevators.proposed.json` contains four inactive candidate matches and 28 unmatched entries; `docs/elevator-candidates.json` and recorded OSM responses provide review evidence. Shared configuration, independent device-match review and final app integration remain pending; see `docs/OP-106.md`.
+- **OP-106 review behavior:** masks only flagged elevator links or exact reviewed `edge_pairs`, never every path touching an elevator node. Reviewed nearest-link node anchors support way IDs lost during simplification; ambiguous anchors retain a station warning. Bad outage rows are logged and skipped. The edge index and copied profile weights use NumPy arrays.
 - **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
@@ -211,7 +212,11 @@ validates the document; it does not certify real OSM matches or complete OP-106.
 OP-106 also adds a local candidate report command using the merged network file:
 
 ```bash
-python scripts/elevator_candidates.py --network cloud/data/network.npz --devices cloud/tests/fixtures/elevator_mapping/devices.json --stations cloud/tests/fixtures/elevator_mapping/stations.json --out docs/elevator-candidates.json
+python scripts/elevator_candidates.py \
+  --network cloud/data/network.npz \
+  --devices cloud/tests/fixtures/elevator_mapping/devices.json \
+  --stations cloud/tests/fixtures/elevator_mapping/stations.json \
+  --out docs/elevator-candidates.json
 ```
 
 Its default 200 m search radius is a review aid, not a match threshold for

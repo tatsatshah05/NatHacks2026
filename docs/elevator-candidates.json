@@ -1,6 +1,6 @@
 {
   "story": "OP-106",
-  "generated_at": "2026-11-07T22:36:48.805388+00:00",
+  "generated_at": "2026-11-07T23:35:56.065555+00:00",
   "network_sha256": "ce971655f8343b946c36a716074b492c068ffce82841396b5bb48827abe1d682",
   "network_manifest": {
     "format_version": 1,
@@ -204,13 +204,17 @@
           "type": "way",
           "id": 1168890851,
           "distance_m": 22.2,
-          "url": "https://www.openstreetmap.org/way/1168890851"
+          "url": "https://www.openstreetmap.org/way/1168890851",
+          "anchor_node_id": 13296108642,
+          "anchor_note": "Nearest endpoint of the flagged vertical link; independent review required."
         },
         {
           "type": "way",
           "id": 1168890847,
           "distance_m": 52.5,
-          "url": "https://www.openstreetmap.org/way/1168890847"
+          "url": "https://www.openstreetmap.org/way/1168890847",
+          "anchor_node_id": 13296108602,
+          "anchor_note": "Nearest endpoint of the flagged vertical link; independent review required."
         }
       ],
       "station_point_proxy": {
@@ -233,13 +237,17 @@
           "type": "way",
           "id": 1168890851,
           "distance_m": 22.2,
-          "url": "https://www.openstreetmap.org/way/1168890851"
+          "url": "https://www.openstreetmap.org/way/1168890851",
+          "anchor_node_id": 13296108642,
+          "anchor_note": "Nearest endpoint of the flagged vertical link; independent review required."
         },
         {
           "type": "way",
           "id": 1168890847,
           "distance_m": 52.5,
-          "url": "https://www.openstreetmap.org/way/1168890847"
+          "url": "https://www.openstreetmap.org/way/1168890847",
+          "anchor_node_id": 13296108602,
+          "anchor_note": "Nearest endpoint of the flagged vertical link; independent review required."
         }
       ],
       "station_point_proxy": {
@@ -501,13 +509,17 @@
           "type": "node",
           "id": 662687994,
           "distance_m": 10.9,
-          "url": "https://www.openstreetmap.org/node/662687994"
+          "url": "https://www.openstreetmap.org/node/662687994",
+          "anchor_node_id": 662687994,
+          "anchor_note": "Review the vertical edge pair; this node alone must not close its junction."
         },
         {
           "type": "node",
           "id": 5206760179,
           "distance_m": 46.1,
-          "url": "https://www.openstreetmap.org/node/5206760179"
+          "url": "https://www.openstreetmap.org/node/5206760179",
+          "anchor_node_id": 5206760179,
+          "anchor_note": "Review the vertical edge pair; this node alone must not close its junction."
         }
       ],
       "station_point_proxy": {
@@ -529,13 +541,17 @@
           "type": "node",
           "id": 662687994,
           "distance_m": 10.9,
-          "url": "https://www.openstreetmap.org/node/662687994"
+          "url": "https://www.openstreetmap.org/node/662687994",
+          "anchor_node_id": 662687994,
+          "anchor_note": "Review the vertical edge pair; this node alone must not close its junction."
         },
         {
           "type": "node",
           "id": 5206760179,
           "distance_m": 46.1,
-          "url": "https://www.openstreetmap.org/node/5206760179"
+          "url": "https://www.openstreetmap.org/node/5206760179",
+          "anchor_node_id": 5206760179,
+          "anchor_note": "Review the vertical edge pair; this node alone must not close its junction."
         }
       ],
       "station_point_proxy": {

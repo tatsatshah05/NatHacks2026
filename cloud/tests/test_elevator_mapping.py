@@ -157,7 +157,7 @@ def test_candidates_never_change_routes_until_reviewed(
     entry = review_entry(inventory)
     entry.update(status="candidate", reviewed_by=None)
     parsed = mapping.parse_mappings(inventory, devices)
-    edges = [mapping.ElevatorEdge(0, frozenset({SYNTHETIC_NODE}), True)]
+    edges = [mapping.ElevatorEdge(0, frozenset({SYNTHETIC_NODE}))]
     result = mapping.block_elevator_outages(parsed, edges, [outage()])
     assert not result.blocked_edge_indices
     assert result.station_warnings[0].device_id == "1"
@@ -187,17 +187,16 @@ def test_unknown_new_elevator_keeps_station_warning(
     assert "No device-to-OSM" in result.station_warnings[0].reason
 
 
-def test_reviewed_outage_removes_both_directions_and_preserves_ordinary_paths(
+def test_reviewed_outage_selects_only_its_vertical_edge_views(
     inventory: mapping.Row, devices: list[mapping.Row]
 ) -> None:
     review_entry(inventory)
     parsed = mapping.parse_mappings(inventory, devices)
     refs = frozenset({SYNTHETIC_NODE})
     edges = [
-        mapping.ElevatorEdge(0, refs, True),
-        mapping.ElevatorEdge(1, refs, True),
-        mapping.ElevatorEdge(2, refs, False),
-        mapping.ElevatorEdge(3, frozenset({SYNTHETIC_WAY}), True),
+        mapping.ElevatorEdge(0, refs),
+        mapping.ElevatorEdge(1, refs),
+        mapping.ElevatorEdge(3, frozenset({SYNTHETIC_WAY})),
     ]
     result = mapping.block_elevator_outages(parsed, edges, [outage()])
     assert result.blocked_edge_indices == frozenset({0, 1})
@@ -210,7 +209,7 @@ def test_node_and_way_id_namespaces_are_separate(
     review_entry(inventory)
     parsed = mapping.parse_mappings(inventory, devices)
     other_ref = mapping.OsmRef("way", SYNTHETIC_NODE.id)
-    edges = [mapping.ElevatorEdge(0, frozenset({other_ref}), True)]
+    edges = [mapping.ElevatorEdge(0, frozenset({other_ref}))]
     result = mapping.block_elevator_outages(parsed, edges, [outage()])
     assert not result.blocked_edge_indices
     assert result.station_warnings
@@ -221,7 +220,7 @@ def test_way_match_blocks_its_elevator_edge(
 ) -> None:
     review_entry(inventory, refs=(SYNTHETIC_WAY,))
     parsed = mapping.parse_mappings(inventory, devices)
-    edges = [mapping.ElevatorEdge(4, frozenset({SYNTHETIC_WAY}), True)]
+    edges = [mapping.ElevatorEdge(4, frozenset({SYNTHETIC_WAY}))]
     assert mapping.block_elevator_outages(
         parsed, edges, [outage()]
     ).blocked_edge_indices == {4}
@@ -232,10 +231,10 @@ def test_partial_graph_match_blocks_known_edges_and_warns_about_missing_refs(
 ) -> None:
     review_entry(inventory, refs=(SYNTHETIC_NODE, SYNTHETIC_WAY))
     parsed = mapping.parse_mappings(inventory, devices)
-    edges = [mapping.ElevatorEdge(0, frozenset({SYNTHETIC_NODE}), True)]
+    edges = [mapping.ElevatorEdge(0, frozenset({SYNTHETIC_NODE}))]
     result = mapping.block_elevator_outages(parsed, edges, [outage()])
     assert result.blocked_edge_indices == {0}
-    assert "absent" in result.station_warnings[0].reason
+    assert "vertical link" in result.station_warnings[0].reason
 
 
 @pytest.mark.parametrize(
@@ -249,7 +248,7 @@ def test_other_sources_and_escalators_do_not_close_elevator_edges(
     parsed = mapping.parse_mappings(inventory, devices)
     observation = outage()
     observation[field] = value
-    edges = [mapping.ElevatorEdge(0, frozenset({SYNTHETIC_NODE}), True)]
+    edges = [mapping.ElevatorEdge(0, frozenset({SYNTHETIC_NODE}))]
     result = mapping.block_elevator_outages(parsed, edges, [observation])
     assert not result.blocked_edge_indices
     assert not result.station_warnings
@@ -283,7 +282,7 @@ def test_outage_changes_synthetic_route_for_every_profile(
 ) -> None:
     review_entry(inventory)
     parsed = mapping.parse_mappings(inventory, devices)
-    views = [mapping.ElevatorEdge(0, frozenset({SYNTHETIC_NODE}), True)]
+    views = [mapping.ElevatorEdge(0, frozenset({SYNTHETIC_NODE}))]
     network = [
         (0, "street", "platform", 1.0),
         (1, "street", "ramp", ramp_cost),
@@ -314,7 +313,7 @@ def test_invalid_osm_ids_are_rejected(osm_id: object) -> None:
 @pytest.mark.parametrize("index", [-1, True, "0"])
 def test_invalid_graph_indices_are_rejected(index: object) -> None:
     with pytest.raises(mapping.MappingError):
-        mapping.ElevatorEdge(index, frozenset(), True)
+        mapping.ElevatorEdge(index, frozenset())
 
 
 def test_duplicate_reviewed_ref_for_different_devices_requires_resolution(
@@ -330,7 +329,7 @@ def test_duplicate_graph_edge_index_fails(
     inventory: mapping.Row, devices: list[mapping.Row]
 ) -> None:
     parsed = mapping.parse_mappings(inventory, devices)
-    edges = [mapping.ElevatorEdge(0, frozenset(), True)] * 2
+    edges = [mapping.ElevatorEdge(0, frozenset())] * 2
     with pytest.raises(mapping.MappingError, match="Duplicate graph"):
         mapping.block_elevator_outages(parsed, edges, [])
 

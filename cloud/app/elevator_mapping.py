@@ -13,16 +13,21 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections.abc import Mapping, Sequence
+import logging
+from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
+from numbers import Integral
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
+
+import numpy as np
 
 if TYPE_CHECKING:
     from cloud.app.network import WalkNetwork
 
 Row = dict[str, Any]
+LOGGER = logging.getLogger(__name__)
 UNMAPPED_REASON = (
     "Device-to-OSM match needs independent verification against the OP-104 network."
 )
@@ -57,25 +62,39 @@ class ElevatorMapping:
     matched_by: str | None
     reviewed_by: str | None
     evidence: tuple[str, ...]
+    anchor_node_id: int | None = None
+    edge_pairs: frozenset[tuple[int, int]] = frozenset()
 
 
 @dataclass(frozen=True)
 class ElevatorEdge:
-    """An OP-104 edge index with its OSM references and elevator flag.
+    """A vertical-link edge with its OSM references and endpoint IDs.
 
     network_elevator_edges() builds these from the existing OP-104 flags.
-    Paths through a node tagged as an elevator belong to that elevator's access.
+    Ground-level paths are excluded unless an exact pair is independently
+    reviewed as the vertical link. Merely touching an elevator node is not enough.
     """
 
     index: int
     osm_refs: frozenset[OsmRef]
-    is_elevator: bool
+    node_pair: tuple[int, int] | None = None
 
     def __post_init__(self) -> None:
-        if type(self.index) is not int or self.index < 0:
+        if (
+            isinstance(self.index, bool)
+            or not isinstance(self.index, Integral)
+            or self.index < 0
+        ):
             raise MappingError("Graph edge indices must be nonnegative integers")
-        if type(self.is_elevator) is not bool:
-            raise MappingError("Graph edges need an explicit elevator flag")
+        if self.node_pair is not None:
+            if not isinstance(self.node_pair, tuple) or len(self.node_pair) != 2:
+                raise MappingError("A vertical link needs two endpoint IDs")
+            for endpoint in self.node_pair:
+                OsmRef("node", endpoint)
+            if self.node_pair[0] >= self.node_pair[1]:
+                raise MappingError(
+                    "Vertical link endpoint IDs must be distinct and sorted"
+                )
 
 
 @dataclass
@@ -133,6 +152,8 @@ def prepare_inventory(devices: Sequence[Row]) -> Row:
                 "matched_by": None,
                 "reviewed_by": None,
                 "evidence": [],
+                "anchor_node_id": None,
+                "edge_pairs": [],
             }
         )
     return {"schema_version": 1, "elevators": entries}
@@ -187,9 +208,32 @@ def parse_mappings(document: Row, devices: Sequence[Row]) -> dict[str, ElevatorM
         if not isinstance(reason, str):
             raise MappingError("Mapping reasons must be text")
         reason = reason.strip()
+        anchor_node_id = entry.get("anchor_node_id")
+        if anchor_node_id is not None:
+            OsmRef("node", anchor_node_id)
+        raw_pairs = entry.get("edge_pairs", [])
+        if not isinstance(raw_pairs, list):
+            raise MappingError("edge_pairs must be a list of OSM node pairs")
+        pairs = set()
+        for pair in raw_pairs:
+            if not isinstance(pair, list) or len(pair) != 2:
+                raise MappingError("Each edge pair needs two OSM node IDs")
+            first, second = (OsmRef("node", value).id for value in pair)
+            if first == second:
+                raise MappingError("An elevator edge cannot be a self-loop")
+            pairs.add(tuple(sorted((first, second))))
+        if len(pairs) != len(raw_pairs):
+            raise MappingError("Duplicate elevator edge pair")
         matched_by, reviewed_by = entry.get("matched_by"), entry.get("reviewed_by")
         if status == "unmapped":
-            if refs or not reason or matched_by is not None or reviewed_by is not None:
+            if (
+                refs
+                or pairs
+                or anchor_node_id is not None
+                or not reason
+                or matched_by is not None
+                or reviewed_by is not None
+            ):
                 raise MappingError(
                     "Unmapped elevators need a reason and no claimed match"
                 )
@@ -227,6 +271,8 @@ def parse_mappings(document: Row, devices: Sequence[Row]) -> dict[str, ElevatorM
             matched_by=matched_by,
             reviewed_by=reviewed_by,
             evidence=tuple(evidence),
+            anchor_node_id=anchor_node_id,
+            edge_pairs=frozenset(pairs),
         )
     if result.keys() != city.keys():
         missing = ", ".join(sorted(city.keys() - result.keys()))
@@ -250,12 +296,16 @@ def block_elevator_outages(
         if edge.index in seen_indices:
             raise MappingError(f"Duplicate graph edge index {edge.index}")
         seen_indices.add(edge.index)
-        if edge.is_elevator:
-            for ref in edge.osm_refs:
-                by_ref.setdefault(ref, set()).add(edge.index)
+        for ref in edge.osm_refs:
+            by_ref.setdefault(ref, set()).add(edge.index)
     blocked: set[int] = set()
     warnings: list[StationWarning] = []
-    for obstruction in active_obstructions:
+    for row_number, obstruction in enumerate(active_obstructions, start=1):
+        if not isinstance(obstruction, Mapping):
+            LOGGER.warning(
+                "Skipping elevator outage row %s: expected an object", row_number
+            )
+            continue
         # A City escalator caution or another source's report cannot close a lift.
         if (
             obstruction.get("source") != "city_lrt_devices"
@@ -263,16 +313,49 @@ def block_elevator_outages(
             or obstruction.get("effect") != "blocked"
         ):
             continue
-        device_id = _text(obstruction, "source_ref")
+        try:
+            device_id = _text(obstruction, "source_ref")
+        except MappingError as exc:
+            LOGGER.warning("Skipping elevator outage row %s: %s", row_number, exc)
+            continue
         mapping = mappings.get(device_id)
         reason = "No device-to-OSM mapping exists for this outage."
         if mapping is not None and mapping.status == "reviewed":
+            allowed = {
+                edge.index
+                for edge in edges
+                if not mapping.edge_pairs or edge.node_pair in mapping.edge_pairs
+            }
+            missing = set()
+            matched = set()
             for ref in mapping.osm_refs:
-                blocked.update(by_ref.get(ref, set()))
-            if mapping.osm_refs.issubset(by_ref):
+                found = by_ref.get(ref, set()) & allowed
+                if found:
+                    matched.update(found)
+                else:
+                    missing.add(ref)
+            # A simplified edge may retain another way's ID. A reviewed nearest
+            # link endpoint still identifies its flagged vertical connection.
+            if (
+                missing
+                and all(ref.type == "way" for ref in missing)
+                and mapping.anchor_node_id is not None
+            ):
+                anchored = (
+                    by_ref.get(OsmRef("node", mapping.anchor_node_id), set()) & allowed
+                )
+                link_pairs = {
+                    edge.node_pair for edge in edges if edge.index in anchored
+                }
+                if anchored and len(link_pairs) == 1 and None not in link_pairs:
+                    matched.update(anchored)
+                    missing.clear()
+            blocked.update(matched)
+            if not missing:
                 continue
             reason = (
-                "Some reviewed OSM references are absent from the elevator network."
+                "A reviewed match has no unambiguous vertical link; "
+                "verify its anchor or edge_pairs."
             )
         elif mapping is not None:
             reason = (
@@ -290,53 +373,80 @@ def block_elevator_outages(
     return BlockingResult(frozenset(blocked), warnings)
 
 
-def network_elevator_edges(network: WalkNetwork) -> list[ElevatorEdge]:
+def network_elevator_edges(
+    network: WalkNetwork, mappings: Mapping[str, ElevatorMapping] | None = None
+) -> list[ElevatorEdge]:
     """Translate OP-104's flagged nodes/ways without changing the shared graph.
 
-    A node elevator closes all paths through that node. A way elevator closes
-    that undirected edge. Ordinary paths elsewhere in the station stay available.
-    Build this small index once after loading the network.
+    Include flagged elevator ways and exact reviewed vertical edge pairs. Never
+    infer that all edges at an elevator node are vertical. Build once per network
+    or reviewed mapping update; Python only visits the small candidate subset.
     """
     from cloud.app.network import EDGE_ELEVATOR, NODE_ELEVATOR
 
-    elevator_nodes = {
-        index: OsmRef("node", int(osmid))
-        for index, osmid in enumerate(network.node_osmid)
-        if int(network.node_flags[index]) & NODE_ELEVATOR
-    }
+    elevator_nodes = np.flatnonzero(network.node_flags & NODE_ELEVATOR)
+    flagged = (network.edge_flags & EDGE_ELEVATOR) != 0
+    touches_node = np.isin(network.edge_u, elevator_nodes) | np.isin(
+        network.edge_v, elevator_nodes
+    )
+    reviewed_pairs: dict[tuple[int, int], set[OsmRef]] = {}
+    for entry in (mappings or {}).values():
+        if entry.status == "reviewed":
+            for pair in entry.edge_pairs:
+                reviewed_pairs.setdefault(pair, set()).update(entry.osm_refs)
+    pair_nodes = [node for pair in reviewed_pairs for node in pair]
+    pair_node_indices = np.flatnonzero(np.isin(network.node_osmid, pair_nodes))
+    touches_pair = np.isin(network.edge_u, pair_node_indices) | np.isin(
+        network.edge_v, pair_node_indices
+    )
+    candidates = np.flatnonzero(flagged | touches_node | touches_pair)
     result = []
-    for index in range(network.edge_count):
-        refs = set()
-        for endpoint in (int(network.edge_u[index]), int(network.edge_v[index])):
-            if endpoint in elevator_nodes:
-                refs.add(elevator_nodes[endpoint])
-        if int(network.edge_flags[index]) & EDGE_ELEVATOR:
+    for index in candidates:
+        pair = tuple(
+            sorted(
+                (
+                    int(network.node_osmid[network.edge_u[index]]),
+                    int(network.node_osmid[network.edge_v[index]]),
+                )
+            )
+        )
+        explicit_refs = reviewed_pairs.get(pair, set())
+        if not flagged[index] and not explicit_refs:
+            continue
+        refs = {OsmRef("node", endpoint) for endpoint in pair}
+        refs.update(explicit_refs)
+        if flagged[index]:
             way_id = int(network.edge_osmid[index])
             if way_id > 0:
                 refs.add(OsmRef("way", way_id))
         if refs:
-            result.append(ElevatorEdge(index, frozenset(refs), True))
+            result.append(ElevatorEdge(int(index), frozenset(refs), pair))
     return result
 
 
 def masked_edge_weights(
     network: WalkNetwork,
-    blocked_indices: frozenset[int],
+    blocked_indices: Iterable[Integral],
     edge_weights: Sequence[float] | None = None,
-) -> list[float]:
+) -> np.ndarray:
     """Copy profile weights and remove failed elevators from both directions.
 
     OP-104's length_matrix() drops zero-weight edges from its symmetric sparse
     matrix. Copying keeps the shared graph and other profiles unchanged.
     """
     source = network.edge_length_m if edge_weights is None else edge_weights
-    weights = [float(value) for value in source]
-    if len(weights) != network.edge_count:
+    weights = np.array(source, dtype=np.float64, copy=True)
+    if weights.shape != (network.edge_count,):
         raise MappingError("Profile weights do not match the network edge count")
-    for index in blocked_indices:
-        if type(index) is not int or not 0 <= index < len(weights):
+    indices = list(blocked_indices)
+    for index in indices:
+        if (
+            isinstance(index, bool)
+            or not isinstance(index, Integral)
+            or not 0 <= index < len(weights)
+        ):
             raise MappingError("Blocked edge index is outside this network")
-        weights[index] = 0.0
+    weights[np.asarray(indices, dtype=np.intp)] = 0.0
     return weights
 
 

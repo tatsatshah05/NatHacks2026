@@ -27,7 +27,7 @@ def network() -> network_module.WalkNetwork:
     ]
     edges = [
         network_module.RawEdge(101, 102, 1, osmid=201),
-        network_module.RawEdge(102, 103, 1, osmid=202),
+        network_module.RawEdge(102, 103, 1, highway="elevator", osmid=202),
         network_module.RawEdge(101, 104, 4, osmid=203),
         network_module.RawEdge(104, 103, 4, osmid=204),
         network_module.RawEdge(101, 103, 1, highway="elevator", osmid=205),
@@ -43,9 +43,9 @@ def test_existing_network_flags_translate_to_node_and_way_refs(
     network: network_module.WalkNetwork,
 ) -> None:
     views = mapping.network_elevator_edges(network)
-    assert {view.index for view in views} == {0, 1, 4}
-    assert views[0].osm_refs == frozenset({mapping.OsmRef("node", 102)})
-    assert views[-1].osm_refs == frozenset({mapping.OsmRef("way", 205)})
+    assert {view.index for view in views} == {1, 4}
+    assert mapping.OsmRef("node", 102) in views[0].osm_refs
+    assert mapping.OsmRef("way", 205) in views[-1].osm_refs
 
 
 @pytest.mark.parametrize(
@@ -59,14 +59,16 @@ def test_network_matrix_removes_outages_in_both_directions_and_recovers(
     # Both node- and way-based lifts are out. The ramp is the only usable path.
     # Synthetic weight scales exercise custom profile inputs, not real settings.
     weights = mapping.masked_edge_weights(
-        network, frozenset({0, 1, 4}), original * cost_scale
+        network, frozenset({1, 4}), original * cost_scale
     )
     matrix = network.length_matrix(weights)
     distance = csgraph.dijkstra(matrix, directed=False, indices=0)
     reverse = csgraph.dijkstra(matrix, directed=False, indices=2)
     assert distance[2] == pytest.approx(8.0 * cost_scale), profile
     assert reverse[0] == pytest.approx(8.0 * cost_scale), profile
-    assert matrix[0, 1] == matrix[1, 0] == 0
+    assert matrix[0, 1] == matrix[1, 0]
+    assert matrix[0, 1] == pytest.approx(cost_scale)
+    assert matrix[1, 2] == matrix[2, 1] == 0
     assert matrix[0, 2] == matrix[2, 0] == 0
     assert np.array_equal(network.edge_length_m, original)
     recovered = network.length_matrix(mapping.masked_edge_weights(network, frozenset()))
@@ -94,7 +96,6 @@ def test_committed_city_network_exposes_all_flagged_elevators() -> None:
         i
         for i in range(actual.edge_count)
         if int(actual.edge_flags[i]) & network_module.EDGE_ELEVATOR
-        and int(actual.edge_osmid[i]) > 0
     }
     assert expected_way_edges <= {view.index for view in views}
 
@@ -108,10 +109,18 @@ def test_proposed_candidates_exist_in_merged_network_but_cannot_activate() -> No
     parsed = mapping.parse_mappings(inventory, devices)
     actual = network_module.WalkNetwork.load()
     views = mapping.network_elevator_edges(actual)
-    network_refs = {ref for view in views for ref in view.osm_refs}
     candidates = [entry for entry in parsed.values() if entry.status == "candidate"]
     assert len(candidates) == 4
-    assert all(entry.osm_refs <= network_refs for entry in candidates)
+    for entry in candidates:
+        for ref in entry.osm_refs:
+            if ref.type == "node":
+                assert np.any(actual.node_osmid == ref.id)
+            else:
+                assert entry.anchor_node_id is not None
+                assert any(
+                    mapping.OsmRef("node", entry.anchor_node_id) in view.osm_refs
+                    for view in views
+                )
     outages = [
         {
             "source": "city_lrt_devices",

@@ -57,6 +57,7 @@ def distances(
 def main() -> None:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from cloud.app.elevator_mapping import prepare_inventory
+    from cloud.app.network import EDGE_ELEVATOR, NODE_ELEVATOR, WalkNetwork
 
     parser = argparse.ArgumentParser(
         description="OP-106 review candidates, never automatic matches"
@@ -69,18 +70,16 @@ def main() -> None:
     args = parser.parse_args()
     if not math.isfinite(args.max_distance_m) or args.max_distance_m <= 0:
         parser.error("--max-distance-m must be positive and finite")
-    # Read only OP-104's published layout. No pickle loading or online queries.
-    with np.load(args.network, allow_pickle=False) as data:
-        manifest = json.loads(str(data["manifest"]))
-        if manifest.get("format_version") != 1:
-            raise ValueError("Unsupported OP-104 format_version")
-        lat, lng = data["node_lat"], data["node_lng"]
-        node_ids = data["node_osmid"]
-        elevator_nodes = np.flatnonzero(data["node_flags"] & 1)
-        elevator_ways = np.flatnonzero(data["edge_flags"] & 2)
-        way_ids = data["edge_osmid"][elevator_ways]
-        u, v = data["edge_u"][elevator_ways], data["edge_v"][elevator_ways]
-        way_lat, way_lng = (lat[u] + lat[v]) / 2, (lng[u] + lng[v]) / 2
+    # Let the network owner validate its format and define the flag bits.
+    network = WalkNetwork.load(args.network)
+    manifest = network.manifest
+    lat, lng = network.node_lat, network.node_lng
+    node_ids = network.node_osmid
+    elevator_nodes = np.flatnonzero(network.node_flags & NODE_ELEVATOR)
+    elevator_ways = np.flatnonzero(network.edge_flags & EDGE_ELEVATOR)
+    way_ids = network.edge_osmid[elevator_ways]
+    u, v = network.edge_u[elevator_ways], network.edge_v[elevator_ways]
+    way_lat, way_lng = (lat[u] + lat[v]) / 2, (lng[u] + lng[v]) / 2
     stations = json.loads(args.stations.read_text("utf-8-sig"))
     devices = json.loads(args.devices.read_text("utf-8-sig"))
     inventory = prepare_inventory(devices)
@@ -111,17 +110,36 @@ def main() -> None:
                             "id": osm_id,
                             "distance_m": round(float(distance), 1),
                             "url": f"https://www.openstreetmap.org/node/{osm_id}",
+                            "anchor_node_id": osm_id,
+                            "anchor_note": (
+                                "Review the vertical edge pair; "
+                                "this node alone must not close its junction."
+                            ),
                         }
                     )
             way_distances = distances(way_lat, way_lng, points)
-            for osm_id, distance in zip(way_ids, way_distances, strict=True):
+            for ordinal, (osm_id, distance) in enumerate(
+                zip(way_ids, way_distances, strict=True)
+            ):
                 if int(osm_id) > 0 and distance <= args.max_distance_m:
+                    endpoints = np.array([u[ordinal], v[ordinal]])
+                    endpoint_distances = distances(
+                        lat[endpoints],
+                        lng[endpoints],
+                        [(float(way_lat[ordinal]), float(way_lng[ordinal]))],
+                    )
+                    anchor = int(endpoints[int(np.argmin(endpoint_distances))])
                     candidates.append(
                         {
                             "type": "way",
                             "id": int(osm_id),
                             "distance_m": round(float(distance), 1),
                             "url": f"https://www.openstreetmap.org/way/{int(osm_id)}",
+                            "anchor_node_id": int(node_ids[anchor]),
+                            "anchor_note": (
+                                "Nearest endpoint of the flagged vertical link; "
+                                "independent review required."
+                            ),
                         }
                     )
             all_distances = distances(lat, lng, points)

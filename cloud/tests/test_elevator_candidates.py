@@ -1,11 +1,13 @@
 """OP-106 / issue #34: check candidate distances and honest review labels."""
 
+import hashlib
 import json
 from pathlib import Path
 
 import numpy as np
 import pytest
 
+from cloud.app.network import DEFAULT_NETWORK_PATH, WalkNetwork
 from scripts.elevator_candidates import distances, distinct_candidates
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,9 +37,11 @@ def test_committed_candidate_report_covers_inventory_without_claiming_matches() 
         row["review_status"] == "unreviewed; no active match"
         for row in report["entries"]
     )
-    assert report["network_manifest"]["elevator_nodes"] == 9
-    assert report["network_manifest"]["elevator_edges"] == 4
-    assert report["network_sha256"]
+    assert (
+        report["network_sha256"]
+        == hashlib.sha256(DEFAULT_NETWORK_PATH.read_bytes()).hexdigest()
+    )
+    assert report["network_manifest"] == WalkNetwork.load().manifest
     for entry in report["entries"]:
         refs = [(item["type"], item["id"]) for item in entry["elevator_candidates"]]
         assert len(refs) == len(set(refs))
