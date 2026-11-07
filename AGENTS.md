@@ -19,7 +19,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
-- **November 7, 2026:** planning is complete and there is no application code yet. Phase 1 starts with OP-101 (contracts) and OP-102 (skeleton), which create the folders described below.
+- **November 7, 2026:** Phase 1 is in progress. OP-101 (contracts), OP-102 (skeleton) and OP-104 (walking network) are still integration dependencies on this branch.
+- **OP-106 preparation on this branch:** `cloud/app/elevator_mapping.py` audits City elevators and adapts OP-104's existing node/edge flags for outage masking. The adapter is tested against the `op-104-walking-network` dependency checkout. `docs/elevators.proposed.json` and `docs/elevator-candidates.json` are review artifacts, not shared configuration or verified device matches. Real match review and final integration remain pending; see `docs/OP-106.md`.
 - **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
@@ -196,6 +197,24 @@ These live in the root Makefile and are available after OP-102.
 | `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` |
 | `make record` | Records a replay snapshot of every source (no images) |
 | `make worker` | Runs the vision worker locally |
+
+OP-106 adds an offline inventory audit while the shared skeleton/network are pending:
+
+```bash
+python -m cloud.app.elevator_mapping --inventory docs/elevators.proposed.json --devices cloud/tests/fixtures/elevator_mapping/devices.json
+```
+
+The audit reports reviewed, candidate and unmapped counts. Passing this audit
+validates the document; it does not certify real OSM matches or complete OP-106.
+
+OP-106 also adds a local candidate report command after OP-104's network file is available:
+
+```bash
+python scripts/elevator_candidates.py --network cloud/data/network.npz --devices cloud/tests/fixtures/elevator_mapping/devices.json --stations cloud/tests/fixtures/elevator_mapping/stations.json --out docs/elevator-candidates.json
+```
+
+Its default 200 m search radius is a review aid, not a match threshold for
+routing. It never activates a match or writes shared configuration.
 
 ## Environment Variables
 
