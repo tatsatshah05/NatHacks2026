@@ -329,7 +329,7 @@ Each person plans for about 8 points per phase, which leaves time for reviews, h
 - Any UI change passes the accessibility checklist
 - No secrets or images are committed
 
-**Workflow:** branch `op-<id>-<short-name>` from `main` → commit → pull request titled `OP-<id>: <story title>` with `Closes #<issue>` → `CI passed` → scrum master approval → squash merge → automatic deploy. See [GUIDELINE.md](GUIDELINE.md) and [docs/CI_CD.md](docs/CI_CD.md).
+**Workflow:** branch `op-<id>-<short-name>` from the phase branch (`phase_1` during Phase 1) → commit → pull request into the phase branch, titled `OP-<id>: <story title>` with `Closes #<issue>` → `CI passed` → scrum master approval → squash merge → staging deploy. At each checkpoint, the scrum master releases the phase branch into `main` (production) and starts the next phase branch. See [GUIDELINE.md](GUIDELINE.md) and [docs/CI_CD.md](docs/CI_CD.md).
 
 **Check-ins:**
 - 15-minute kickoff at the start of each phase

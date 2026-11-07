@@ -20,7 +20,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 Update this section whenever the status changes.
 
 - **November 7, 2026:** planning is complete and there is no application code yet. Phase 1 starts with OP-101 (contracts) and OP-102 (skeleton), which create the folders described below.
-- **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
+- **CI/CD is live, and every branch below is protected.** Every pull request needs the `CI passed` check and the scrum master's approval. See [docs/CI_CD.md](docs/CI_CD.md).
+- **Phase branches:** Phase 1 work goes into the `phase_1` branch, which is the default branch. When the phase passes its checkpoint, `phase_1` is released into `main`, and `phase_2` starts from `main`.
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
 ## Where to Find Context
@@ -80,11 +81,11 @@ Open decisions D-1 to D-5 are in PLAN.md section 16.
 ## How to Work a Story
 
 1. Open the story's issue (`OP-<id>`). Read the user story, the acceptance criteria and the dependencies. Check that the dependencies are merged or can be mocked.
-2. Branch from `main` as `op-<id>-<short-name>`.
+2. Branch from the current phase branch (`phase_1` during Phase 1) as `op-<id>-<short-name>`. Never branch from `main` or open story pull requests into it.
 3. For any change that touches more than one file, plan first. Stay inside the acceptance criteria, and do not build later-phase stories.
 4. Add tests and run `make test`.
-5. Open a pull request titled `OP-<id>: <story title>` with `Closes #<issue number>`. Work outside a story uses a `docs:`, `chore:`, `ci:` or `fix:` title. CI checks the title, the link, the files, the Python code and the web app.
-6. The pull request merges only when `CI passed` is green and the scrum master (`@tatsatshah05`) approves. Merges are squash-only, and a merge to `main` deploys to production.
+5. Open a pull request into the story's phase branch (`OP-1xx` into `phase_1`, `OP-2xx` into `phase_2`, and so on), titled `OP-<id>: <story title>`, with `Closes #<issue number>`. Work outside a story uses a `docs:`, `chore:`, `ci:` or `fix:` title. CI checks the title, the link, the files, the Python code and the web app.
+6. The pull request merges only when `CI passed` is green and the scrum master (`@tatsatshah05`) approves. Merges are squash-only. Merges into a phase branch deploy to staging, and phase releases into `main` deploy to production.
 7. If the story needs a change to a shared contract, stop and ask the lead.
 8. If you add a command, an endpoint, an environment variable or a decision, update this file in the same pull request.
 
