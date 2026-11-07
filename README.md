@@ -39,6 +39,10 @@ Tatsat (lead), Ipsa, Estella, Kaleb, Matthew and Kashish.
 
 ## Getting Started
 
+Estella's OP-111 work is documented in
+[the snow-clearing adapter guide](docs/ESTELLA_OP111.md), including the missing
+service-time data required before this story can be completed.
+
 1. Read [PLAN.md](PLAN.md) for the product, architecture and backlog.
 2. Read [User Stories](docs/USER_STORIES.md) to see your stories, and [GUIDELINE.md](GUIDELINE.md) for the workflow.
 3. Find your stories under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) using your name label.

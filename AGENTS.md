@@ -25,6 +25,15 @@ Update this section whenever the status changes.
 
 ## Where to Find Context
 
+On the OP-111 branch, see [Estella's snow-clearing guide](docs/ESTELLA_OP111.md).
+Its standalone check is `.venv/bin/python -m cloud.tools.preview_snow_clearing`
+(recorded NA data), with `--live` for the public City API. Install
+`cloud/requirements-snow-clearing.txt` and run
+`.venv/bin/python -m pytest cloud/tests -q`. OP-111 remains incomplete because
+the public feed lacks a documented service timestamp; completed roads require
+verified service-time evidence and walking-crossing mappings before warnings
+are generated. No shared contract or source configuration is changed.
+
 | You need | Read |
 | --- | --- |
 | Product, scope, data sources, vision model, routing rules, architecture, contracts, production checklist, risks, open decisions | [PLAN.md](PLAN.md) (sections 1 to 17) |
