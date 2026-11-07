@@ -1,6 +1,6 @@
-# 05 Integration and demo hardening (Tatsat, from Gate 2)
+# 05 Integration and demo hardening (reference for Phase 4 tasks)
 
-Paste into Claude Code on `main` once Gate 2 is reached.
+Paste into Claude Code on `main` once Gate 3 is reached.
 
 ---
 

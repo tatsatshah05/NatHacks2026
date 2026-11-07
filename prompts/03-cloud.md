@@ -1,4 +1,4 @@
-# 03 Cloud API and routing (Matthew; Kaleb helps on ingest and dispatch)
+# 03 Cloud API and routing (reference for Phase 3 tasks)
 
 Paste into Claude Code on branch `cloud/core` after the kickoff skeleton is merged.
 
@@ -21,9 +21,9 @@ Plan first, then build in this order, with tests at each step:
 8. **Dispatch.** `POST /api/dispatch/{edge_id}` (admin key) broadcasts `{"type": "dispatch", "model_segment_id"}` so the hub sweeps the servo plow.
 9. **Render.** Confirm `render.yaml` works: Postgres via `DATABASE_URL` (convert `postgres://` to `postgresql+psycopg://` if needed), the `/health` check, and `CORS_ORIGINS` set to the Vercel production and preview domains. Write how to keep the instance awake during judging.
 
-**Done (Gate 2, hour 18):** posting a hazard to ingest changes the routes for each profile correctly, and every connected web client sees it within 1 s.
+**Done (by the end of its phase):** posting a hazard to ingest changes the routes for each profile correctly, and every connected web client sees it within 1 s.
 
-**Done (Gate 3, hour 30):**
+**Done (Gate 3, hour 34):**
 - Push arrives on an Android phone within 5 s of a hazard on a saved route.
 - The weather watch shows up when forced.
 - Clear-first lists the right edge first.

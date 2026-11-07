@@ -1,4 +1,4 @@
-# 04 Web app (Kashish; Ipsa helps on the live map)
+# 04 Web app (reference for Phase 3 tasks)
 
 Paste into Claude Code on branch `web/app` after the kickoff skeleton is merged.
 
@@ -34,9 +34,9 @@ Plan first, then build in this order. Run `make types && npm run lint && npm run
    - Write the results in `web/ACCESSIBILITY.md` for the Devpost.
 8. **Vercel.** Root dir `web`; set the env vars for Production and Preview; confirm the WebSocket connects from the deployed site to Render (`wss://`).
 
-**Done (Gate 2, hour 18):** on a phone, the deployed site shows the live map and route, and a sim hazard reroutes it without a refresh.
+**Done (by the end of its phase):** on a phone, the deployed site shows the live map and route, and a sim hazard reroutes it without a refresh.
 
-**Done (Gate 3, hour 30):**
+**Done (Gate 3, hour 34):**
 - A push alert arrives on Android and opens the right route.
 - The Google Maps hand-off follows our detour.
 - `/city` dispatch works.

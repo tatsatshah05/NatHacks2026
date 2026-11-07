@@ -1,4 +1,4 @@
-# 01 Edge and vision (Ipsa; Tatsat helps)
+# 01 Edge and vision (reference for Phase 2 tasks and the Phase 3 Pi uplink)
 
 Paste into Claude Code on branch `edge/vision` after the kickoff skeleton is merged.
 
@@ -21,10 +21,10 @@ Plan first, then build in this order, with tests at each step:
 6. **Debug view.** `run.py --show` opens an OpenCV window with the warped board, each region outlined in its state colour, and the snow and obstruction scores printed. Also serve it as MJPEG at `http://localhost:8001/video` for the city dashboard on the hub.
 7. **Metrics.** Append every state change to `edge/metrics.csv` (timestamp, segment, from, to, scores, latency from first threshold crossing to uplink acknowledgement). Add `python -m pathsense_edge.bench` for a guided 50-placement test that prints hits, misses, false alarms and median detection time. These are the numbers for the pitch.
 
-**Done (Gate 2, hour 18):**
+**Done (by the end of its phase):**
 - Fake snow on a model segment reaches state `snow` locally in under 2 s, and shows in the cloud API in under 3 s.
 - With no changes for 10 minutes while people walk around the table, there are zero false state changes.
 - A hand held over the board for 3 s causes no state change.
 - `make test` passes.
 
-Do not change `config/` or cloud schemas; ask the lead. Do not add an ML model until Gate 3 is passed. If you do add one, it is a small classifier on region crops (`tools/label.py` to collect data), and it may only veto or confirm the classical scores.
+Do not change `config/` or cloud schemas; ask the lead. Phase 2 includes ML: after the classical baseline works, train a small classifier on segment crops (collected with `edge/tools/label.py`). Keep whichever of baseline or classifier scores higher on the held-out test set.

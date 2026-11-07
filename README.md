@@ -11,13 +11,13 @@ PathSense spots snow, black ice and obstructions on sidewalks using an ESP32-CAM
 - [`CLAUDE.md`](CLAUDE.md): the rules Claude Code follows in this repo.
 - [`prompts/`](prompts/): one Claude Code prompt per workstream. The lead runs `00-kickoff.md` once hacking officially starts. It creates `edge/`, `cloud/`, `web/`, `firmware/` and `config/`.
 
-## Workstreams
+## How we work
 
-| Prompt | Owner | Builds |
+We move as one team through four phases: **hardware, then vision model, then web app, then finish**. Each person has one task per phase. Read [`GUIDELINE.md`](GUIDELINE.md) for the full split, the gates and the Git workflow, and find your tasks under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) by your `person:` label.
+
+| Phase | Hours | Milestone |
 | --- | --- | --- |
-| `00-kickoff.md` | Tatsat | Repo skeleton, contracts, simulator, tests |
-| `01-edge-vision.md` | Ipsa | Camera pipeline, fusion, uplink |
-| `02-firmware.md` | Kaleb | Arduino street controller (ultrasonic, servos), v2 temperature sensors |
-| `03-cloud.md` | Matthew | FastAPI on Render: hazards, routing, black ice, push |
-| `04-web.md` | Kashish | Next.js on Vercel: map, routes, alerts, dashboard |
-| `05-integration.md` | Tatsat | Demo checks, offline mode, freeze |
+| 1. Hardware | 0-10 | Phase 1: Hardware |
+| 2. Vision model | 10-22 | Phase 2: Vision model |
+| 3. Web app | 22-34 | Phase 3: Web app |
+| 4. Finish | 34-48 | Phase 4: Finish |

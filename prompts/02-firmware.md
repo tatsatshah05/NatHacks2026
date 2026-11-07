@@ -1,4 +1,4 @@
-# 02 Firmware and model (Kaleb; Estella helps with the model)
+# 02 Firmware and model (reference for Phase 1 tasks)
 
 Paste into Claude Code on branch `hw/firmware` after the kickoff skeleton is merged.
 
@@ -15,7 +15,7 @@ Plan first. Write the code, then a README with exact wiring, flashing steps (Ard
    - Two servos: plow on D9, barrier on D10 (move the DS18B20 to another free pin in v2 if needed and update WIRING.md). `S<i>,<deg>` attaches servo `i`, moves it, then detaches 500 ms later to stop jitter.
    - `P` replies `OK`.
    - Optional, only if we get a WS2812B strip: `L<chars>` LED frame through a `const` segment-to-pixel table; call `show()` only when the frame changes.
-2. **v2 sensors on the same Uno** (only after Gate 3, once the camera works end to end).
+2. **v2 sensors on the same Uno** (v2: only after Gate 3, once the camera works end to end).
    - DS18B20 on a OneWire pin with the 4.7 kOhm pull-up to 5 V; 10-bit, non-blocking conversion. Emit `T<surface_c>` at 1 Hz.
    - Water sensor: AO on A0, VCC from D12 switched on only while reading. Emit `W<0-1023>` at 1 Hz.
    - DHT22 only if fitted: emit `H<air_c>,<rh>` at 1 Hz.
@@ -27,7 +27,7 @@ Plan first. Write the code, then a README with exact wiring, flashing steps (Ard
 5. **Hub-side helper.** `edge/tools/serial_console.py` on the Pi: send `S`, `P` (and `L`), and print `U` (and v2 `T`, `W`, `H`) lines live.
 6. **Optional, the spare Feather ESP32.** Leave it unused unless we need a sensor far from the Uno. If so, `firmware/esp32_ultrasonic/` publishes `{"i", "mm"}` over MQTT, with a 1 kOhm / 2 kOhm divider on the echo line.
 
-**Done (Gate 2, hour 18):**
+**Done (by the end of its phase):**
 - `serial_console.py` on the Pi shows live distances from both ultrasonic sensors.
 - Both servos move on command without jitter, powered from their own supply.
 - The model is built, with the camera mount fixed.

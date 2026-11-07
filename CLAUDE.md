@@ -8,23 +8,23 @@ A tabletop model of a real Edmonton neighbourhood carries the sensors. Its segme
 - Technical spec (editable; discuss in comments; it is the source of truth for open decisions): https://claude.ai/artifact/RXvZzsyhUkjnyc4ix92ZjE
 - Team plan (roles, timeline, demo script, BOM): https://claude.ai/artifact/D7hBPDBBxcMad9je8PTQ63
 
-## Team
+## Team and phases
 
-| Person | Role | Owns | Prompt |
-| --- | --- | --- | --- |
-| Tatsat | Project lead, hardware, vision support | Contracts (`cloud/app/schemas.py`, `config/`), merges, gates, Pi hub, integration | 00-kickoff, 05-integration |
-| Ipsa | Vision lead | `edge/`: calibration, detection, fusion, uplink | 01-edge-vision |
-| Kaleb | Hardware lead | `firmware/`, wiring, camera mount, model, v2 sensors | 02-firmware |
-| Matthew | Web app co-lead: API | `cloud/`: FastAPI on Render | 03-cloud |
-| Kashish | Web app co-lead: front end | `web/`: Next.js on Vercel | 04-web |
-| Estella | Floater | Model build, testing, accessibility checks, slides, Devpost | none |
+Six people (Tatsat, Ipsa, Estella, Kaleb, Matthew, Kashish) move together through four phases. Each person has one task per phase; `GUIDELINE.md` and the GitHub issues (labels `person: <name>`, one milestone per phase) are the source of truth.
 
-Tatsat, Ipsa and Kaleb help Matthew and Kashish once their own Gate 2 work passes. Contract changes still go through Tatsat.
+| Phase | Hours | Gate |
+| --- | --- | --- |
+| 1. Hardware connections and hardware code | 0-10 | The Pi shows camera frames of the whole board, reads both ultrasonics, moves both servos |
+| 2. Vision model (from overhead camera frames of the model) | 10-22 | Target 45/50 test placements correct, under 2 s, no false changes in 10 min |
+| 3. Web app | 22-34 | Snow on the model reroutes the deployed site on a phone; push and Google Maps hand-off work |
+| 4. Finish | 34-48 | Freeze at hour 40; demo rehearsed 5 times; submit by hour 46 |
+
+When working an issue, stay inside that phase's scope. Do not build next-phase features early, except the code skeleton (`prompts/00-kickoff.md`), which runs during Phase 1.
 
 ## Priorities (apply to every task)
 
 1. **The live demo must never fail.** Reliability beats features. Prefer simple, deterministic code with explicit fallbacks.
-2. **Contracts are frozen after hour 2.** Only the team lead (Tatsat) changes `cloud/app/schemas.py` and `config/`. If a task seems to need a contract change, stop and say so. Do not work around it.
+2. **Contracts are shared.** Change `cloud/app/schemas.py` and `config/` only after the team agrees in the Technical Spec comments. If a task seems to need a contract change, stop and say so. Do not work around it.
 3. **Must, then Should, then Could** (see Scope). Feature freeze at hour 40; after that, bug fixes only.
 4. **Everything runs without hardware.** `make sim` must always run a fake end-to-end demo on a laptop. Never break it.
 5. **Small, working steps.** Plan first for any change that touches more than one file. Run `make test` after changes. `main` always passes.
