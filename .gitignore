@@ -1,0 +1,17 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# Vision: never commit camera images, caches or model weights
+vision/data/
+vision/.cache/
+*.onnx
+*.pt
