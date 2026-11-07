@@ -6,6 +6,8 @@ OpenPath plans accessible routes across Edmonton and lists every known barrier b
 
 The team works through four phases, in order. Everyone works on the same phase at the same time. We move to the next phase only after the current phase passes its checkpoint.
 
+Each phase has its own branch: `phase_1`, `phase_2`, `phase_3` and `phase_4`. During a phase, every pull request goes into that phase's branch. When the checkpoint passes, the scrum master releases the phase branch into `main` and starts the next phase branch from `main`.
+
 ## Phases
 
 | Phase | Hours | Goal | Checkpoint |
@@ -37,25 +39,25 @@ Story points measure effort on the Fibonacci scale: 1, 2, 3, 5. As a rough team 
 1. Open **Issues** and filter by your name label (`person: <your name>`) and the current phase milestone.
 2. Check that the story's dependencies are merged, or that you can mock them.
 3. Comment on the issue to show that you are working on it.
-4. Create a branch from `main` named `op-<id>-<short-name>`.
+4. Create a branch from the current phase branch (for example `phase_1`) named `op-<id>-<short-name>`.
 5. Give the issue to your coding agent (Claude Code, Codex, Cursor or Copilot) as the task. Every agent follows [AGENTS.md](AGENTS.md).
-6. Open a pull request titled `OP-<id>: <story title>` that includes `Closes #<issue number>`. The template lists the Definition of Done.
-7. Wait for the `CI passed` check. The scrum master (Tatsat) reviews and approves. Turn on **Enable auto-merge**, and the pull request merges itself once both are green. See [docs/CI_CD.md](docs/CI_CD.md).
+6. Open a pull request **into the phase branch** (`OP-1xx` into `phase_1`, `OP-2xx` into `phase_2`, and so on), titled `OP-<id>: <story title>`, that includes `Closes #<issue number>`. The template lists the Definition of Done.
+7. Wait for the `CI passed` check. Tatsat, Ipsa or Kashish reviews and approves; one approval is enough. Turn on **Enable auto-merge**, and the pull request merges itself once both are green. See [docs/CI_CD.md](docs/CI_CD.md).
 
 ```bash
-git checkout main && git pull
+git checkout phase_1 && git pull
 git checkout -b op-105-lrt-outages
 # ...work with your coding agent...
 git add -A && git commit -m "Add LRT elevator and escalator outage adapter"
 git push -u origin op-105-lrt-outages
-gh pr create --title "OP-105: LRT elevator and escalator adapter" --body "Closes #<issue number>"
+gh pr create --base phase_1 --title "OP-105: LRT elevator and escalator adapter" --body "Closes #<issue number>"
 ```
 
 ## Definition of Done
 
 - All acceptance criteria are met
 - Tests are added and `make test` passes
-- `CI passed` is green and the scrum master has approved the pull request
+- `CI passed` is green, and Tatsat, Ipsa or Kashish has approved the pull request
 - The preview deploy works
 - Documentation is updated
 - Any UI change passes the accessibility checklist in `web/ACCESSIBILITY.md`
@@ -63,7 +65,7 @@ gh pr create --title "OP-105: LRT elevator and escalator adapter" --body "Closes
 
 ## Team Rules
 
-- **Never push to `main`.** It is protected: every change goes through a pull request.
+- **Never push to `main` or a phase branch.** Both are protected: every change goes through a pull request into the current phase branch.
 - **Stay in the current phase.** When your stories are done, help a teammate in the same phase.
 - **Check in.** 15-minute kickoff at each phase start; 5-minute stand-up every 4 hours (done, next, blocked); checkpoint review at each phase end.
 - **Agree before changing shared contracts.** Discuss changes to `config/`, `cloud/app/schemas.py` or the API with the team first, and record the decision in PLAN.md.
