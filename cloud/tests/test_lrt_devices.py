@@ -1,4 +1,6 @@
-"""Check outage status, station matching, timestamps and failure recovery.
+"""OP-105: LRT elevator and escalator adapter (issue #33, PR #83).
+
+Check outage status, station matching, timestamps and failure recovery.
 
 Use recorded City responses and small edited copies for edge cases. Every
 test blocks network access so results do not depend on the live City feed.
