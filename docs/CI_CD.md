@@ -32,6 +32,7 @@ The current phase branch is the repository's **default branch**. New pull reques
 | `CI passed` check required | Every check below must pass |
 | Branch up to date | Click **Update branch** if the target branch moved since you branched |
 | Reviewer approval | `@tatsatshah05`, `@ipsamanhas` and `@kashishgupta2911` own every file (`.github/CODEOWNERS`). An approval from any one of them is enough |
+| One requested reviewer | GitHub requests all three owners; the `Assign reviewer` workflow trims that to one person, chosen in turn by pull request number and never the author. Anyone of the three may still review |
 | New commits reset approval | Pushing after approval needs a fresh review |
 | Conversations resolved | Every review comment must be resolved |
 | Squash merge | Each story becomes one commit on the phase branch; each phase becomes one commit on `main` |
