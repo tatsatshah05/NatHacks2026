@@ -1,23 +1,40 @@
 # PathSense
 
-Detect when accessible winter pathways become inaccessible. Our natHACKS 2026 project.
+Real-time accessible routing for winter sidewalks. Built for natHACKS 2026.
 
-PathSense spots snow, black ice and obstructions on sidewalks using an ESP32-CAM and low-cost sensors on a tabletop model of real Edmonton streets. It then reroutes people live, based on how they get around: wheelchair, walker or cane, low vision, or standard walking. The web app runs on Vercel and the API runs on Render.
+## What It Does
 
-## For the team
+PathSense uses a camera and sensors to detect snow, ice and obstructions on sidewalks. When a sidewalk becomes unsafe, it finds an accessible alternative route and notifies the people who use it. The demo runs on a model of real Edmonton streets.
 
-- [Technical spec](https://claude.ai/artifact/RXvZzsyhUkjnyc4ix92ZjE): architecture, contracts, wiring, gates and open decisions. Edit it and discuss in comments (team access only).
-- [Team plan](https://claude.ai/artifact/D7hBPDBBxcMad9je8PTQ63): roles, timeline and parts list (team access only).
-- [`CLAUDE.md`](CLAUDE.md): the rules Claude Code follows in this repo.
-- [`prompts/`](prompts/): one Claude Code prompt per workstream. The lead runs `00-kickoff.md` once hacking officially starts. It creates `edge/`, `cloud/`, `web/`, `firmware/` and `config/`.
+## How It Works
 
-## How we work
+- **Hardware:** a Raspberry Pi with a camera watches the model. An Arduino reads distance sensors and controls two servos.
+- **Vision:** the Pi identifies the condition of each sidewalk segment.
+- **Server:** a Python API on Render stores conditions and calculates routes.
+- **Web app:** a Next.js site on Vercel shows a live map, routes and notifications.
 
-We move as one team through four phases: **hardware, then vision model, then web app, then finish**. Each person has one task per phase. Read [`GUIDELINE.md`](GUIDELINE.md) for the full split, the gates and the Git workflow, and find your tasks under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) by your `person:` label.
+## How We Work
+
+The team works through four phases together. Each person has one task per phase.
 
 | Phase | Hours | Milestone |
 | --- | --- | --- |
-| 1. Hardware | 0-10 | Phase 1: Hardware |
-| 2. Vision model | 10-22 | Phase 2: Vision model |
-| 3. Web app | 22-34 | Phase 3: Web app |
-| 4. Finish | 34-48 | Phase 4: Finish |
+| 1. Hardware | 0–10 | Phase 1: Hardware |
+| 2. Vision Model | 10–22 | Phase 2: Vision Model |
+| 3. Web App | 22–34 | Phase 3: Web App |
+| 4. Finish | 34–48 | Phase 4: Finish |
+
+## Team
+
+Tatsat, Ipsa, Estella, Kaleb, Matthew and Kashish.
+
+## Getting Started
+
+1. Read [GUIDELINE.md](GUIDELINE.md) for the phases, assignments and workflow.
+2. Find your tasks under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) using your name label.
+3. See [CLAUDE.md](CLAUDE.md) for the technical rules Claude Code follows, and [prompts/](prompts/) for reference prompts for each phase.
+
+## Documents
+
+- [Technical Spec](https://claude.ai/artifact/RXvZzsyhUkjnyc4ix92ZjE) (team access)
+- [Team Plan](https://claude.ai/artifact/D7hBPDBBxcMad9je8PTQ63) (team access)

@@ -1,104 +1,61 @@
-# PathSense team guideline
+# PathSense Team Guideline
 
-We move as **one team through four phases**, in order. Everyone works on the current phase; nobody starts the next phase until its gate passes. The one exception is the code skeleton: Claude Code builds it in the background during Phase 1, so Phase 3 starts from working code.
+## Overview
 
-Each person has **one task per phase**. When yours is done, help whoever is behind in the same phase. Every task is a GitHub issue. Filter by your `person:` label and the current milestone.
+PathSense detects snow, ice and obstructions on a model of city sidewalks. When a sidewalk becomes unsafe, it shows people a safe, accessible route in real time.
 
-## The phases
+The team works through four phases, in order. Everyone works on the same phase at the same time. We move to the next phase only after the current phase passes its checkpoint.
 
-| Phase | Hours | Goal | Gate to move on |
+## Phases
+
+| Phase | Hours | Goal | Checkpoint |
 | --- | --- | --- | --- |
-| 1. Hardware | 0–10 | Wire everything and write the hardware code | The Pi shows camera frames of the whole board, reads both ultrasonic sensors and moves both servos |
-| 2. Vision model | 10–22 | Turn camera frames of the model into reliable segment states | Target: correct on 45 of 50 test placements, changes in under 2 s, no false changes in 10 min |
-| 3. Web app | 22–34 | Get states to the cloud and onto a live map | Snow on the model reroutes the deployed site on a phone; a push alert arrives; the Google Maps hand-off works |
-| 4. Finish | 34–48 | Harden, freeze at hour 40, pitch, submit by hour 46 | Demo rehearsed 5 times |
+| 1. Hardware | 0–10 | Connect and program all hardware | The Raspberry Pi receives camera images, reads both distance sensors and controls both servos |
+| 2. Vision Model | 10–22 | Detect sidewalk conditions from camera images | At least 45 of 50 test cases are correct, updates appear within 2 seconds, and there are no false alerts over 10 minutes |
+| 3. Web App | 22–34 | Show live conditions and routes online | Placing snow on the model updates the route on a phone, sends a notification and opens the route in Google Maps |
+| 4. Finish | 34–48 | Stabilize, present and submit | Features are frozen at hour 40, the demo is rehearsed five times, and the project is submitted by hour 46 |
 
-## At a glance
+## Assignments
 
-| Person | Phase 1: Hardware | Phase 2: Vision model | Phase 3: Web app | Phase 4: Finish |
+| Team member | Phase 1: Hardware | Phase 2: Vision Model | Phase 3: Web App | Phase 4: Finish |
 | --- | --- | --- | --- | --- |
-| Tatsat | Raspberry Pi hub setup + code skeleton | Fusion, stability, reliability tests | Street graph, routing, Pi uplink | Demo checks, reset, offline mode |
-| Ipsa | Camera source and mount | Calibration and segment regions | Black-ice weather watch and replay | Measure the pitch numbers |
-| Estella | Build the street model | Collect the training data | Saved routes and push alerts | Slides, Devpost, rehearsals |
-| Kaleb | Ultrasonic sensors: wiring + code | Baseline detector (no ML) | City dashboard and dispatch | Hardware hardening |
-| Matthew | Servos: wiring + code | Train the classifier, run it on the Pi | Cloud API on Render | Deploy stability + backup video |
-| Kashish | Serial console + wiring diagram | Data collection tool | Live map and route planner | Accessibility pass |
+| Tatsat | Raspberry Pi setup and code foundation | Result stability and reliability testing | Routing and Pi-to-server connection | Demo checks and offline backup |
+| Ipsa | Camera selection and mounting | Camera calibration | Black ice detection from weather data | Performance measurements |
+| Estella | Sidewalk model construction | Training data collection | Saved routes and notifications | Presentation, Devpost and rehearsals |
+| Kaleb | Distance sensor wiring and code | Baseline detection | City dashboard and plow control | Hardware reliability |
+| Matthew | Servo wiring and code | Model training and deployment on the Pi | Server and database on Render | Deployment stability and backup video |
+| Kashish | Serial tools and wiring diagram | Data labeling tool | Live map and route planner on Vercel | Accessibility review |
 
-## Phase 1: Hardware connections and hardware code (hours 0–10)
+Each assignment is a GitHub issue with a goal, a task checklist and a definition of done.
 
-| Person | Task | Done when |
-| --- | --- | --- |
-| Tatsat | Set up the Raspberry Pi as the hub: OS, SSH, network, Python venv with `--system-site-packages`, repo cloned, Arduino seen over USB. Run `prompts/00-kickoff.md` in the background. | The team can SSH into the Pi, and it sees the Arduino |
-| Kaleb | Wire 2 HC-SR04 (D2/D3, D4/D5) and write their code: `U<i>,<mm>` at 5 Hz | The serial monitor shows both distances change when a toy bin is placed |
-| Matthew | Wire 2 servos (plow D9, barrier D10) on 4xAA power with shared ground, and write their code: `S<i>,<deg>`, `P`/`OK`. Merge it with Kaleb's code into `firmware/arduino_street/` | `S0,20` and `S1,90` move the right servo without jitter |
-| Ipsa | Pick the camera (Pi Camera Module or a phone; not the OV7670), mount it about 70 cm above the board, fix and mark the lamp angle | The Pi saves a sharp, evenly lit frame with all 4 ArUco markers |
-| Kashish | `edge/tools/serial_console.py` (send `S`/`P`, print `U`), plus `firmware/WIRING.md` with a pin table and a photo | Anyone can move a servo and watch both distances from the Pi |
-| Estella | Build the model: matte dark-gray board, about 14 numbered segments, a curb cut, a stairs shortcut, Home/Clinic/Transit/Grocery, ArUco markers, the clear-film patch, props | The model matches `config/model_map.json` |
+## Working on a Task
 
-## Phase 2: Vision model (hours 10–22)
-
-Our data is **overhead camera frames of the model**. We cut each frame into one image per segment (a "crop"), label the crops, and train on them.
-
-| Person | Task | Done when |
-| --- | --- | --- |
-| Ipsa | Calibration: ArUco to a top-down view, one region per segment from `model_map.json`, a baseline from 30 clean frames | A debug window outlines every segment in the right place |
-| Kashish | `edge/tools/label.py`: one keypress saves every segment's crop with a label (clear, snow, obstruction, gloss) to a shared folder outside git | One keypress saves 14 labelled crops |
-| Estella | Collect data: at least 50 placements per class under 3 lighting setups; keep 10 per class aside as the test set | The dataset and its label CSV are shared |
-| Kaleb | Baseline detector without ML: snow, obstruction and gloss scores, plus the ultrasonic drop that marks a segment blocked | Baseline accuracy on the test set is posted in the issue |
-| Matthew | Train a small classifier (e.g. MobileNetV3-small), export it to ONNX, and time it on the Pi | Both accuracies are in the issue; the better model runs on the Pi at 5 frames/s or faster |
-| Tatsat | Fusion: smoothing, enter/exit thresholds, hand-over-board freeze, stale data; run the 50-placement and 10-minute tests | Gate 2 passes, with results in `edge/metrics.csv` |
-
-## Phase 3: Web app (hours 22–34)
-
-| Person | Task | Done when |
-| --- | --- | --- |
-| Matthew | Cloud API on Render: ingest with device key, hazard store in Postgres, live `/ws`, `/health` | A posted hazard shows up live for every connected client |
-| Tatsat | Street graph of the demo neighbourhood, routing per profile with alternates, walking times and Maps links; the Pi uplink and dispatch listener | A hazard on the model changes the route the API returns |
-| Kashish | Next.js on Vercel: live map with hazard layer, profile picker, route cards, spoken and vibrating alerts | On a phone, the deployed site reroutes live |
-| Ipsa | Open-Meteo black-ice watch, `GET /api/weather`, replay mode with a visible badge; gloss plus watch means black-ice risk | The clear film shows as black-ice risk on the map |
-| Estella | Saved routes and Web Push (with Kashish); push when a route changes, is blocked, or clears; iPhone instructions | A push reaches Android within 5 s of snow on the saved route |
-| Kaleb | `/city` dashboard: live hazards, clear-first list, Dispatch button that moves the plow; blocked segments drop the barrier | Dispatch sweeps the plow and the route restores |
-
-## Phase 4: Finish (hours 34–48)
-
-Feature freeze is at **hour 40**: after it, bug fixes only. Submit by **hour 46**.
-
-| Person | Task |
-| --- | --- |
-| Tatsat | `demo_check`, `demo_reset`, offline mode (`make local`) |
-| Ipsa | Measure the pitch numbers: detection time, end-to-end latency, accuracy, false alarms |
-| Estella | Slides with sourced statistics, the Devpost write-up with honest limits, 5 timed rehearsals |
-| Kaleb | Hardware hardening: tidy and label wiring, strain relief, spare batteries and cables |
-| Matthew | Keep Render warm, check env vars, a `/demo` QR page; record the backup video at hour 40 |
-| Kashish | Accessibility pass: keyboard, screen-reader labels, contrast, 200% zoom, reduced motion |
-
-**Later, v2 (only after Gate 3 and only if there is time):** Kaleb adds the DS18B20, the 4.7 kΩ resistor and the water sensor (plus the DHT22 if we have one) to the Arduino.
-
-## How to work a task
+1. Open **Issues** and filter by your name label (`person: <your name>`) and the current phase milestone.
+2. Comment on the issue to show that you are working on it.
+3. Create a branch from `main`, named after the phase and issue number.
+4. Use Claude Code with the issue description and the reference listed in the issue.
+5. Commit your work and push the branch.
+6. Open a pull request that includes `Closes #<issue number>`, and ask a teammate to review it.
+7. Merge after the review, then confirm the result works on the real hardware.
 
 ```bash
-# 1. Start from the latest main
 git checkout main && git pull
-
-# 2. Make a branch named after the phase and issue number
-git checkout -b p1/4-servos
-
-# 3. Open Claude Code in the repo; paste the issue text and the prompt it references
-
-# 4. Commit small, then push
-git add -A && git commit -m "Servo control over serial" && git push -u origin p1/4-servos
-
-# 5. Open a pull request that closes the issue; ask one teammate to review
-gh pr create --title "Servo control over serial" --body "Closes #4"
+git checkout -b phase1/4-servos
+# ...work with Claude Code...
+git add -A && git commit -m "Add servo control over serial"
+git push -u origin phase1/4-servos
+gh pr create --title "Add servo control over serial" --body "Closes #4"
 ```
 
-Merge once it works and someone has checked it, then delete the branch.
+## Team Rules
 
-## Rules
+- **Stay in the current phase.** When your task is done, help a teammate in the same phase.
+- **Check in at every checkpoint.** Take five minutes: what is done, what is blocked, and are we ready to move on?
+- **Agree before changing shared files.** Discuss changes to `config/` or the server data format as a team first.
+- **Document wiring changes.** Record every change in `firmware/WIRING.md`.
+- **Protect private data.** Never commit passwords, keys, the training dataset or photos of people.
+- **Ask for help early.** If you are blocked for more than 20 minutes, tell the team.
 
-- **Stay in the phase.** Finish your task, then help someone in the same phase.
-- **Gate check.** At each gate, run a 5-minute stand-up: what's done, what's blocked, and do we move on?
-- **Shared contracts.** Change `config/` and `cloud/app/schemas.py` only after the team agrees in the Technical Spec comments.
-- **Hardware changes** go into `firmware/WIRING.md` the same hour.
-- **Never commit** secrets, `.env`, `secrets.h`, the dataset, or photos with people in them.
-- **Ask early.** Stuck for 20 minutes? Say so in the team chat.
+## Version 2
+
+After the Phase 3 checkpoint, and only if time allows, Kaleb will add temperature and moisture sensors to the Arduino to improve black ice detection.
