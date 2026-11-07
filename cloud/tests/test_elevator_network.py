@@ -1,22 +1,20 @@
 """OP-106 / issue #34: exercise the actual OP-104 network implementation.
 
-These tests run when OP-104 is installed in the checkout or Python path. Test
-device-to-OSM matches are synthetic and do not certify any real City elevator.
+The merged OP-104 network is required, so these checks cannot silently skip.
+Test device matches are synthetic and do not certify any real City elevator.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+import numpy as np
 import pytest
+from scipy.sparse import csgraph
 
 from cloud.app import elevator_mapping as mapping
-
-network_module = pytest.importorskip(
-    "cloud.app.network", reason="OP-104 is not merged yet"
-)
-np = pytest.importorskip("numpy")
-csgraph = pytest.importorskip("scipy.sparse.csgraph")
+from cloud.app import network as network_module
 
 
 @pytest.fixture
@@ -86,8 +84,7 @@ def test_weight_and_edge_index_mismatches_are_rejected(
 
 def test_committed_city_network_exposes_all_flagged_elevators() -> None:
     path = Path(network_module.DEFAULT_NETWORK_PATH)
-    if not path.exists():
-        pytest.skip("The committed OP-104 network file is not available")
+    assert path.is_file(), "The merged OP-104 network must be committed"
     actual = network_module.WalkNetwork.load(path)
     views = mapping.network_elevator_edges(actual)
     assert views
@@ -100,3 +97,30 @@ def test_committed_city_network_exposes_all_flagged_elevators() -> None:
         and int(actual.edge_osmid[i]) > 0
     }
     assert expected_way_edges <= {view.index for view in views}
+
+
+def test_proposed_candidates_exist_in_merged_network_but_cannot_activate() -> None:
+    root = Path(__file__).resolve().parents[2]
+    inventory = json.loads((root / "docs/elevators.proposed.json").read_text("utf-8"))
+    devices = json.loads(
+        (root / "cloud/tests/fixtures/elevator_mapping/devices.json").read_text("utf-8")
+    )
+    parsed = mapping.parse_mappings(inventory, devices)
+    actual = network_module.WalkNetwork.load()
+    views = mapping.network_elevator_edges(actual)
+    network_refs = {ref for view in views for ref in view.osm_refs}
+    candidates = [entry for entry in parsed.values() if entry.status == "candidate"]
+    assert len(candidates) == 4
+    assert all(entry.osm_refs <= network_refs for entry in candidates)
+    outages = [
+        {
+            "source": "city_lrt_devices",
+            "source_ref": entry.device_id,
+            "kind": "elevator_out",
+            "effect": "blocked",
+        }
+        for entry in candidates
+    ]
+    result = mapping.block_elevator_outages(parsed, views, outages)
+    assert not result.blocked_edge_indices
+    assert len(result.station_warnings) == 4

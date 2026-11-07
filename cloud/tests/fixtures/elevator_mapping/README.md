@@ -14,5 +14,8 @@ identity, station and location are used to prepare OP-106's review inventory.
 Device status in this master list can lag the separate live outage feed and
 must not cause route closures.
 
-No real OSM matches or human reviews are recorded here. Unit tests use separate,
-explicitly synthetic OSM references and route edges. Tests make no network calls.
+`osm/` records the four official OSM objects used as proposed device-match
+evidence. Its manifest lists the exact API URLs and capture times. Attribution:
+© OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright).
+No second-person device-match reviews are claimed. Tests distinguish these
+inactive candidates from synthetic reviewed test matches and make no network calls.

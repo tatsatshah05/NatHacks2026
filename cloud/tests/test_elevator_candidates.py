@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from scripts.elevator_candidates import distances
+from scripts.elevator_candidates import distances, distinct_candidates
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -39,6 +39,34 @@ def test_committed_candidate_report_covers_inventory_without_claiming_matches() 
     assert report["network_manifest"]["elevator_edges"] == 4
     assert report["network_sha256"]
     for entry in report["entries"]:
+        refs = [(item["type"], item["id"]) for item in entry["elevator_candidates"]]
+        assert len(refs) == len(set(refs))
         for candidate in entry["elevator_candidates"]:
             assert candidate["distance_m"] <= report["search_radius_m"]
             assert candidate["url"].startswith("https://www.openstreetmap.org/")
+
+
+def test_candidate_objects_are_deduplicated_using_the_closest_segment() -> None:
+    candidates = [
+        {"type": "way", "id": 12, "distance_m": 25.0},
+        {"type": "way", "id": 12, "distance_m": 10.0},
+        {"type": "node", "id": 12, "distance_m": 5.0},
+    ]
+    assert distinct_candidates(candidates) == [candidates[2], candidates[1]]
+
+
+def test_proposed_device_candidates_have_recorded_osm_evidence() -> None:
+    inventory = json.loads((ROOT / "docs/elevators.proposed.json").read_text("utf-8"))
+    for entry in inventory["elevators"]:
+        if entry["status"] != "candidate":
+            continue
+        assert entry["reviewed_by"] is None
+        for ref in entry["osm_refs"]:
+            path = (
+                ROOT
+                / "cloud/tests/fixtures/elevator_mapping/osm"
+                / f"{ref['type']}-{ref['id']}.json"
+            )
+            source = json.loads(path.read_text("utf-8"))["elements"][0]
+            assert (source["type"], source["id"]) == (ref["type"], ref["id"])
+            assert source["tags"]["highway"] == "elevator"

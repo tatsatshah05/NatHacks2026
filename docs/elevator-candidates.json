@@ -1,6 +1,6 @@
 {
   "story": "OP-106",
-  "generated_at": "2026-11-07T22:22:33.257078+00:00",
+  "generated_at": "2026-11-07T22:36:48.805388+00:00",
   "network_sha256": "ce971655f8343b946c36a716074b492c068ffce82841396b5bb48827abe1d682",
   "network_manifest": {
     "format_version": 1,
@@ -208,18 +208,6 @@
         },
         {
           "type": "way",
-          "id": 1168890851,
-          "distance_m": 22.2,
-          "url": "https://www.openstreetmap.org/way/1168890851"
-        },
-        {
-          "type": "way",
-          "id": 1168890847,
-          "distance_m": 52.5,
-          "url": "https://www.openstreetmap.org/way/1168890847"
-        },
-        {
-          "type": "way",
           "id": 1168890847,
           "distance_m": 52.5,
           "url": "https://www.openstreetmap.org/way/1168890847"
@@ -246,18 +234,6 @@
           "id": 1168890851,
           "distance_m": 22.2,
           "url": "https://www.openstreetmap.org/way/1168890851"
-        },
-        {
-          "type": "way",
-          "id": 1168890851,
-          "distance_m": 22.2,
-          "url": "https://www.openstreetmap.org/way/1168890851"
-        },
-        {
-          "type": "way",
-          "id": 1168890847,
-          "distance_m": 52.5,
-          "url": "https://www.openstreetmap.org/way/1168890847"
         },
         {
           "type": "way",

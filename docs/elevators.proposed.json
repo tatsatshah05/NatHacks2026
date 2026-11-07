@@ -7,7 +7,7 @@
       "location": "Chancery",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -18,7 +18,7 @@
       "location": "Winspear",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -29,7 +29,7 @@
       "location": "Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -40,7 +40,7 @@
       "location": "Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -51,7 +51,7 @@
       "location": "West Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -62,7 +62,7 @@
       "location": "East Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -73,7 +73,7 @@
       "location": "South Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -84,7 +84,7 @@
       "location": "South Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -95,7 +95,7 @@
       "location": "North Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -106,7 +106,7 @@
       "location": "North Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -115,23 +115,41 @@
       "device_id": "88",
       "station": "Corona",
       "location": "South Entrance",
-      "status": "unmapped",
-      "osm_refs": [],
-      "reason": "Nearby tagged OSM objects need device-level verification; see docs/elevator-candidates.json.",
-      "matched_by": null,
+      "status": "candidate",
+      "osm_refs": [
+        {
+          "type": "way",
+          "id": 1168890851
+        }
+      ],
+      "reason": "City South Entrance; OSM level 0;-1 supports an entrance-to-concourse candidate. Entrance identity still needs independent review.",
+      "matched_by": "codex-for-kalebpham",
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [
+        "https://data.edmonton.ca/d/javh-pjj2",
+        "https://www.openstreetmap.org/way/1168890851",
+        "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/way-1168890851.json"
+      ]
     },
     {
       "device_id": "89",
       "station": "Corona",
       "location": "Platform",
-      "status": "unmapped",
-      "osm_refs": [],
-      "reason": "Nearby tagged OSM objects need device-level verification; see docs/elevator-candidates.json.",
-      "matched_by": null,
+      "status": "candidate",
+      "osm_refs": [
+        {
+          "type": "way",
+          "id": 1168890847
+        }
+      ],
+      "reason": "City Platform; OSM level -1;-2 supports a concourse-to-platform candidate. Physical device identity still needs independent review.",
+      "matched_by": "codex-for-kalebpham",
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [
+        "https://data.edmonton.ca/d/javh-pjj2",
+        "https://www.openstreetmap.org/way/1168890847",
+        "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/way-1168890847.json"
+      ]
     },
     {
       "device_id": "90",
@@ -139,7 +157,7 @@
       "location": "Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -150,7 +168,7 @@
       "location": "North Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -161,7 +179,7 @@
       "location": "Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -172,7 +190,7 @@
       "location": "North Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -183,7 +201,7 @@
       "location": "Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -194,7 +212,7 @@
       "location": "West Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -205,7 +223,7 @@
       "location": "East Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -216,7 +234,7 @@
       "location": "Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -227,7 +245,7 @@
       "location": "Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -238,7 +256,7 @@
       "location": "East Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -249,7 +267,7 @@
       "location": "West Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -260,7 +278,7 @@
       "location": "East Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -271,7 +289,7 @@
       "location": "Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -282,7 +300,7 @@
       "location": "East Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -293,7 +311,7 @@
       "location": "West Entrance",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -302,23 +320,41 @@
       "device_id": "117",
       "station": "Century Park",
       "location": "Platform",
-      "status": "unmapped",
-      "osm_refs": [],
-      "reason": "Nearby tagged OSM objects need device-level verification; see docs/elevator-candidates.json.",
-      "matched_by": null,
+      "status": "candidate",
+      "osm_refs": [
+        {
+          "type": "node",
+          "id": 662687994
+        }
+      ],
+      "reason": "City Platform; candidate nearest the official station point. OSM has no device ref or level tags, so platform assignment remains unverified.",
+      "matched_by": "codex-for-kalebpham",
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [
+        "https://data.edmonton.ca/d/javh-pjj2",
+        "https://www.openstreetmap.org/node/662687994",
+        "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/node-662687994.json"
+      ]
     },
     {
       "device_id": "118",
       "station": "Century Park",
       "location": "East Entrance",
-      "status": "unmapped",
-      "osm_refs": [],
-      "reason": "Nearby tagged OSM objects need device-level verification; see docs/elevator-candidates.json.",
-      "matched_by": null,
+      "status": "candidate",
+      "osm_refs": [
+        {
+          "type": "node",
+          "id": 5206760179
+        }
+      ],
+      "reason": "City East Entrance; candidate east of the platform candidate. OSM has no device ref or level tags, so entrance assignment remains unverified.",
+      "matched_by": "codex-for-kalebpham",
       "reviewed_by": null,
-      "evidence": []
+      "evidence": [
+        "https://data.edmonton.ca/d/javh-pjj2",
+        "https://www.openstreetmap.org/node/5206760179",
+        "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/node-5206760179.json"
+      ]
     },
     {
       "device_id": "130",
@@ -326,7 +362,7 @@
       "location": "Platform",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -337,7 +373,7 @@
       "location": "Churchill Connector",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []
@@ -348,7 +384,7 @@
       "location": "Davies Station",
       "status": "unmapped",
       "osm_refs": [],
-      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 f4ef91b; the station proxy needs entrance/platform verification.",
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
       "matched_by": null,
       "reviewed_by": null,
       "evidence": []

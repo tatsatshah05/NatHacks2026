@@ -4,7 +4,7 @@ Check the City elevator inventory, require a second person's review of each
 OSM match, and identify the elevator edges to remove for every mobility profile.
 Keep unmatched outages available as station warnings instead of guessing a match.
 
-The optional network adapter uses OP-104's existing arrays and flags without
+The network adapter uses OP-104's existing arrays and flags without
 changing its format. The mapping document in docs/ is a proposal; shared
 config/ remains unchanged until the format and matches are reviewed.
 """

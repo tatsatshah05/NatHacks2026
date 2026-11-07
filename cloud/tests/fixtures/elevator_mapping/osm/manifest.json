@@ -1,0 +1,22 @@
+[
+    {
+        "file":  "node-662687994.json",
+        "url":  "https://api.openstreetmap.org/api/0.6/node/662687994.json",
+        "captured_at":  "2026-11-07T22:36:46.6649038Z"
+    },
+    {
+        "file":  "node-5206760179.json",
+        "url":  "https://api.openstreetmap.org/api/0.6/node/5206760179.json",
+        "captured_at":  "2026-11-07T22:36:46.9247016Z"
+    },
+    {
+        "file":  "way-1168890851.json",
+        "url":  "https://api.openstreetmap.org/api/0.6/way/1168890851.json",
+        "captured_at":  "2026-11-07T22:36:47.1247185Z"
+    },
+    {
+        "file":  "way-1168890847.json",
+        "url":  "https://api.openstreetmap.org/api/0.6/way/1168890847.json",
+        "captured_at":  "2026-11-07T22:36:47.3513280Z"
+    }
+]

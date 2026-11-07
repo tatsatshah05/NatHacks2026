@@ -64,7 +64,7 @@ def outage(device_id: str = "1") -> mapping.Row:
     }
 
 
-def test_recorded_city_inventory_is_complete_and_has_no_guessed_matches(
+def test_recorded_city_inventory_is_complete_and_has_no_active_unreviewed_matches(
     devices: list[mapping.Row],
 ) -> None:
     document = json.loads((ROOT / "docs/elevators.proposed.json").read_text("utf-8"))
@@ -72,8 +72,17 @@ def test_recorded_city_inventory_is_complete_and_has_no_guessed_matches(
     expected = {row["device_id"] for row in devices if row["device_type"] == "Elevator"}
     assert set(parsed) == expected
     assert len(parsed) == 32  # Measured from this recorded City snapshot.
-    assert all(entry.status == "unmapped" for entry in parsed.values())
-    assert all(entry.reason and not entry.osm_refs for entry in parsed.values())
+    assert {key for key, entry in parsed.items() if entry.status == "candidate"} == {
+        "88",
+        "89",
+        "117",
+        "118",
+    }
+    assert all(entry.status in {"unmapped", "candidate"} for entry in parsed.values())
+    assert all(entry.reason for entry in parsed.values())
+    assert all(
+        not entry.osm_refs for entry in parsed.values() if entry.status == "unmapped"
+    )
     assert all(entry.reviewed_by is None for entry in parsed.values())
 
 
@@ -344,5 +353,6 @@ def test_cli_audit_labels_unverified_inventory(
     result = json.loads(capsys.readouterr().out)
     assert result["story"] == "OP-106"
     assert result["elevator_count"] == 32
-    assert result["reviewed"] == result["candidates"] == 0
-    assert result["unmapped"] == 32
+    assert result["reviewed"] == 0
+    assert result["candidates"] == 4
+    assert result["unmapped"] == 28

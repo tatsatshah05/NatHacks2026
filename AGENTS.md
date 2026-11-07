@@ -19,8 +19,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
-- **November 7, 2026:** Phase 1 is in progress. OP-101 (contracts), OP-102 (skeleton) and OP-104 (walking network) are still integration dependencies on this branch.
-- **OP-106 preparation on this branch:** `cloud/app/elevator_mapping.py` audits City elevators and adapts OP-104's existing node/edge flags for outage masking. The adapter is tested against the `op-104-walking-network` dependency checkout. `docs/elevators.proposed.json` and `docs/elevator-candidates.json` are review artifacts, not shared configuration or verified device matches. Real match review and final integration remain pending; see `docs/OP-106.md`.
+- **November 7, 2026:** Phase 1 is in progress. OP-104's walking network is merged through PR #97. OP-101 (contracts) and OP-102 (skeleton) remain integration dependencies on this branch.
+- **OP-106 preparation on this branch:** `cloud/app/elevator_mapping.py` audits City elevators and adapts the merged OP-104 arrays for outage masking. The network tests are required, not optional. `docs/elevators.proposed.json` contains four inactive candidate matches and 28 unmatched entries; `docs/elevator-candidates.json` and recorded OSM responses provide review evidence. Shared configuration, independent device-match review and final app integration remain pending; see `docs/OP-106.md`.
 - **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
@@ -120,8 +120,8 @@ web/     Next.js on Vercel: planner, route report, alerts (PWA), city dashboard,
 ```
 PLAN.md  AGENTS.md  CLAUDE.md  GUIDELINE.md  README.md  Makefile  render.yaml  .env.example
 .github/   workflows/ci.yml  CODEOWNERS  pull_request_template.md  ISSUE_TEMPLATE/
-cloud/     app/{main,schemas,db,store,scheduler,status,matching,routing,report,search,weather,push,ws}.py
-           app/adapters/  one file per source   data/ prebuilt walking network   tests/ (fixtures in tests/fixtures/)
+cloud/     app/{main,schemas,db,store,network,scheduler,status,matching,routing,report,search,weather,push,ws}.py
+           app/adapters/  one file per source   data/network.npz (prebuilt walking network, committed)   tests/ (fixtures in tests/fixtures/)
 vision/    train.py  worker.py  tools/label.py  LABELS.md  MODEL_CARD.md  tests/
 web/       src/app/{page.tsx, alerts/, city/, sources/, about/, privacy/, demo/}  src/lib/api-types.ts (generated)  public/sw.js
 config/    profiles.json  sources.json  elevators.json  matching.json  places.json
@@ -175,6 +175,7 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 - **Fixtures:** every adapter has recorded fixtures, and tests never call the network.
 - **Attribution:** attribute every source on `/sources` and on every item, as each licence requires.
 - **Request time:** never run OSMnx on Render, and never call an external geocoder at request time. The network and the address index are prebuilt.
+- **Walking network:** `cloud/app/network.py` loads `cloud/data/network.npz` (compact NumPy arrays: nodes, undirected edges with flags for stairs, elevators, crossings and sidewalks, and edge polylines). Routing works on node and edge indices, never on OSM ids. Weight 0 in `length_matrix()` means the edge is removed.
 
 ## Vision Rules
 
@@ -193,12 +194,12 @@ These live in the root Makefile and are available after OP-102.
 | `make setup` | Creates `.venv` (cloud + vision), runs `npm ci` in `web/` |
 | `make dev` | API on :8000 (SQLite, recorded fixtures, no keys) + web on :3000 |
 | `make test` | `pytest` for cloud and vision, plus `npm run lint` and `npm run typecheck` in `web/` |
-| `make graph` | Rebuilds the walking network with OSMnx (local only, then commit) |
+| `make graph` | Rebuilds `cloud/data/network.npz` with OSMnx (local only, then commit). Until OP-102 adds the Makefile: `pip install -r scripts/requirements-graph.txt` then `python scripts/build_graph.py` |
 | `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` |
 | `make record` | Records a replay snapshot of every source (no images) |
 | `make worker` | Runs the vision worker locally |
 
-OP-106 adds an offline inventory audit while the shared skeleton/network are pending:
+OP-106 adds an offline inventory audit while shared application integration is pending:
 
 ```bash
 python -m cloud.app.elevator_mapping --inventory docs/elevators.proposed.json --devices cloud/tests/fixtures/elevator_mapping/devices.json
@@ -207,7 +208,7 @@ python -m cloud.app.elevator_mapping --inventory docs/elevators.proposed.json --
 The audit reports reviewed, candidate and unmapped counts. Passing this audit
 validates the document; it does not certify real OSM matches or complete OP-106.
 
-OP-106 also adds a local candidate report command after OP-104's network file is available:
+OP-106 also adds a local candidate report command using the merged network file:
 
 ```bash
 python scripts/elevator_candidates.py --network cloud/data/network.npz --devices cloud/tests/fixtures/elevator_mapping/devices.json --stations cloud/tests/fixtures/elevator_mapping/stations.json --out docs/elevator-candidates.json

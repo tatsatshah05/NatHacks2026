@@ -14,8 +14,19 @@ import re
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
+
+
+def distinct_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Show each OSM object once, keeping its closest network segment."""
+    unique = {}
+    for candidate in candidates:
+        key = (candidate["type"], candidate["id"])
+        if key not in unique or candidate["distance_m"] < unique[key]["distance_m"]:
+            unique[key] = candidate
+    return sorted(unique.values(), key=lambda candidate: candidate["distance_m"])
 
 
 def station_key(name: str) -> str:
@@ -129,9 +140,7 @@ def main() -> None:
                 "station": elevator["station"],
                 "location": elevator["location"],
                 "station_stop_ids": [row["lrt_stop_number"] for row in station_rows],
-                "elevator_candidates": sorted(
-                    candidates, key=lambda row: row["distance_m"]
-                ),
+                "elevator_candidates": distinct_candidates(candidates),
                 "station_point_proxy": proxy,
                 "review_status": "unreviewed; no active match",
             }
