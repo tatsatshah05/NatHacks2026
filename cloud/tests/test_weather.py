@@ -11,13 +11,13 @@ from cloud.app.weather import evaluate_weather_watch
 
 class WeatherWatchTests(unittest.TestCase):
     def test_rule_branches_and_boundaries(self) -> None:
-        baseline = dict(
-            air_c=-2.0,
-            ground_c=-1.0,
-            dew_c=-5.0,
-            precipitation_last_6h_mm=0.0,
-            max_air_last_12h_c=0.0,
-        )
+        baseline = {
+            "air_c": -2.0,
+            "ground_c": -1.0,
+            "dew_c": -5.0,
+            "precipitation_last_6h_mm": 0.0,
+            "max_air_last_12h_c": 0.0,
+        }
         cases = [
             ("cold and dry", {}, False),
             ("recent precipitation", {"precipitation_last_6h_mm": 0.1}, True),
@@ -48,12 +48,11 @@ class WeatherWatchTests(unittest.TestCase):
 
     def test_rejects_invalid_source_values(self) -> None:
         for invalid in (float("nan"), float("inf"), -1.0):
-            with self.subTest(precipitation=invalid):
-                with self.assertRaises(ValueError):
-                    evaluate_weather_watch(
-                        air_c=-2.0,
-                        ground_c=-1.0,
-                        dew_c=-5.0,
-                        precipitation_last_6h_mm=invalid,
-                        max_air_last_12h_c=0.0,
-                    )
+            with self.subTest(precipitation=invalid), self.assertRaises(ValueError):
+                evaluate_weather_watch(
+                    air_c=-2.0,
+                    ground_c=-1.0,
+                    dew_c=-5.0,
+                    precipitation_last_6h_mm=invalid,
+                    max_air_last_12h_c=0.0,
+                )

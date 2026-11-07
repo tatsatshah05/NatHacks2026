@@ -8,7 +8,7 @@ Fetch both, validate their timestamps/units, then return one consistent reading.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from math import isfinite
 from typing import Any
 
@@ -18,20 +18,21 @@ ECCC_URL = "https://api.weather.gc.ca/collections/swob-realtime/items"
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 BLATCHFORD_ID = "3012209"
 MAX_OBSERVATION_AGE = timedelta(hours=2)
+CLOCK_SKEW = timedelta(seconds=5)
 
 
 def timestamp(value: str) -> datetime:
     """Read provider timestamps and compare them in UTC."""
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    parsed = datetime.fromisoformat(value)
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)  # Open-Meteo requests UTC.
-    return parsed.astimezone(timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)  # Open-Meteo requests UTC.
+    return parsed.astimezone(UTC)
 
 
 def number(value: Any) -> float:
     """Reject missing or unusable numbers instead of treating them as zero."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError("Missing or nonnumeric weather value")
+        raise TypeError("Missing or nonnumeric weather value")
     if not isfinite(value):
         raise ValueError("Nonfinite weather value")
     return float(value)
@@ -53,7 +54,7 @@ def normalize_weather(
         if str(props.get("msc_id-value")) != BLATCHFORD_ID:
             continue
         observed = timestamp(props["obs_date_tm"])
-        if timedelta(0) <= now - observed <= MAX_OBSERVATION_AGE:
+        if -CLOCK_SKEW <= now - observed <= MAX_OBSERVATION_AGE:
             candidates.append((observed, props))
     if not candidates:
         raise ValueError("No recent Blatchford observation")
@@ -120,13 +121,15 @@ class WeatherSources:
     ) -> None:
         if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
             raise ValueError("Invalid weather coordinates")
+        if retries < 0:
+            raise ValueError("Retries cannot be negative")
         self.client = client
         self.latitude = latitude
         self.longitude = longitude
         self.retries = retries
 
     async def _get(self, url: str, params: dict[str, Any]) -> dict[str, Any]:
-        """Fetch JSON with a timeout, retrying failures after 1, 2, then 4 seconds."""
+        """Fetch JSON; retry timeouts and 5xx responses after 1, 2, then 4 seconds."""
         for attempt in range(self.retries + 1):
             try:
                 response = await asyncio.wait_for(
@@ -135,12 +138,15 @@ class WeatherSources:
                 response.raise_for_status()
                 payload = response.json()
                 if not isinstance(payload, dict):
-                    raise ValueError("Expected a JSON object")
+                    raise TypeError("Expected a JSON object")
                 return payload
-            except (httpx.HTTPError, asyncio.TimeoutError, ValueError):
+            except httpx.HTTPStatusError as exc:
+                if not 500 <= exc.response.status_code < 600 or attempt == self.retries:
+                    raise
+            except (httpx.TimeoutException, TimeoutError):
                 if attempt == self.retries:
                     raise
-                await asyncio.sleep(2**attempt)
+            await asyncio.sleep(2**attempt)
         raise AssertionError("Unreachable")
 
     async def __call__(self, now: datetime) -> dict[str, Any]:
@@ -150,7 +156,9 @@ class WeatherSources:
             "msc_id-value": BLATCHFORD_ID,
             "sortby": "-obs_date_tm",
             "limit": 24,
-            "datetime": (now - MAX_OBSERVATION_AGE).isoformat() + "/" + now.isoformat(),
+            "datetime": (now - MAX_OBSERVATION_AGE).isoformat()
+            + "/"
+            + (now + CLOCK_SKEW).isoformat(),
         }
         model_params = {
             "latitude": self.latitude,
@@ -162,7 +170,16 @@ class WeatherSources:
             "temperature_unit": "celsius",
             "precipitation_unit": "mm",
         }
-        # Sequential calls ensure a failed source leaves no orphan HTTP task.
-        eccc = await self._get(ECCC_URL, station_params)
-        meteo = await self._get(OPEN_METEO_URL, model_params)
+        # Fetch concurrently; cancel and await unfinished work on failure/shutdown.
+        tasks = [
+            asyncio.create_task(self._get(ECCC_URL, station_params)),
+            asyncio.create_task(self._get(OPEN_METEO_URL, model_params)),
+        ]
+        try:
+            eccc, meteo = await asyncio.gather(*tasks)
+        finally:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
         return normalize_weather(eccc, meteo, now)

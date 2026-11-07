@@ -1,18 +1,21 @@
 """Purpose: refresh the weather watch and serve the last successful result.
 
-Each refresh fetches readings, runs the ice rule, and saves a complete response.
-A failed refresh keeps the previous response and marks it stale. The API reads
-this cache, so opening the endpoint does not make extra calls to the providers.
+Each refresh validates readings, runs the ice rule, and replaces the cached
+response only after success. The API always returns the planned weather model;
+active=None means no reading yet. Freshness stays available to the status owner.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any, Awaitable, Callable, Optional
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException, Request, Response
+import httpx
+from fastapi import APIRouter, Request
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from .weather import evaluate_weather_watch
 
@@ -20,66 +23,101 @@ logger = logging.getLogger(__name__)
 REFRESH_SECONDS = 600
 
 
+class WeatherResponse(BaseModel):
+    """The planned /api/weather fields, including an explicit unknown state."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False)
+
+    active: bool | None = None
+    reason: str = "Weather data is not available yet."
+    air_c: float | None = None
+    ground_c: float | None = None
+    dew_c: float | None = None
+    observed_at: datetime | None = None
+    mode: Literal["live", "replay"] = "live"
+
+    @field_validator("observed_at")
+    @classmethod
+    def observation_in_utc(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            raise ValueError("Observation must be timezone-aware")
+        return value.astimezone(UTC)
+
+
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class WeatherService:
-    """Manage one weather cache and its refresh/error state."""
+    """Manage one weather cache and refresh/error state for status reporting."""
 
     def __init__(
         self,
         fetch: Callable[[datetime], Awaitable[dict[str, Any]]],
         *,
-        mode: str = "live",
+        mode: Literal["live", "replay"] = "live",
         clock: Callable[[], datetime] = utcnow,
     ) -> None:
-        if mode not in ("live", "replay"):
-            raise ValueError("Weather mode must be live or replay")
+        # Validate the mode even before the first successful fetch.
+        WeatherResponse(mode=mode)
         self.fetch = fetch
         self.mode = mode
         self.clock = clock
-        self.last_good: Optional[dict[str, Any]] = None
-        self.last_success: Optional[datetime] = None
-        self.last_error: Optional[str] = None
-        self._lock: Optional[asyncio.Lock] = None
+        self.last_good: WeatherResponse | None = None
+        self.last_success: datetime | None = None
+        self.last_error: str | None = None
+        self._lock = asyncio.Lock()
 
     async def refresh(self) -> bool:
-        """Return True after saving a new result, or False after a failed refresh."""
-        # Python 3.9 requires constructing locks inside a running event loop.
-        if self._lock is None:
-            self._lock = asyncio.Lock()
-        # Let only one refresh update the cache at a time.
+        """Publish a complete reading, or preserve the last good result on failure."""
         async with self._lock:
             try:
                 readings = dict(await self.fetch(self.clock()))
                 observed_at = readings.pop("observed_at")
-                if observed_at.tzinfo is None:
-                    raise ValueError("Observation must be timezone-aware")
                 decision = evaluate_weather_watch(**readings)
-                snapshot = {
-                    "active": decision.active,
-                    "reason": decision.reason,
-                    "air_c": readings["air_c"],
-                    "ground_c": readings["ground_c"],
-                    "dew_c": readings["dew_c"],
-                    "observed_at": observed_at.astimezone(timezone.utc).isoformat(),
-                    "mode": self.mode,
-                }
-            except Exception as exc:
-                # Cancellation is not swallowed. Existing good data stays intact.
+                snapshot = WeatherResponse(
+                    active=decision.active,
+                    reason=decision.reason,
+                    air_c=readings["air_c"],
+                    ground_c=readings["ground_c"],
+                    dew_c=readings["dew_c"],
+                    observed_at=observed_at,
+                    mode=self.mode,
+                )
+            except (
+                httpx.HTTPError,
+                TimeoutError,
+                ValueError,
+                KeyError,
+                TypeError,
+            ) as exc:
+                # Known source/validation failures retain the previous response.
                 self.last_error = type(exc).__name__ + ": " + str(exc)
                 logger.warning("Weather refresh failed: %s", self.last_error)
                 return False
-            # Publish only after fetching, validation, and calculation all succeed.
+            previous = self.last_good.active if self.last_good else None
             self.last_good = snapshot
             self.last_success = self.clock()
             self.last_error = None
+            if previous != snapshot.active:
+                before = (
+                    "unknown"
+                    if previous is None
+                    else "active"
+                    if previous
+                    else "inactive"
+                )
+                after = "active" if snapshot.active else "inactive"
+                logger.info(
+                    "CHANGE weather watch %s->%s %s", before, after, snapshot.reason
+                )
             return True
 
     @property
     def stale(self) -> bool:
-        """Flag missing data, a failed refresh, or three missed refresh intervals."""
+        """Internal freshness for /api/status integration, not an HTTP header."""
         return (
             self.last_success is None
             or self.last_error is not None
@@ -96,17 +134,8 @@ class WeatherService:
 router = APIRouter()
 
 
-@router.get("/api/weather")
-async def get_weather(request: Request, response: Response) -> dict[str, Any]:
-    """Serve cached weather, with a header showing whether it is stale."""
+@router.get("/api/weather", response_model=WeatherResponse)
+async def get_weather(request: Request) -> WeatherResponse:
+    """Always return 200: cached weather, or an explicit unknown first reading."""
     service: WeatherService = request.app.state.weather_service
-    response.headers["Cache-Control"] = "no-store"
-    # No successful reading yet means unavailable; it cannot imply safe weather.
-    if service.last_good is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Weather data is not available yet.",
-            headers={"Retry-After": "60", "Cache-Control": "no-store"},
-        )
-    response.headers["X-Weather-Stale"] = str(service.stale).lower()
-    return dict(service.last_good)
+    return service.last_good or WeatherResponse(mode=service.mode)

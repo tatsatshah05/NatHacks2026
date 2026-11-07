@@ -45,8 +45,9 @@ One section per source. Each adapter's owner keeps their section current: what t
 - Fields: `obs_date_tm`, `air_temp`, `dwpt_temp`, their `-uom` metadata and
   `-qa` quality values where available. Temperatures must be Celsius; a present
   quality value other than 100 is rejected.
-- Poll every 10 minutes. Reject future observations or observations older than
-  two hours. Preserve last-good data on failures, rather than clearing it.
+- Poll every 10 minutes. Allow up to five seconds of provider clock skew; reject
+  observations beyond that tolerance or older than two hours. Preserve last-good
+  data on failures, rather than clearing it.
 - Attribution: Environment and Climate Change Canada; Open Government Licence –
   Canada: https://open.canada.ca/en/open-government-licence-canada
 
@@ -69,10 +70,13 @@ One section per source. Each adapter's owner keeps their section current: what t
 
 ## Reliability and recordings
 
-HTTP calls have a 10-second timeout and up to three retries with exponential
-backoff (1, 2, 4 seconds). Both source responses must validate before publishing
-a new watch. The endpoint retains the most recent successful result on failure
-and sets `X-Weather-Stale: true`; without a successful result it returns HTTP 503.
+Both providers are fetched concurrently, with a 10-second timeout per request.
+Timeouts and 5xx responses get up to three retries with exponential backoff
+(1, 2, 4 seconds). Client errors, malformed JSON and other request errors fail
+immediately. Failed concurrent refreshes cancel and await unfinished requests.
+Both source responses must validate before publishing a new watch. The endpoint
+returns HTTP 200 with the last successful result, or `active: null` before any
+successful reading. Freshness remains internal for `/api/status` integration.
 
 The JSON fixtures in `cloud/tests/fixtures/weather/` were retrieved from the
 official APIs on November 7, 2026. The ECCC fixture retains the latest actual
@@ -81,6 +85,9 @@ returned hourly arrays. ECCC collection links and historical features were
 removed to keep the fixture focused. These are recorded responses, not invented
 observations. Tests modify copies to exercise failure and boundary cases.
 
-The frozen replay serves the original timestamps with `mode=replay`. A web
-consumer must display that mode and stale state clearly. Source attribution
-must also appear on the shared app's sources page when integrated.
+Production replay reads a configured `REPLAY_SNAPSHOT` file rather than the test
+directory. The snapshot's `weather` section contains raw `eccc` and `open_meteo`
+responses; other source sections can coexist. The frozen replay serves original
+observation timestamps with `mode=replay`. A web consumer must display that mode
+and use `/api/status` for freshness. Source attribution must also appear on the
+shared app's sources page when integrated.

@@ -1,8 +1,8 @@
-"""Purpose: let us run and test the weather API on its own.
+"""Purpose: run the weather API independently until the shared app is ready.
 
-Choose live providers or a recorded replay, start the refresh loop, and attach
-the weather endpoint. On shutdown, stop the loop and close the HTTP client.
-The shared OP-102 app can reuse the router and this startup/shutdown pattern.
+Choose live providers or a snapshot at REPLAY_SNAPSHOT. Start one refresh loop,
+then cancel it and close the HTTP client on shutdown. Production replay loading
+uses only the configured file and does not depend on the test directory.
 """
 
 from __future__ import annotations
@@ -10,10 +10,11 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncIterator, Optional
+from typing import Any
 
 import httpx
 from fastapi import FastAPI
@@ -22,8 +23,27 @@ from .adapters.weather import WeatherSources, normalize_weather, timestamp
 from .weather_service import WeatherService, router
 
 
-def create_app(service: Optional[WeatherService] = None) -> FastAPI:
-    """Build the app; tests may provide their own service with fake readings."""
+def replay_service(snapshot_path: str) -> WeatherService:
+    """Read the weather section of a configured snapshot and freeze its clock.
+
+    Weather section: {"eccc": <raw response>, "open_meteo": <raw response>}.
+    Other source sections may coexist for the shared OP-305 snapshot recorder.
+    """
+    snapshot = json.loads(Path(snapshot_path).read_text())
+    weather = snapshot["weather"]
+    eccc, meteo = weather["eccc"], weather["open_meteo"]
+    recorded = max(timestamp(f["properties"]["obs_date_tm"]) for f in eccc["features"])
+    # Fail configuration early if the selected snapshot cannot form a valid watch.
+    normalize_weather(eccc, meteo, recorded)
+
+    async def fetch(now: datetime) -> dict[str, Any]:
+        return normalize_weather(eccc, meteo, now)
+
+    return WeatherService(fetch, mode="replay", clock=lambda: recorded)
+
+
+def create_app(service: WeatherService | None = None) -> FastAPI:
+    """Build the app; tests may provide a service with controlled source readings."""
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -32,21 +52,10 @@ def create_app(service: Optional[WeatherService] = None) -> FastAPI:
             if chosen is None:
                 mode = os.getenv("DATA_MODE", "live")
                 if mode == "replay":
-                    fixture_dir = Path(__file__).parents[1] / "tests/fixtures/weather"
-                    eccc = json.loads((fixture_dir / "eccc.json").read_text())
-                    meteo = json.loads((fixture_dir / "open_meteo.json").read_text())
-                    # An explicitly frozen recording, never presented as live.
-                    recorded = max(
-                        timestamp(f["properties"]["obs_date_tm"])
-                        for f in eccc["features"]
-                    )
-
-                    async def replay_fetch(now: datetime) -> dict[str, Any]:
-                        return normalize_weather(eccc, meteo, now)
-
-                    chosen = WeatherService(
-                        replay_fetch, mode="replay", clock=lambda: recorded
-                    )
+                    path = os.getenv("REPLAY_SNAPSHOT")
+                    if not path:
+                        raise ValueError("DATA_MODE=replay requires REPLAY_SNAPSHOT")
+                    chosen = replay_service(path)
                 elif mode == "live":
                     chosen = WeatherService(
                         WeatherSources(
@@ -57,13 +66,11 @@ def create_app(service: Optional[WeatherService] = None) -> FastAPI:
                     )
                 else:
                     raise ValueError("DATA_MODE must be live or replay")
-            # Make the service available to the route, then start background work.
             app.state.weather_service = chosen
             task = asyncio.create_task(chosen.run())
             try:
                 yield
             finally:
-                # Stop work before closing the HTTP client used by the providers.
                 task.cancel()
                 with suppress(asyncio.CancelledError):
                     await task

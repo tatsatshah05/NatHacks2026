@@ -7,6 +7,11 @@ Endpoint tests check the response fields, replay mode, and unavailable/stale dat
 import asyncio
 import copy
 import json
+import logging
+import os
+import shutil
+import subprocess
+import sys
 from datetime import timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -14,10 +19,11 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from cloud.app.adapters.weather import WeatherSources, normalize_weather, timestamp
 from cloud.app.weather_app import create_app
-from cloud.app.weather_service import REFRESH_SECONDS, WeatherService
+from cloud.app.weather_service import REFRESH_SECONDS, WeatherResponse, WeatherService
 
 FIXTURES = Path(__file__).parent / "fixtures/weather"
 
@@ -98,7 +104,7 @@ def test_rejects_incomplete_or_invalid_sources(sources, mutation):
         meteo["hourly"]["precipitation"][i] = -1
     else:
         meteo["utc_offset_seconds"] = -25200
-    with pytest.raises((ValueError, KeyError)):
+    with pytest.raises((ValueError, KeyError, TypeError)):
         normalize_weather(eccc, meteo, now)
 
 
@@ -145,10 +151,18 @@ def test_failed_http_requests_retry_three_times(sources):
             ) as sleep:
                 with pytest.raises(httpx.HTTPStatusError):
                     await WeatherSources(client)(now)
-                assert [call.args[0] for call in sleep.await_args_list] == [1, 2, 4]
+                # Both providers have their own retry budget when fetched together.
+                assert sorted(call.args[0] for call in sleep.await_args_list) == [
+                    1,
+                    1,
+                    2,
+                    2,
+                    4,
+                    4,
+                ]
 
     asyncio.run(run())
-    assert len(requests) == 4
+    assert len(requests) == 8
 
 
 def test_failed_refresh_preserves_result_and_recovers(sources):
@@ -187,7 +201,7 @@ def test_invalid_response_preserves_last_good(sources):
     asyncio.run(run())
 
 
-def test_endpoint_contract_and_stale_header(sources):
+def test_endpoint_contract_and_last_good_without_freshness_header(sources):
     eccc, meteo, now = sources
     service = WeatherService(
         AsyncMock(return_value=normalize_weather(eccc, meteo, now)), clock=lambda: now
@@ -206,25 +220,235 @@ def test_endpoint_contract_and_stale_header(sources):
             "mode",
         }
         assert response.json()["mode"] == "live"
-        assert response.headers["X-Weather-Stale"] == "false"
+        assert "X-Weather-Stale" not in response.headers
+        assert isinstance(service.last_good, WeatherResponse)
         service.last_error = "Source unavailable"
-        assert client.get("/api/weather").headers["X-Weather-Stale"] == "true"
+        assert service.stale
+        assert "X-Weather-Stale" not in client.get("/api/weather").headers
         assert client.get("/api/weather").json() == response.json()
 
 
-def test_no_success_returns_unavailable_not_clear():
+def test_no_success_returns_200_with_unknown_reading():
     service = WeatherService(AsyncMock(side_effect=ValueError("Missing data")))
     with TestClient(create_app(service)) as client:
         response = client.get("/api/weather")
-        assert response.status_code == 503
-        assert "active" not in response.json()
+        assert response.status_code == 200
+        assert response.json() == WeatherResponse().model_dump(mode="json")
+        assert response.json()["active"] is None
+        assert "X-Weather-Stale" not in response.headers
+        assert "Retry-After" not in response.headers
 
 
-def test_replay_mode_is_visible_and_app_cleans_up(monkeypatch):
+def test_replay_mode_is_visible_and_app_cleans_up(monkeypatch, tmp_path, sources):
+    eccc, meteo, _ = sources
+    path = tmp_path / "shared-snapshot.json"
+    path.write_text(json.dumps({"weather": {"eccc": eccc, "open_meteo": meteo}}))
     monkeypatch.setenv("DATA_MODE", "replay")
+    monkeypatch.setenv("REPLAY_SNAPSHOT", str(path))
     with TestClient(create_app()) as client:
-        asyncio.run(client.app.state.weather_service.refresh())
+        client.portal.call(client.app.state.weather_service.refresh)
         assert client.get("/api/weather").json()["mode"] == "replay"
+
+
+def test_replay_requires_explicit_snapshot_path(monkeypatch):
+    monkeypatch.setenv("DATA_MODE", "replay")
+    monkeypatch.delenv("REPLAY_SNAPSHOT", raising=False)
+    with pytest.raises(ValueError, match="REPLAY_SNAPSHOT"), TestClient(create_app()):
+        pass
+
+
+def test_replay_deploy_without_tests_directory(tmp_path, sources):
+    eccc, meteo, _ = sources
+    app_dir = Path(__file__).parents[1] / "app"
+    shutil.copytree(
+        app_dir, tmp_path / "cloud/app", ignore=shutil.ignore_patterns("__pycache__")
+    )
+    snapshot_path = tmp_path / "snapshot.json"
+    snapshot_path.write_text(
+        json.dumps({"weather": {"eccc": eccc, "open_meteo": meteo}})
+    )
+    script = """
+from fastapi.testclient import TestClient
+from cloud.app.weather_app import create_app
+with TestClient(create_app()) as client:
+    client.portal.call(client.app.state.weather_service.refresh)
+    response = client.get('/api/weather')
+    assert response.status_code == 200
+    assert response.json()['mode'] == 'replay'
+    assert response.json()['observed_at'] is not None
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "PYTHONPATH": str(tmp_path),
+            "DATA_MODE": "replay",
+            "REPLAY_SNAPSHOT": str(snapshot_path),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert not (tmp_path / "cloud/tests").exists()
+
+
+def test_response_model_validates_mode_and_observation_timezone():
+    with pytest.raises(ValidationError):
+        WeatherResponse(mode="unknown")
+    with pytest.raises(ValidationError):
+        WeatherResponse(observed_at="2026-11-07T12:00:00")
+    with pytest.raises(ValidationError):
+        WeatherResponse(air_c=float("nan"))
+
+
+def test_logs_only_when_watch_state_changes(sources, caplog):
+    eccc, meteo, now = sources
+    initial = normalize_weather(eccc, meteo, now)
+    fetch = AsyncMock(return_value=initial)
+    service = WeatherService(fetch, clock=lambda: now)
+
+    async def run():
+        assert await service.refresh()
+        assert await service.refresh()
+        fetch.return_value = {
+            **initial,
+            "air_c": -1,
+            "ground_c": -1,
+            "precipitation_last_6h_mm": 1,
+        }
+        assert await service.refresh()
+        assert await service.refresh()
+        fetch.side_effect = httpx.ReadTimeout("Source timed out")
+        assert not await service.refresh()
+
+    with caplog.at_level(logging.INFO, logger="cloud.app.weather_service"):
+        asyncio.run(run())
+    changes = [
+        record.getMessage()
+        for record in caplog.records
+        if record.getMessage().startswith("CHANGE weather watch")
+    ]
+    assert len(changes) == 2
+    assert changes[0].startswith("CHANGE weather watch unknown->inactive ")
+    assert changes[1].startswith("CHANGE weather watch inactive->active ")
+    assert all("\n" not in line for line in changes)
+
+
+@pytest.mark.parametrize("seconds,accepted", [(1, True), (5, True), (6, False)])
+def test_station_clock_skew_tolerance(sources, seconds, accepted):
+    eccc, meteo, observed = sources
+    now = observed - timedelta(seconds=seconds)
+    if accepted:
+        assert normalize_weather(eccc, meteo, now)["observed_at"] == observed
+    else:
+        with pytest.raises(ValueError, match="No recent"):
+            normalize_weather(eccc, meteo, now)
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 429])
+def test_client_errors_are_not_retried(status):
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(status)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            with pytest.raises(httpx.HTTPStatusError):
+                await WeatherSources(client)._get("https://example.test/weather", {})
+
+    asyncio.run(run())
+    assert len(calls) == 1
+
+
+def test_invalid_json_is_not_retried():
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200, content="invalid JSON")
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            with pytest.raises(ValueError):
+                await WeatherSources(client)._get("https://example.test/weather", {})
+
+    asyncio.run(run())
+    assert len(calls) == 1
+
+
+def test_timeouts_are_retried():
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        raise httpx.ReadTimeout("Timed out")
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            with patch(
+                "cloud.app.adapters.weather.asyncio.sleep", new_callable=AsyncMock
+            ) as sleep:
+                with pytest.raises(httpx.ReadTimeout):
+                    await WeatherSources(client)._get(
+                        "https://example.test/weather", {}
+                    )
+                assert [call.args[0] for call in sleep.await_args_list] == [1, 2, 4]
+
+    asyncio.run(run())
+    assert len(calls) == 4
+
+
+def test_providers_fetch_concurrently(sources):
+    eccc, meteo, now = sources
+
+    async def run():
+        model_started = asyncio.Event()
+
+        async def fake_get(url, params):
+            if "weather.gc.ca" in url:
+                await model_started.wait()
+                return eccc
+            model_started.set()
+            return meteo
+
+        source = WeatherSources(None)
+        with patch.object(source, "_get", side_effect=fake_get):
+            result = await asyncio.wait_for(source(now), timeout=1)
+        assert result["observed_at"] == now
+
+    asyncio.run(run())
+
+
+def test_failed_provider_cancels_and_awaits_peer(sources):
+    _, _, now = sources
+
+    async def run():
+        model_started = asyncio.Event()
+        peer_cancelled = asyncio.Event()
+
+        async def fake_get(url, params):
+            if "weather.gc.ca" in url:
+                await model_started.wait()
+                raise httpx.ReadTimeout("Station unavailable")
+            model_started.set()
+            try:
+                await asyncio.Future()
+            finally:
+                peer_cancelled.set()
+
+        source = WeatherSources(None)
+        with (
+            patch.object(source, "_get", side_effect=fake_get),
+            pytest.raises(httpx.ReadTimeout),
+        ):
+            await asyncio.wait_for(source(now), timeout=1)
+        assert peer_cancelled.is_set()
+
+    asyncio.run(run())
 
 
 def test_refresh_interval_and_cancellation(sources):
