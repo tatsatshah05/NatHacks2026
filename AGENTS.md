@@ -19,7 +19,7 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
-- **November 7, 2026:** planning is complete. OP-102 adds the skeleton: the FastAPI app (`GET /health` only), the Next.js placeholder page, the Makefile, `render.yaml` and `.env.example`. OP-101 (contracts) adds the shared schemas and store next.
+- **November 7, 2026:** planning is complete and Phase 1 is under way. OP-102 adds the skeleton: the FastAPI app (`GET /health`, plus OP-101's `GET /api/obstructions` and store), the Makefile, `render.yaml` and `.env.example`. The web app in `web/` comes from OP-113.
 - **Deploys:** the one-time Render, Vercel and GitHub setup is in [docs/DEPLOY.md](docs/DEPLOY.md).
 - **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
@@ -163,7 +163,7 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 - **Apple Maps:** `https://maps.apple.com/?saddr=LAT,LNG&daddr=LAT,LNG&dirflg=w`, and the UI notes that it may not keep the detour.
 
 **API:**
-- **Health:** `GET /health` returns `{"status": "ok", "version": "<git commit>"}` from `RENDER_GIT_COMMIT`. The deploy job waits for this version.
+- **Health:** `GET /health` returns `{"status": "ok", "version": "<git commit>", "mode": "live"}`. `version` comes from `RENDER_GIT_COMMIT` (`dev` locally), and the deploy job waits for it. `mode` is `DATA_MODE` (`live` or `replay`); the web app shows the Replay badge when it is `replay`.
 - **Read:** `GET /health`, `/api/status`, `/api/obstructions?bbox=`, `/api/route?from=&to=&profile=&mode=walk|walk_lrt`, `/api/search?q=`, `/api/weather`, `/api/cameras`, `/api/priority`.
 - **Write:** `POST /api/reports`, `/api/push/subscribe`, `/api/saved-routes`, `/api/ingest/camera` (`X-Worker-Key`), `/api/admin/override` (`X-Admin-Key`, testing only).
 - **Live:** `WS /ws` with events `obstruction_changed`, `route_changed` and `source_status`.
@@ -191,26 +191,31 @@ These live in the root Makefile and are available after OP-102.
 
 | Command | What it does |
 | --- | --- |
-| `make setup` | Creates `.venv` (cloud + vision), runs `npm ci` in `web/` |
+| `make setup` | Creates `.venv` with every `cloud/` and `vision/` requirements file (as CI installs them), runs `npm ci` in `web/` |
 | `make dev` | API on :8000 (SQLite, recorded fixtures, no keys) + web on :3000 |
+| `make web` | Only the web app on :3000, pointed at the API on :8000 |
 | `make test` | `pytest` for cloud and vision, plus `npm run lint` and `npm run typecheck` in `web/` |
-| `make graph` | Rebuilds `cloud/data/network.npz` with OSMnx (local only, then commit). Until OP-102 adds the Makefile: `pip install -r scripts/requirements-graph.txt` then `python scripts/build_graph.py` |
-| `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` |
+| `make graph` | Installs `scripts/requirements-graph.txt`, then rebuilds `cloud/data/network.npz` with OSMnx (local only, then commit). macOS or Linux for now: `scripts/build_graph.py` uses the Unix-only `resource` module |
+| `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` (with `npx openapi-typescript`) |
 | `make record` | Records a replay snapshot of every source (no images) |
 | `make worker` | Runs the vision worker locally |
 | `make lint` | `ruff check`, `ruff format --check` and `npm run lint` (the same lint CI runs) |
-| `make format` | `ruff format` and `ruff check --fix` |
+| `make format` | `ruff check --fix`, then `ruff format` |
 | `make build` | Production build of the web app (`npm run build`) |
 
-`make graph`, `make record` and `make worker` print "not built yet" and exit with an error until OP-104, OP-305 and OP-204 add their scripts. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux. `make dev` removes API keys from its environment and sets `DATA_MODE=replay` with `REPLAY_SNAPSHOT=cloud/tests/fixtures`, so adapters must read their fixtures in replay mode.
+`make record` and `make worker` print "not built yet" and exit with an error until OP-305 and OP-204 add their scripts. While `web/` is missing, the web steps of `make setup`, `make test` and `make lint` are skipped, `make dev` starts only the API, and `make web`, `make build` and `make types` stop with an error. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux.
+
+`make dev` and `make web` run `scripts/dev.py`. It removes API keys from the environment and sets `DATA_MODE=replay` with `REPLAY_SNAPSHOT=cloud/tests/fixtures`, so adapters must read their fixtures in replay mode. If one server stops (for example because its port is in use), the other is stopped too and `make dev` fails with that server's exit code.
 
 ## Environment Variables
 
-Never commit values. Keep `.env.example` current.
+Never commit values. Keep `.env.example` current. Nothing loads `.env.example` or a `.env` file: Render and Vercel take values from their dashboards, and `make dev` sets its own.
 
 - **cloud:** `DATABASE_URL`, `ADMIN_KEY`, `WORKER_KEY`, `CORS_ORIGINS`, `SOCRATA_APP_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DATA_MODE` (`live` or `replay`), `REPLAY_SNAPSHOT`, `WEATHER_LAT`, `WEATHER_LNG`, `LRT_TRIPS`
 - **vision:** `CLOUD_URL`, `WORKER_KEY`, `ALBERTA_511_KEY`, `MODEL_URL`
-- **web:** `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- **web:** `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. The OP-113 web app currently reads `NEXT_PUBLIC_API_BASE_URL` instead of `NEXT_PUBLIC_API_URL`; `make dev` and docs/DEPLOY.md set both until the two agree.
+
+`REPLAY_SNAPSHOT` is a folder, not a file: one subfolder of recorded responses per source, as in `cloud/tests/fixtures/`. `CORS_ORIGINS` is comma-separated, and a `*` matches part of one host-name label (`https://openpath-*-<team-slug>.vercel.app`). It is not a security boundary; see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Conventions
 
@@ -240,7 +245,7 @@ These apply to the web app, and judges will check them.
 
 ## Testing
 
-Until OP-102 adds `make test`, run the cloud tests from the repository root with `PYTHONPATH=.:cloud pytest -q cloud/tests`. Tests import code as `cloud.app.<module>`.
+Run `make test` from the repository root. Tests import code as `cloud.app.<module>`; the root `pyproject.toml` puts the repository on the import path.
 
 - **cloud:**
   - Each adapter with recorded fixtures, including a failing source and a changed schema.
