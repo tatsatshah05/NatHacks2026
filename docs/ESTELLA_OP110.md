@@ -1,15 +1,17 @@
 # OP-110: 311 snow complaints and trail closures
 
 Estella's second Phase 1 story is [OP-110 (#38)](https://github.com/tatsatshah05/NatHacks2026/issues/38).
-The implementation is on `op-110-snow-and-trails`, branched from `phase_1`.
+The implementation is on `op-110-snow-and-trails`, rebased onto `phase_1`.
 It is independent of the OP-109 weather PR.
+`CLAUDE.md` stays as the team's short import of `AGENTS.md`; all OP-110 notes live
+here, with a command pointer in `AGENTS.md`.
 
 ## Run it
 
 From the repository root, install the isolated dependencies into a virtual environment:
 
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 .venv/bin/python -m pip install -r cloud/requirements-city-data.txt
 .venv/bin/python -m cloud.tools.preview_advisories
 ```
@@ -44,19 +46,39 @@ excluding future requests. Deduplicate by `row_id`, then count by
 neighbourhood with effect `caution`. Detail includes "area, not exact location".
 The marker is the City's neighbourhood centroid, not the complaint address or
 the boundary of the affected area. These advisories must not reroute users.
+An eligible request without a valid neighbourhood ID, name or point location is
+skipped with a `SKIP` warning containing its row ID and reason. Other valid
+requests still form their neighbourhood counts. Skipped rows are not counted.
 
 **Trail disruptions:** use the structured `type_of_closure`: `Permanent` and
 `Temporary` map to `trail_closed`/`blocked`; `Caution` maps to
 `trail_caution`/`caution`. Exclude future starts and definite expired end dates.
 Definite end dates include the whole final day; named months include the whole
-month. Vague ends such as "Ongoing", "1 Year" or "Spring 2027" stay unknown and
-are retained in the text. Never guess a reopening date from prose.
+month. Supported formats include `November 27th 2026`, `Nov. 27, 2026`,
+`11/27/2026` (month/day/year), ISO dates and month/year estimates. Vague ends such
+as "Ongoing", "1 Year" or "Spring 2027" stay unknown and are retained in the
+text. Every unparsed nonempty end date emits an `UNPARSED end_date` warning.
+Non-string values are also logged and retained as unknown, rather than raising
+an AttributeError. Null or absent end dates are allowed unknowns.
+Trail rows without a nonblank text `details` field are skipped and logged.
 
-**Refresh reliability:** 10-second timeout and three retries (1, 2, 4 seconds).
+**Refresh reliability:** httpx handles the 10-second timeout, without a duplicate
+outer asyncio timeout. Only HTTP timeouts and 5xx responses receive three retries
+(1, 2, 4 seconds). Client errors, malformed JSON and other request errors fail
+immediately.
 Fetch every page in stable source-ID order before replacing any cached data.
-Malformed responses, invalid active records and pagination limits fail the refresh
-and preserve `last_good`. A successful empty response is distinct from failure.
+Malformed responses, conflicting rows, other invalid active records and pagination
+limits fail the refresh and preserve `last_good`. A successful empty response is
+distinct from failure. The specific missing-field cases above skip only that row.
 Freshness is an in-memory cache, not persistence across process restarts.
+
+**Logs and errors:** `last_error` preserves `str(exc)`. Each completed refresh
+logs one `REFRESH <source> success items=<count>` or `REFRESH <source> failed: ...`
+line. Successful refreshes also log `CHANGE <item-id> new|updated|removed <kind>`
+for meaningful content changes. Advancing observation/expiry times alone does
+not emit a CHANGE line. Failed refreshes never emit removals. Error log messages
+are flattened to one line while `last_error` keeps the original message.
+The standalone CLI enables INFO logs on stderr while keeping its JSON on stdout.
 
 ## Shared-app handoff
 
@@ -100,11 +122,18 @@ the new rules and historical ambiguous/nonexistent DST times.
 ## Checks
 
 ```bash
+.venv/bin/python -m pip install pytest ruff==0.17.4
+.venv/bin/python -m pip install -r cloud/requirements-network.txt
 .venv/bin/python -m pytest cloud/tests -q
-.venv/bin/ruff check --isolated --target-version py39 --select E4,E7,E9,F,I cloud
-.venv/bin/ruff format --isolated --target-version py39 --check cloud
+.venv/bin/ruff check --fix .
+.venv/bin/ruff format .
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
 ```
 
-The project targets Python 3.12; the feature also supports the available system
-Python 3.9. Tests never use the network. The shared `make test`, preview deploy
+Use Python 3.12 and the root Ruff commands without rule-selection overrides,
+matching CI. Runtime requirements contain only runtime packages; test tools are
+installed separately. The rebased branch includes OP-104's walking-network tests,
+so its runtime requirements are included above. Tests never use the network.
+The shared `make test`, preview deploy
 and teammate review remain integration checks once the app skeleton is merged.

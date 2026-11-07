@@ -186,6 +186,8 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 
 ## Commands
 
+OP-110's standalone check: `.venv/bin/python -m cloud.tools.preview_advisories` (recorded data) or add `--live` for the City APIs; see [the OP-110 guide](docs/ESTELLA_OP110.md) for dependencies, skipped-row logging, date parsing and integration notes.
+
 These live in the root Makefile and are available after OP-102.
 
 | Command | What it does |

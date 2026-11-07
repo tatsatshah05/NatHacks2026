@@ -7,7 +7,8 @@ time boundaries, invalid data, pagination, retries, and keeping the previous cac
 import asyncio
 import copy
 import json
-from datetime import datetime, timedelta, timezone
+import logging
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -23,7 +24,7 @@ from cloud.app.adapters.city_advisories import (
 )
 
 FIXTURES = Path(__file__).parent / "fixtures/city_advisories"
-NOW = datetime(2026, 11, 7, 21, 30, tzinfo=timezone.utc)
+NOW = datetime(2026, 11, 7, 21, 30, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -91,6 +92,8 @@ def test_local_dates_convert_to_utc_and_dst_is_explicit():
     "value,expected",
     [
         ("November 27th 2026", "2026-11-28T06:00:00Z"),
+        ("Nov. 27, 2026", "2026-11-28T06:00:00Z"),
+        ("11/27/2026", "2026-11-28T06:00:00Z"),
         ("2026-11-27", "2026-11-28T06:00:00Z"),
         ("November 1, 2026", "2026-11-02T06:00:00Z"),
         ("End of December 2026.", "2027-01-01T06:00:00Z"),
@@ -155,12 +158,13 @@ def test_invalid_active_trail_fails_instead_of_clearing(records, change):
         TrailClosuresAdapter(None).normalize(rows, NOW)
 
 
-def test_invalid_neighbourhood_geometry_fails(records):
+def test_missing_neighbourhood_geometry_is_skipped_and_logged(records, caplog):
     row = copy.deepcopy(records[0][0])
     reference = city_time(row["date_created"]) + timedelta(hours=1)
     del row["nbhd_location"]
-    with pytest.raises(ValueError):
-        SnowComplaintsAdapter(None).normalize([row], reference)
+    assert SnowComplaintsAdapter(None).normalize([row], reference) == []
+    assert "SKIP city_311_snow" in caplog.text
+    assert row["row_id"] in caplog.text
 
 
 def test_planned_fields_and_refresh_cadences(records):
@@ -277,3 +281,243 @@ def test_three_retries_with_backoff_and_empty_success_clears_snapshot(records):
             assert len(calls) == 4
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "field,missing",
+    [
+        ("neighbourhood_id", False),
+        ("neighbourhood_id", True),
+        ("nbhd_location", False),
+        ("nbhd_location", True),
+        ("neighbourhood", False),
+    ],
+)
+def test_incomplete_snow_row_does_not_block_valid_neighbourhood(
+    records, caplog, field, missing
+):
+    good = records[0][0]
+    now = city_time(good["date_created"]) + timedelta(hours=1)
+    bad = {**copy.deepcopy(good), "row_id": "unlocatable-test-row"}
+    if missing:
+        del bad[field]
+    else:
+        bad[field] = None
+    service = SnowComplaintsAdapter(None)
+    items = service.normalize([bad, good], now)
+    assert len(items) == 1
+    assert "1 open" in items[0]["detail"]
+    assert items[0]["geometry"] == good["nbhd_location"]
+    skipped = [
+        r.getMessage() for r in caplog.records if r.getMessage().startswith("SKIP ")
+    ]
+    assert len(skipped) == 1
+    assert "unlocatable-test-row" in skipped[0]
+
+
+@pytest.mark.parametrize("details", [None, "", "   ", 42])
+def test_trail_without_details_is_skipped_and_other_trail_publishes(
+    records, caplog, details
+):
+    good = records[1][0]
+    bad = {**good, "id_number": "missing-details-test", "details": details}
+    items = TrailClosuresAdapter(None).normalize([bad, good], NOW)
+    assert len(items) == 1
+    assert items[0]["source_ref"] == good["id_number"]
+    assert "SKIP city_trail_closures row=missing-details-test" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["Unknown finish", "Spring 2027", "1 Year", 27, {"bad": "date"}, ["bad"], False],
+)
+def test_unparsed_end_dates_are_logged_and_retained_as_unknown(value, caplog):
+    assert end_time(value) is None
+    messages = [
+        r.getMessage()
+        for r in caplog.records
+        if r.getMessage().startswith("UNPARSED end_date")
+    ]
+    assert len(messages) == 1
+    assert "\n" not in messages[0]
+
+
+@pytest.mark.parametrize("value", [None, ""])
+def test_absent_end_date_is_an_allowed_unknown(value, caplog):
+    assert end_time(value) is None
+    assert "UNPARSED" not in caplog.text
+
+
+@pytest.mark.parametrize("value", ["Nov. 6, 2026", "11/06/2026"])
+def test_new_date_formats_expire_trail_items(records, value):
+    row = {**records[1][0], "end_date": value}
+    assert TrailClosuresAdapter(None).normalize([row], NOW) == []
+
+
+@pytest.mark.parametrize("value", [27, {"unexpected": "object"}, ["unexpected"]])
+def test_nonstring_trail_end_date_does_not_crash_refresh(records, value, caplog):
+    row = {**records[1][0], "end_date": value}
+    items = TrailClosuresAdapter(None).normalize([row], NOW)
+    assert len(items) == 1
+    assert items[0]["ends_at"] is None
+    assert "UNPARSED end_date" in caplog.text
+
+
+def test_refresh_and_item_changes_are_logged_without_freshness_noise(records, caplog):
+    state = {"rows": [copy.deepcopy(records[1][0])], "fail": False}
+
+    def handler(request):
+        if state["fail"]:
+            return httpx.Response(503)
+        return httpx.Response(200, json=state["rows"])
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            service = TrailClosuresAdapter(client, retries=0)
+            await service.fetch(NOW)
+            await service.fetch(NOW + timedelta(minutes=15))
+            state["rows"][0]["details"] = "Updated trail notice."
+            await service.fetch(NOW + timedelta(minutes=30))
+            state["rows"] = []
+            await service.fetch(NOW + timedelta(minutes=45))
+            state["fail"] = True
+            with pytest.raises(httpx.HTTPStatusError) as error:
+                await service.fetch(NOW + timedelta(minutes=60))
+            assert service.last_error == str(error.value)
+            assert "503" in service.last_error
+            assert service.last_success == NOW + timedelta(minutes=45)
+            assert service.last_good == []
+
+    with caplog.at_level(logging.INFO, logger="cloud.app.adapters.city_advisories"):
+        asyncio.run(run())
+    messages = [record.getMessage() for record in caplog.records]
+    outcomes = [message for message in messages if message.startswith("REFRESH ")]
+    changes = [message for message in messages if message.startswith("CHANGE ")]
+    assert len(outcomes) == 5
+    assert sum("success items=" in message for message in outcomes) == 4
+    assert sum("failed:" in message for message in outcomes) == 1
+    assert len(changes) == 3
+    assert " new trail_closed" in changes[0]
+    assert " updated trail_closed" in changes[1]
+    assert " removed trail_closed" in changes[2]
+    assert all("\n" not in message for message in outcomes + changes)
+
+
+def test_multiline_error_is_preserved_but_logged_on_one_line(records, caplog):
+    message = "upstream\nread timed out"
+
+    def handler(request):
+        raise httpx.ReadTimeout(message)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            service = TrailClosuresAdapter(client, retries=0)
+            service.last_good = service.normalize(records[1][:1], NOW)
+            saved = copy.deepcopy(service.last_good)
+            with pytest.raises(httpx.ReadTimeout):
+                await service.fetch(NOW)
+            assert service.last_error == message
+            assert service.last_good == saved
+
+    asyncio.run(run())
+    outcomes = [
+        r.getMessage() for r in caplog.records if r.getMessage().startswith("REFRESH ")
+    ]
+    assert len(outcomes) == 1
+    assert "upstream read timed out" in outcomes[0]
+    assert "\n" not in outcomes[0]
+    assert not any(r.getMessage().startswith("CHANGE ") for r in caplog.records)
+
+
+def test_skipped_rows_allow_a_successful_snow_refresh(records, caplog):
+    good = records[0][0]
+    now = city_time(good["date_created"]) + timedelta(hours=1)
+    bad = {**good, "row_id": "missing-area-test", "neighbourhood_id": None}
+
+    async def run():
+        transport = httpx.MockTransport(
+            lambda request: httpx.Response(200, json=[bad, good])
+        )
+        async with httpx.AsyncClient(transport=transport) as client:
+            service = SnowComplaintsAdapter(client)
+            result = await service.fetch(now)
+            assert len(result) == 1
+            assert service.last_good == result
+            assert service.last_error is None
+            assert service.last_success == now
+
+    with caplog.at_level(logging.INFO, logger="cloud.app.adapters.city_advisories"):
+        asyncio.run(run())
+    assert "SKIP city_311_snow row=missing-area-test" in caplog.text
+    assert "REFRESH city_311_snow success items=1" in caplog.text
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 429])
+def test_client_errors_are_not_retried(status):
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(status)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            service = TrailClosuresAdapter(client)
+            with patch(
+                "cloud.app.adapters.city_advisories.asyncio.sleep",
+                new_callable=AsyncMock,
+            ) as sleep:
+                with pytest.raises(httpx.HTTPStatusError):
+                    await service.fetch(NOW)
+                sleep.assert_not_awaited()
+
+    asyncio.run(run())
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("failure", ["json", "connection"])
+def test_nonretryable_response_or_connection_error_fails_immediately(failure):
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        if failure == "connection":
+            raise httpx.ConnectError("Connection refused")
+        return httpx.Response(200, content="Not JSON")
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            service = TrailClosuresAdapter(client)
+            with patch(
+                "cloud.app.adapters.city_advisories.asyncio.sleep",
+                new_callable=AsyncMock,
+            ) as sleep:
+                with pytest.raises((ValueError, httpx.ConnectError)):
+                    await service.fetch(NOW)
+                sleep.assert_not_awaited()
+
+    asyncio.run(run())
+    assert len(calls) == 1
+
+
+def test_httpx_timeout_is_retried_with_expected_backoff():
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        assert all(value == 10 for value in request.extensions["timeout"].values())
+        raise httpx.ReadTimeout("Timed out")
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            service = TrailClosuresAdapter(client)
+            with patch(
+                "cloud.app.adapters.city_advisories.asyncio.sleep",
+                new_callable=AsyncMock,
+            ) as sleep:
+                with pytest.raises(httpx.ReadTimeout):
+                    await service.fetch(NOW)
+                assert [call.args[0] for call in sleep.await_args_list] == [1, 2, 4]
+
+    asyncio.run(run())
+    assert len(calls) == 4

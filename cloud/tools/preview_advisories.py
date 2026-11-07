@@ -10,8 +10,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -27,7 +28,7 @@ async def preview(live: bool) -> dict:
     """Choose the data source, run both adapters, and label the preview output."""
     fixture_dir = Path(__file__).parents[1] / "tests/fixtures/city_advisories"
     if live:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
     else:
         recording = json.loads((fixture_dir / "recording.json").read_text())
         # Use the recording's time so replay results remain repeatable.
@@ -54,6 +55,8 @@ async def preview(live: bool) -> dict:
 
 
 if __name__ == "__main__":
+    # Keep JSON on stdout and make the adapter's operational logs visible on stderr.
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--live",

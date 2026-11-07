@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import logging
 import re
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from importlib.resources import files
 from math import isfinite
-from typing import Any, Optional
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -28,12 +29,18 @@ with (
 ):
     EDMONTON = ZoneInfo.from_file(_tz, key="America/Edmonton")
 Obstruction = dict[str, Any]
+logger = logging.getLogger(__name__)
+
+
+def one_line(value: Any) -> str:
+    """Keep source values and exception messages on one log line."""
+    return " ".join(str(value).splitlines())
 
 
 def utc(now: datetime) -> datetime:
     if now.tzinfo is None:
         raise ValueError("Refresh time must be timezone-aware")
-    return now.astimezone(timezone.utc)
+    return now.astimezone(UTC)
 
 
 def iso(value: datetime) -> str:
@@ -47,7 +54,7 @@ def city_time(value: str, source_timezone: ZoneInfo = EDMONTON) -> datetime:
     a timezone in their metadata. Callers can supply a confirmed timezone later.
     Ambiguous/nonexistent DST times are rejected rather than guessed.
     """
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    parsed = datetime.fromisoformat(value)
     if parsed.tzinfo is None:
         first = parsed.replace(tzinfo=source_timezone, fold=0)
         second = parsed.replace(tzinfo=source_timezone, fold=1)
@@ -57,11 +64,27 @@ def city_time(value: str, source_timezone: ZoneInfo = EDMONTON) -> datetime:
     return utc(parsed)
 
 
-def end_time(value: str, source_timezone: ZoneInfo = EDMONTON) -> Optional[datetime]:
+def end_time(value: Any, source_timezone: ZoneInfo = EDMONTON) -> datetime | None:
     """Parse definite dates/months as inclusive; leave vague estimates unknown."""
-    cleaned = re.sub(r"(\d)(st|nd|rd|th)\b", r"\1", value.strip(), flags=re.I)
-    cleaned = re.sub(r"^end of\s+", "", cleaned, flags=re.I).rstrip(".")
-    for pattern in ("%Y-%m-%d", "%B %d, %Y", "%B %d %Y", "%b %d, %Y", "%b %d %Y"):
+    if value is None or value == "":
+        return None
+    if not isinstance(value, str):
+        logger.warning(
+            "UNPARSED end_date value=%s reason=expected text", one_line(repr(value))
+        )
+        return None
+    cleaned = re.sub(r"(\d)(st|nd|rd|th)\b", r"\1", value.strip(), flags=re.IGNORECASE)
+    cleaned = re.sub(r"^end of\s+", "", cleaned, flags=re.IGNORECASE).rstrip(".")
+    # City's text dates include dotted month abbreviations and US-style slashes.
+    cleaned = re.sub(r"\b([A-Za-z]{3})\.", r"\1", cleaned)
+    for pattern in (
+        "%Y-%m-%d",
+        "%B %d, %Y",
+        "%B %d %Y",
+        "%b %d, %Y",
+        "%b %d %Y",
+        "%m/%d/%Y",
+    ):
         try:
             date = datetime.strptime(cleaned, pattern).replace(tzinfo=source_timezone)
             return utc(date + timedelta(days=1))
@@ -78,6 +101,7 @@ def end_time(value: str, source_timezone: ZoneInfo = EDMONTON) -> Optional[datet
             return utc(next_month)
         except ValueError:
             pass
+    logger.warning("UNPARSED end_date value=%s", one_line(repr(value)))
     return None
 
 
@@ -130,11 +154,11 @@ class CityAdapter:
         self,
         client: httpx.AsyncClient,
         *,
-        app_token: Optional[str] = None,
+        app_token: str | None = None,
         page_size: int = 1000,
         max_pages: int = 100,
         retries: int = 3,
-        source_timezone: Optional[ZoneInfo] = None,
+        source_timezone: ZoneInfo | None = None,
     ) -> None:
         if page_size < 1 or max_pages < 1 or retries < 0:
             raise ValueError("Invalid City adapter request limits")
@@ -144,9 +168,9 @@ class CityAdapter:
         self.max_pages = max_pages
         self.retries = retries
         self.source_timezone = source_timezone or self.timestamp_timezone
-        self.last_good: Optional[list[Obstruction]] = None
-        self.last_success: Optional[datetime] = None
-        self.last_error: Optional[str] = None
+        self.last_good: list[Obstruction] | None = None
+        self.last_success: datetime | None = None
+        self.last_error: str | None = None
 
     def query(self, now: datetime) -> dict[str, str]:
         return {}
@@ -155,17 +179,14 @@ class CityAdapter:
         raise NotImplementedError
 
     async def _page(self, params: dict[str, Any]) -> list[dict[str, Any]]:
-        """Request one page, retrying failures after 1, 2, then 4 seconds."""
+        """Request one page; retry only server errors and HTTP timeouts."""
         headers = {"X-App-Token": self.app_token} if self.app_token else {}
         for attempt in range(self.retries + 1):
             try:
-                response = await asyncio.wait_for(
-                    self.client.get(
-                        f"{CITY_BASE}/resource/{self.dataset}.json",
-                        params=params,
-                        headers=headers,
-                        timeout=10,
-                    ),
+                response = await self.client.get(
+                    f"{CITY_BASE}/resource/{self.dataset}.json",
+                    params=params,
+                    headers=headers,
                     timeout=10,
                 )
                 response.raise_for_status()
@@ -175,16 +196,19 @@ class CityAdapter:
                 ):
                     raise ValueError("City API returned an unexpected response schema")
                 return rows
-            except (httpx.HTTPError, asyncio.TimeoutError, ValueError):
+            except httpx.HTTPStatusError as exc:
+                if not 500 <= exc.response.status_code < 600 or attempt == self.retries:
+                    raise
+            except httpx.TimeoutException:
                 if attempt == self.retries:
                     raise
-                await asyncio.sleep(2**attempt)
+            await asyncio.sleep(2**attempt)
         raise AssertionError("Unreachable")
 
     async def fetch(self, now: datetime) -> list[Obstruction]:
         """Build a complete refresh; leave last_good untouched if any step fails."""
-        now = utc(now)
         try:
+            now = utc(now)
             rows = []
             # Fetch the full source before replacing the previous snapshot.
             for page in range(self.max_pages):
@@ -204,21 +228,38 @@ class CityAdapter:
                     "City API page limit reached; refusing a partial refresh"
                 )
             items = self.normalize(rows, now)
-        except (
-            httpx.HTTPError,
-            asyncio.TimeoutError,
-            ValueError,
-            KeyError,
-            TypeError,
-        ) as exc:
+        except (TimeoutError, httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
             # Retain the complete previous snapshot; let the scheduler mark failure.
-            self.last_error = type(exc).__name__
+            self.last_error = str(exc)
+            logger.warning("REFRESH %s failed: %s", self.source, one_line(exc))
             raise
         # Keep a separate copy so callers cannot accidentally change the cache.
+        self._log_changes(items)
         self.last_good = copy.deepcopy(items)
         self.last_success = now
         self.last_error = None
+        logger.info("REFRESH %s success items=%d", self.source, len(items))
         return items
+
+    def _log_changes(self, items: list[Obstruction]) -> None:
+        """Log meaningful additions, updates and removals, ignoring freshness ticks."""
+        old = {item["id"]: item for item in self.last_good or []}
+        new = {item["id"]: item for item in items}
+
+        def content(item: Obstruction) -> dict[str, Any]:
+            return {
+                key: value
+                for key, value in item.items()
+                if key not in ("observed_at", "expires_at")
+            }
+
+        for key in sorted(new):
+            if key not in old:
+                logger.info("CHANGE %s new %s", one_line(key), new[key]["kind"])
+            elif content(old[key]) != content(new[key]):
+                logger.info("CHANGE %s updated %s", one_line(key), new[key]["kind"])
+        for key in sorted(old.keys() - new.keys()):
+            logger.info("CHANGE %s removed %s", one_line(key), old[key]["kind"])
 
     def item(
         self,
@@ -231,8 +272,8 @@ class CityAdapter:
         detail: str,
         geometry: dict[str, Any],
         confidence: str,
-        starts_at: Optional[datetime] = None,
-        ends_at: Optional[datetime] = None,
+        starts_at: datetime | None = None,
+        ends_at: datetime | None = None,
     ) -> Obstruction:
         """Build an item in the planned shared format, with a freshness deadline."""
         expires = now + timedelta(seconds=self.poll_interval_seconds * 2)
@@ -296,7 +337,21 @@ class SnowComplaintsAdapter(CityAdapter):
             created = city_time(text(row, "date_created"), self.source_timezone)
             if not now - timedelta(hours=72) <= created <= now:
                 continue
-            groups[text(row, "neighbourhood_id")].append((row, created))
+            # A request without an area/marker cannot locate an advisory. Skip
+            # that request while still publishing other valid neighbourhoods.
+            try:
+                neighbourhood_id = text(row, "neighbourhood_id")
+                text(row, "neighbourhood")
+                point(row, "nbhd_location")
+            except ValueError as exc:
+                logger.warning(
+                    "SKIP %s row=%s reason=%s",
+                    self.source,
+                    one_line(row["row_id"]),
+                    one_line(exc),
+                )
+                continue
+            groups[neighbourhood_id].append((row, created))
         items = []
         for neighbourhood_id, entries in sorted(groups.items()):
             first = entries[0][0]
@@ -338,13 +393,21 @@ class TrailClosuresAdapter(CityAdapter):
         now = utc(now)
         items = []
         for row in unique_rows(rows, "id_number"):
+            # Parse every supplied end date so unknown values are visible in logs.
+            raw_end = row.get("end_date")
+            ends = end_time(raw_end, EDMONTON)
+            if not isinstance(row.get("details"), str) or not row["details"].strip():
+                logger.warning(
+                    "SKIP %s row=%s reason=missing or invalid details",
+                    self.source,
+                    one_line(row["id_number"]),
+                )
+                continue
             starts = (
                 city_time(text(row, "start_date"), self.source_timezone)
                 if row.get("start_date")
                 else None
             )
-            # Human-readable finish dates refer to the local calendar day.
-            ends = end_time(row.get("end_date") or "", EDMONTON)
             # Exclude future and finished notices; unclear finish dates stay unknown.
             if (starts is not None and starts > now) or (
                 ends is not None and ends <= now
@@ -357,8 +420,8 @@ class TrailClosuresAdapter(CityAdapter):
             caution = closure == "caution"
             location = row.get("location_name") or "River Valley trail"
             detail = text(row, "details")
-            if row.get("end_date"):
-                detail += " Reported end: " + row["end_date"] + "."
+            if raw_end is not None and raw_end != "":
+                detail += f" Reported end: {raw_end}."
             items.append(
                 self.item(
                     text(row, "id_number"),

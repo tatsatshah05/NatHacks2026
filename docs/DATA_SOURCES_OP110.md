@@ -17,17 +17,26 @@ Snow fields: `row_id`, `date_created`, `request_status`, `neighbourhood_id`,
 centroid. Closed requests, future dates and requests older than 72 hours are
 excluded. The upstream query limits status and dates; normalization checks them
 again before grouping and counting unique request IDs.
+Eligible rows with no valid neighbourhood ID, name or point are skipped with an
+identified warning, allowing other neighbourhoods to refresh successfully.
 
 Trail fields: `id_number`, `start_date`, `end_date`, `type_of_closure`, `details`,
 `location_name`, `geometry_point`. The actual feed contains Temporary, Permanent
 and Caution types. Some end dates are free text. The adapter retains unclear
-end dates without inventing a timestamp; see the OP-110 guide for parsing rules.
+end dates without inventing a timestamp, logging every unparsed nonempty value.
+`Nov. 27, 2026` and `11/27/2026` are supported as well as the full-month and ISO
+formats. Non-string ends remain unknown and are logged. Rows missing `details`
+are skipped and logged; see the OP-110 guide for parsing rules.
 
 Both sources use offset pagination with a stable source-ID ordering, 1000 rows
 per page by default. A hard pagination limit produces an error, never a partial
 successful refresh. Rows can change while pages are being fetched; conflicting
 duplicate IDs fail the refresh rather than overcounting. Requests optionally use
 `X-App-Token`, with no scraping or private endpoints.
+The HTTP client's 10-second timeout is the only request timeout. Three retries
+with 1/2/4-second delays apply only to timeouts and 5xx responses. Failures retain
+the last-good data and full error message. Each refresh outcome and meaningful
+item addition/update/removal is logged; freshness-only changes produce no event.
 
 Socrata floating timestamp documentation:
 https://dev.socrata.com/docs/datatypes/floating_timestamp.html.
