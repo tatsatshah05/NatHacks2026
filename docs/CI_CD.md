@@ -22,7 +22,7 @@ flowchart LR
 | Pull request required | Nobody pushes directly to `main` |
 | `CI passed` check required | Every check below must pass |
 | Branch up to date | Click **Update branch** if `main` moved since you branched |
-| Scrum master approval | `@tatsatshah05` owns every file (`.github/CODEOWNERS`), so their approval is required |
+| Reviewer approval | `@tatsatshah05` and `@ipsamanhas` own every file (`.github/CODEOWNERS`). An approval from either one is enough |
 | New commits reset approval | Pushing after approval needs a fresh review |
 | Conversations resolved | Every review comment must be resolved |
 | Squash merge only | One clean commit per pull request, titled with the pull request title |
