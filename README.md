@@ -1,41 +1,55 @@
 # PathSense
 
-Real-time accessible routing for winter sidewalks. Built for natHACKS 2026.
+Every barrier between A and B, in one place. Accessible routing for Edmonton. Built for natHACKS 2026.
 
 ## What It Does
 
-PathSense uses a camera and sensors to detect snow, ice and obstructions on sidewalks. When a sidewalk becomes unsafe, it finds an accessible alternative route and notifies the people who use it. The demo watches a real snowy sidewalk in Edmonton.
+Enter where you are and where you are going, and choose how you get around: wheelchair, walker or cane, low vision, or standard. PathSense finds the best route and lists every known barrier along it:
+
+- **Indoor:** LRT elevators and escalators that are out of service
+- **Sidewalks and paths:** construction closures, trail closures, snow complaints and community reports
+- **Roads and crossings:** road closures, incidents, and snow ridges left by plows
+- **Weather and ice:** a black-ice watch from live weather, and road conditions read from public cameras by our vision model
+
+Routes avoid what each person cannot pass. Saved routes send an alert when they change, and every route opens in Google Maps or Apple Maps.
 
 ## How It Works
 
-- **Hardware:** a Raspberry Pi with a camera watches a real sidewalk from a window. An Arduino reads a distance sensor at the curb cut.
-- **Vision:** the Pi identifies the condition of each sidewalk segment.
-- **Server:** a Python API on Render stores conditions and calculates routes.
-- **Web app:** a Next.js site on Vercel shows a live map, routes and notifications.
+- **Data:** City of Edmonton open data, Environment Canada and Open-Meteo weather, 511 Alberta cameras, community reports and OpenStreetMap
+- **Vision:** a small model classifies road conditions (dry, wet, snow, ice) from public camera images
+- **Server:** a Python API on Render gathers every source, matches it to the walking network and calculates routes
+- **Web app:** a Next.js site on Vercel shows the map, routes, the barrier report and live alerts
+
+There is no hardware.
 
 ## How We Work
 
-The team works through four phases together. Each person has one task per phase.
+The team works through four phases together. Each person owns about 8 story points per phase.
 
 | Phase | Hours | Milestone |
 | --- | --- | --- |
-| 1. Hardware | 0–10 | Phase 1: Hardware |
-| 2. Vision Model | 10–22 | Phase 2: Vision Model |
-| 3. Web App | 22–34 | Phase 3: Web App |
-| 4. Finish | 34–48 | Phase 4: Finish |
+| 1. Data Foundation | 0–10 | Phase 1: Data Foundation |
+| 2. Vision and Routing | 10–22 | Phase 2: Vision and Routing |
+| 3. Web App and Alerts | 22–34 | Phase 3: Web App and Alerts |
+| 4. Production and Launch | 34–48 | Phase 4: Production and Launch |
 
 ## Team
 
-Tatsat, Ipsa, Estella, Kaleb, Matthew and Kashish.
+Tatsat (lead), Ipsa, Estella, Kaleb, Matthew and Kashish.
 
 ## Getting Started
 
-1. Read [GUIDELINE.md](GUIDELINE.md) for the phases, assignments and workflow.
-2. Find your tasks under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) using your name label.
-3. See [CLAUDE.md](CLAUDE.md) for the technical rules Claude Code follows, and [prompts/](prompts/) for reference prompts for each phase.
+1. Read [PLAN.md](PLAN.md) for the product, architecture and backlog.
+2. Read [GUIDELINE.md](GUIDELINE.md) for assignments and the workflow.
+3. Find your stories under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) using your name label.
+4. See [CLAUDE.md](CLAUDE.md) for the technical rules Claude Code follows.
 
 ## Documents
 
-- [Work Divided](docs/Work%20Divided.docx): phases, flowcharts and who does what, in order (Word document)
-- [Technical Spec](https://claude.ai/artifact/RXvZzsyhUkjnyc4ix92ZjE) (team access)
-- [Team Plan](https://claude.ai/artifact/D7hBPDBBxcMad9je8PTQ63) (team access)
+- [PathSense Plan (PDF)](docs/PathSense%20Plan.pdf): the full plan, ready to share
+- [Technical Spec](https://claude.ai/artifact/RXvZzsyhUkjnyc4ix92ZjE) (team access): discussion and open decisions
+- [Version 1 hardware design](docs/archive/v1-hardware/) (superseded)
+
+## Data Attribution
+
+Contains information licensed under the City of Edmonton Open Data Terms of Use, Environment and Climate Change Canada data under the Open Government Licence – Canada, weather data by Open-Meteo, and map data © OpenStreetMap contributors.
