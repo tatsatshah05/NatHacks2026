@@ -1,4 +1,6 @@
-"""Check which permits block sidewalks and how failures preserve saved data.
+"""OP-107: Construction sidewalk closures adapter (issue #35, PR #88).
+
+Check which permits block sidewalks and how failures preserve saved data.
 
 Use recorded City responses and small edited copies for edge cases. Every
 test blocks network access so results do not depend on the live City feed.
