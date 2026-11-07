@@ -1,0 +1,41 @@
+name: User story
+description: Propose a new story for the backlog. The scrum master sets points, owner and phase.
+title: "OP-<id>: <story title>"
+labels: ["user story"]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User story
+      description: Who wants what, and why.
+      placeholder: As a wheelchair user, I want ..., so that ...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Testable statements that must be true when the story is done.
+      value: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options: [Must, Should, Could]
+    validations:
+      required: true
+  - type: dropdown
+    id: points
+    attributes:
+      label: Suggested story points
+      description: About one point per focused hour. Split anything larger than 5.
+      options: ["1", "2", "3", "5"]
+  - type: input
+    id: depends
+    attributes:
+      label: Depends on
+      placeholder: "#33, #34"
