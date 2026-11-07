@@ -1,38 +1,35 @@
-# 02 Firmware and model (hardware owner)
+# 02 Firmware and site setup (reference for Phase 1 tasks)
 
 Paste into Claude Code on branch `hw/firmware` after the kickoff skeleton is merged.
 
 ---
 
-Read CLAUDE.md, especially Contracts and Hardware gotchas, and `firmware/`. You own three Arduino-framework sketches (PlatformIO preferred; also include Arduino IDE instructions) and `firmware/WIRING.md`. Every sketch must use a non-blocking `loop()`, reconnect on its own, print a boot banner over serial, and keep secrets in a git-ignored `secrets.h` (commit `secrets.example.h`).
+Read CLAUDE.md, especially Contracts and Hardware gotchas, and `firmware/`. You own the Arduino Uno firmware, `firmware/WIRING.md`, the camera window mount and the outdoor sensor setup. There is no tabletop model: we watch a real snowy sidewalk near the venue. The Uno talks to the Raspberry Pi hub over USB serial at 115200. Use a non-blocking `loop()` built on `millis()`, print a boot banner, and ignore malformed serial lines without crashing.
 
-Plan first. For each sketch, write the code, then a README with the exact wiring, the flashing steps and a manual test procedure I can follow with a serial monitor.
+Our inventory is an Arduino Uno, 2 HC-SR04, 2 SG90 servos, a Feather ESP32 (spare), breadboards and a Raspberry Pi. The OV7670 camera module in the kit is NOT used. For v2 we have a DS18B20 probe, a 4.7 kOhm resistor and a water sensor, and maybe a DHT22.
 
-1. **`firmware/esp32cam/`** (AI-Thinker ESP32-CAM, OV2640, PSRAM). Base it on the official CameraWebServer example, trimmed down:
-   - Wi-Fi from `secrets.h`; mDNS name `pathsense-cam`.
-   - `/capture` (JPEG), `/stream` on port 81, `/control`; SVGA resolution, JPEG quality 12.
-   - Flash LED (GPIO 4) forced off.
-   - The README covers the 5 V / 2 A supply, holding IO0 to GND to flash, and what brownout resets look like.
-2. **`firmware/esp32_ice_station/`** (ESP32 dev board). **v2 only.** v1 is camera plus weather (decided Nov 6), so build this sketch only after Gate 3, once the camera works end to end. For v1, the spare ESP32 can optionally become `firmware/esp32_ultrasonic/`: it moves 1 or 2 HC-SR04s onto the spare ESP32 over Wi-Fi, with a 1 kOhm / 2 kOhm divider on each echo line, publishing `{"i", "mm"}` to `pathsense/sensor/ultra-<i>`. Then set up the Path B props: a clear plastic film cut to one segment, and the lamp angled so the film shows a highlight on camera.
+Plan first. Write the code, then a README with exact wiring, flashing steps (Arduino IDE and PlatformIO) and a manual test I can follow with the serial monitor.
 
-   Path A version:
-   - DS18B20 waterproof probe on a OneWire pin with a 4.7 kOhm pull-up; 10-bit, non-blocking conversion.
-   - Water sensor on an ADC1 pin (GPIO 32 to 39), with a calibrated dry/wet threshold stored in `secrets.h`.
-   - DHT22 (or DHT11) for air temperature and humidity; compute the dew point with the Magnus formula.
-   - Publish `{"surface_c", "air_c", "rh", "wet", "dew_c", "ts"}` to `pathsense/sensor/ice-1` every 500 ms with PubSubClient and ArduinoJson v7. Use a last will of `offline` on `pathsense/sensor/ice-1/status` and publish `online` on connect.
-   - The README includes a black-ice demo check: ice pack plus a few drops of water on the plate should read surface temperature at or below 1 C and wet within 60 s.
-3. **`firmware/arduino_street/`** (Uno or Nano, USB serial at 115200):
-   - Two or three HC-SR04 sensors, fired one after another, `pulseIn` timeout 25 ms. Each emits `U<i>,<mm>` at 5 Hz (median of 3 pings).
-   - WS2812B via Adafruit_NeoPixel. On `L<chars>`, map each segment character through a `const` table (segment index to a pixel range) and set colours: `G` green, `W` white, `C` cyan, `R` red, `B` blue, `.` off. Call `show()` only when the frame changed.
-   - Servo: `S<deg>` means attach, move, then detach 500 ms later (prevents jitter while the LEDs update).
-   - `P` replies `OK`. Ignore malformed lines without crashing.
-4. **`firmware/WIRING.md`.** A pin table for each board; a power plan (separate 5 V supply for the LEDs, common ground, 330 Ohm on LED data, 1000 uF across LED power, a 5 V / 2 A supply for the CAM); where each sensor sits on the model (ultrasonics aimed along the curb-cut segments, the ice station plate on one segment, the servo plow arm beside the snow segment).
-5. **Hub-side helpers** (Python, in `edge/tools/`): `serial_console.py` to send `L`, `S` and `P` and print `U` lines; `mqtt_watch.py` to print ice-station messages.
+1. **`firmware/arduino_street/` (v1).**
+   - Two HC-SR04 on D2/D3 and D4/D5, fired one after another with a `pulseIn` timeout of 25 ms. Emit `U<i>,<mm>` at 5 Hz, using the median of 3 pings.
+   - Optional camera pan: one servo on D9. `S0,<deg>` attaches it, moves it, then detaches 500 ms later. The second servo is a spare.
+   - `P` replies `OK`.
+   - Optional, only if we get a WS2812B strip: `L<chars>` LED frame through a `const` segment-to-pixel table; call `show()` only when the frame changes.
+2. **v2 sensors on the same Uno** (v2: only after Gate 3, once the camera works end to end).
+   - DS18B20 on a OneWire pin with the 4.7 kOhm pull-up to 5 V; 10-bit, non-blocking conversion. Emit `T<surface_c>` at 1 Hz.
+   - Water sensor: AO on A0, VCC from D12 switched on only while reading. Emit `W<0-1023>` at 1 Hz.
+   - DHT22 only if fitted: emit `H<air_c>,<rh>` at 1 Hz.
+   - The README includes a black-ice check: an ice pack plus a few drops of water on the plate reads 1 C or below and wet within 60 s.
+3. **`firmware/WIRING.md`.**
+   - A pin table and a power plan: servos on a 4xAA pack or a 5 V 2 A supply, ground tied to the Uno, never a 9 V battery.
+   - The outdoor setup: the ultrasonic sensor in a sealed plastic box aimed along the curb cut, connected by a 5 m USB extension; the Arduino stays indoors where possible.
+4. **Camera mount.** Mount the camera indoors against a window that overlooks the sidewalk and curb cut. Shade it from reflections, mark its position, and check the view at night.
+5. **Hub-side helper.** `edge/tools/serial_console.py` on the Pi: send `S`, `P` (and `L`), and print `U` (and v2 `T`, `W`, `H`) lines live.
+6. **Optional, the spare Feather ESP32.** Leave it unused unless we need a sensor far from the Uno. If so, `firmware/esp32_ultrasonic/` publishes `{"i", "mm"}` over MQTT, with a 1 kOhm / 2 kOhm divider on the echo line.
 
-**Done (Gate 2, hour 18):**
-- The CAM stream works on our router.
-- Ice-station JSON arrives on the hub's Mosquitto at 2 Hz.
-- `serial_console.py` shows live ultrasonic distances and lights a test LED pattern.
-- The servo sweeps on command without the LEDs flickering.
+**Done (by the end of its phase):**
+- `serial_console.py` on the Pi shows live distances from both ultrasonic sensors.
+- The curb-cut sensor reports distances reliably from outdoors.
+- The camera mount is fixed and the view is clear by day and night.
 
-Also build the tabletop model with the team, to match `config/model_map.json`: matte dark-gray sidewalks, ArUco markers glued flat at the four corners, segment numbers written small beside each segment, and the camera mount fixed at about 70 cm.
+Survey the site with Estella: choose 4 to 6 sidewalk segments visible from the window, including the curb cut, and record them in `config/segments.json`. Get permission from the venue before mounting anything.
