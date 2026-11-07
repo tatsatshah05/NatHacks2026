@@ -135,7 +135,8 @@ jobs:
           for d in cloud vision; do
             if [ -f "$d/pyproject.toml" ]; then pip install -e "$d"; fi
           done
-          pip install ruff pytest
+          # Pinned so a new ruff release cannot break every pull request mid-hackathon.
+          pip install "ruff==0.17.4" pytest
       - name: Lint and format
         run: |
           ruff check .

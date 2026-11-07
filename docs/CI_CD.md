@@ -41,6 +41,8 @@ All checks run in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). The
 | Python | Once `cloud/` or `vision/` contains Python files | Installs every `requirements*.txt` under `cloud/` and `vision/`, then runs `ruff check`, `ruff format --check`, and `pytest` for `cloud/tests` and `vision/tests` (repository root, `cloud/` and `vision/` are on the import path) |
 | Web | Once `web/package.json` exists | `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build` |
 
+Ruff is pinned to **0.17.4** in CI. Before pushing, run `pip install ruff==0.17.4`, then `ruff check --fix .` and `ruff format .`.
+
 ## Deployment
 
 | Part | How it deploys |
