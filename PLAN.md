@@ -359,21 +359,21 @@ Story points per person per phase. The stories behind each number are listed in 
 
 | ID | Story | Owner | Points | Priority | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| PS-101 | Obstruction contract and store | Tatsat | 3 | Must | None |
-| PS-102 | Deployable skeleton with CI | Matthew | 5 | Must | None |
-| PS-103 | Source scheduler and status page | Matthew | 3 | Must | PS-101 |
-| PS-104 | City walking network | Tatsat | 5 | Must | None |
-| PS-105 | LRT elevator and escalator adapter | Kaleb | 3 | Must | PS-101 |
-| PS-106 | Map LRT elevators to the walking network | Kaleb | 3 | Must | PS-104, PS-105 |
-| PS-107 | Construction sidewalk closures adapter | Kaleb | 2 | Must | PS-101 |
-| PS-108 | Traffic disruptions adapter | Ipsa | 2 | Must | PS-101 |
-| PS-109 | Weather and black-ice watch | Estella | 3 | Must | PS-101 |
-| PS-110 | 311 snow complaints and trail closures | Estella | 3 | Must | PS-101 |
-| PS-111 | Snow-clearing status adapter | Estella | 2 | Should | PS-101 |
-| PS-112 | Public camera access | Ipsa | 3 | Must | None |
-| PS-113 | Web app shell and live map | Kashish | 5 | Must | PS-101 |
-| PS-114 | Wireframes for the main screens | Kashish | 2 | Must | None |
-| PS-115 | Label guide and labelling tool | Ipsa | 3 | Must | PS-112 |
+| [PS-101](https://github.com/tatsatshah05/NatHacks2026/issues/29) | Obstruction contract and store | Tatsat | 3 | Must | None |
+| [PS-102](https://github.com/tatsatshah05/NatHacks2026/issues/30) | Deployable skeleton with CI | Matthew | 5 | Must | None |
+| [PS-103](https://github.com/tatsatshah05/NatHacks2026/issues/31) | Source scheduler and status page | Matthew | 3 | Must | PS-101 |
+| [PS-104](https://github.com/tatsatshah05/NatHacks2026/issues/32) | City walking network | Tatsat | 5 | Must | None |
+| [PS-105](https://github.com/tatsatshah05/NatHacks2026/issues/33) | LRT elevator and escalator adapter | Kaleb | 3 | Must | PS-101 |
+| [PS-106](https://github.com/tatsatshah05/NatHacks2026/issues/34) | Map LRT elevators to the walking network | Kaleb | 3 | Must | PS-104, PS-105 |
+| [PS-107](https://github.com/tatsatshah05/NatHacks2026/issues/35) | Construction sidewalk closures adapter | Kaleb | 2 | Must | PS-101 |
+| [PS-108](https://github.com/tatsatshah05/NatHacks2026/issues/36) | Traffic disruptions adapter | Ipsa | 2 | Must | PS-101 |
+| [PS-109](https://github.com/tatsatshah05/NatHacks2026/issues/37) | Weather and black-ice watch | Estella | 3 | Must | PS-101 |
+| [PS-110](https://github.com/tatsatshah05/NatHacks2026/issues/38) | 311 snow complaints and trail closures | Estella | 3 | Must | PS-101 |
+| [PS-111](https://github.com/tatsatshah05/NatHacks2026/issues/39) | Snow-clearing status adapter | Estella | 2 | Should | PS-101 |
+| [PS-112](https://github.com/tatsatshah05/NatHacks2026/issues/40) | Public camera access | Ipsa | 3 | Must | None |
+| [PS-113](https://github.com/tatsatshah05/NatHacks2026/issues/41) | Web app shell and live map | Kashish | 5 | Must | PS-101 |
+| [PS-114](https://github.com/tatsatshah05/NatHacks2026/issues/42) | Wireframes for the main screens | Kashish | 2 | Must | None |
+| [PS-115](https://github.com/tatsatshah05/NatHacks2026/issues/43) | Label guide and labelling tool | Ipsa | 3 | Must | PS-112 |
 
 #### PS-101: Obstruction contract and store
 
@@ -570,18 +570,18 @@ Acceptance criteria:
 
 | ID | Story | Owner | Points | Priority | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| PS-201 | Collect and label training data | Estella | 5 | Must | PS-112, PS-115 |
-| PS-202 | Train the road-condition model | Ipsa | 5 | Must | PS-201 |
-| PS-203 | Evaluate the model and write the model card | Ipsa | 3 | Must | PS-202 |
-| PS-204 | Camera vision worker | Kaleb | 5 | Must | PS-112, PS-202 |
-| PS-205 | Black-ice risk from cameras and weather | Kaleb | 3 | Must | PS-109, PS-204 |
-| PS-206 | Match obstructions to the network | Matthew | 5 | Must | PS-101, PS-104 |
-| PS-207 | Profile routing with alternates | Tatsat | 5 | Must | PS-104, PS-206 |
-| PS-208 | Route report | Matthew | 3 | Must | PS-206, PS-207 |
-| PS-209 | Google Maps and Apple Maps hand-off | Tatsat | 2 | Must | PS-207 |
-| PS-210 | Planner screens with mock data | Kashish | 5 | Must | PS-113, PS-114 |
-| PS-211 | Route report screen | Kashish | 3 | Must | PS-210 |
-| PS-212 | Accessibility review of designs | Estella | 3 | Must | PS-114 |
+| [PS-201](https://github.com/tatsatshah05/NatHacks2026/issues/44) | Collect and label training data | Estella | 5 | Must | PS-112, PS-115 |
+| [PS-202](https://github.com/tatsatshah05/NatHacks2026/issues/45) | Train the road-condition model | Ipsa | 5 | Must | PS-201 |
+| [PS-203](https://github.com/tatsatshah05/NatHacks2026/issues/46) | Evaluate the model and write the model card | Ipsa | 3 | Must | PS-202 |
+| [PS-204](https://github.com/tatsatshah05/NatHacks2026/issues/47) | Camera vision worker | Kaleb | 5 | Must | PS-112, PS-202 |
+| [PS-205](https://github.com/tatsatshah05/NatHacks2026/issues/48) | Black-ice risk from cameras and weather | Kaleb | 3 | Must | PS-109, PS-204 |
+| [PS-206](https://github.com/tatsatshah05/NatHacks2026/issues/49) | Match obstructions to the network | Matthew | 5 | Must | PS-101, PS-104 |
+| [PS-207](https://github.com/tatsatshah05/NatHacks2026/issues/50) | Profile routing with alternates | Tatsat | 5 | Must | PS-104, PS-206 |
+| [PS-208](https://github.com/tatsatshah05/NatHacks2026/issues/51) | Route report | Matthew | 3 | Must | PS-206, PS-207 |
+| [PS-209](https://github.com/tatsatshah05/NatHacks2026/issues/52) | Google Maps and Apple Maps hand-off | Tatsat | 2 | Must | PS-207 |
+| [PS-210](https://github.com/tatsatshah05/NatHacks2026/issues/53) | Planner screens with mock data | Kashish | 5 | Must | PS-113, PS-114 |
+| [PS-211](https://github.com/tatsatshah05/NatHacks2026/issues/54) | Route report screen | Kashish | 3 | Must | PS-210 |
+| [PS-212](https://github.com/tatsatshah05/NatHacks2026/issues/55) | Accessibility review of designs | Estella | 3 | Must | PS-114 |
 
 #### PS-201: Collect and label training data
 
@@ -738,18 +738,18 @@ Acceptance criteria:
 
 | ID | Story | Owner | Points | Priority | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| PS-301 | Connect the planner to the live API | Kashish | 5 | Must | PS-207, PS-208, PS-210 |
-| PS-302 | Address and place search | Matthew | 3 | Must | PS-101 |
-| PS-303 | Live updates | Matthew | 5 | Must | PS-206, PS-207 |
-| PS-304 | Saved routes and push alerts (server) | Tatsat | 5 | Must | PS-207 |
-| PS-305 | Replay mode | Tatsat | 3 | Must | PS-103 |
-| PS-306 | Alerts page and push client | Estella | 5 | Must | PS-304 |
-| PS-307 | Accessibility settings | Estella | 3 | Must | PS-113 |
-| PS-308 | Community reports with photo check | Ipsa | 5 | Should | PS-202, PS-206 |
-| PS-309 | Camera readings on the map | Ipsa | 3 | Must | PS-204 |
-| PS-310 | City dashboard | Kaleb | 3 | Should | PS-206 |
-| PS-311 | Walk and LRT trips | Kaleb | 5 | Should | PS-106, PS-207 |
-| PS-312 | About, sources and privacy pages | Kashish | 2 | Must | PS-113 |
+| [PS-301](https://github.com/tatsatshah05/NatHacks2026/issues/56) | Connect the planner to the live API | Kashish | 5 | Must | PS-207, PS-208, PS-210 |
+| [PS-302](https://github.com/tatsatshah05/NatHacks2026/issues/57) | Address and place search | Matthew | 3 | Must | PS-101 |
+| [PS-303](https://github.com/tatsatshah05/NatHacks2026/issues/58) | Live updates | Matthew | 5 | Must | PS-206, PS-207 |
+| [PS-304](https://github.com/tatsatshah05/NatHacks2026/issues/59) | Saved routes and push alerts (server) | Tatsat | 5 | Must | PS-207 |
+| [PS-305](https://github.com/tatsatshah05/NatHacks2026/issues/60) | Replay mode | Tatsat | 3 | Must | PS-103 |
+| [PS-306](https://github.com/tatsatshah05/NatHacks2026/issues/61) | Alerts page and push client | Estella | 5 | Must | PS-304 |
+| [PS-307](https://github.com/tatsatshah05/NatHacks2026/issues/62) | Accessibility settings | Estella | 3 | Must | PS-113 |
+| [PS-308](https://github.com/tatsatshah05/NatHacks2026/issues/63) | Community reports with photo check | Ipsa | 5 | Should | PS-202, PS-206 |
+| [PS-309](https://github.com/tatsatshah05/NatHacks2026/issues/64) | Camera readings on the map | Ipsa | 3 | Must | PS-204 |
+| [PS-310](https://github.com/tatsatshah05/NatHacks2026/issues/65) | City dashboard | Kaleb | 3 | Should | PS-206 |
+| [PS-311](https://github.com/tatsatshah05/NatHacks2026/issues/66) | Walk and LRT trips | Kaleb | 5 | Should | PS-106, PS-207 |
+| [PS-312](https://github.com/tatsatshah05/NatHacks2026/issues/67) | About, sources and privacy pages | Kashish | 2 | Must | PS-113 |
 
 #### PS-301: Connect the planner to the live API
 
@@ -907,20 +907,20 @@ Acceptance criteria:
 
 | ID | Story | Owner | Points | Priority | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| PS-401 | Security and privacy review | Tatsat | 3 | Must | None |
-| PS-402 | Monitoring and runbook | Tatsat | 3 | Must | None |
-| PS-403 | Release v1.0 | Tatsat | 2 | Must | PS-401, PS-402 |
-| PS-404 | Performance and load | Matthew | 5 | Must | PS-207 |
-| PS-405 | Data backup and restore | Matthew | 2 | Must | PS-102 |
-| PS-406 | End-to-end tests | Kaleb | 5 | Must | PS-301, PS-303 |
-| PS-407 | Data quality checks | Kaleb | 3 | Must | PS-103 |
-| PS-408 | Accessibility audit | Estella | 5 | Must | PS-301 |
-| PS-409 | Pitch deck and Devpost | Estella | 3 | Must | None |
-| PS-410 | Web polish and performance | Kashish | 5 | Must | PS-301 |
-| PS-411 | Judge page and launch assets | Kashish | 2 | Must | PS-410 |
-| PS-412 | Model monitoring and fallback | Ipsa | 3 | Must | PS-204 |
-| PS-413 | Technical write-up | Ipsa | 3 | Must | PS-203 |
-| PS-414 | Backup demo video | Ipsa | 2 | Must | PS-403 |
+| [PS-401](https://github.com/tatsatshah05/NatHacks2026/issues/68) | Security and privacy review | Tatsat | 3 | Must | None |
+| [PS-402](https://github.com/tatsatshah05/NatHacks2026/issues/69) | Monitoring and runbook | Tatsat | 3 | Must | None |
+| [PS-403](https://github.com/tatsatshah05/NatHacks2026/issues/70) | Release v1.0 | Tatsat | 2 | Must | PS-401, PS-402 |
+| [PS-404](https://github.com/tatsatshah05/NatHacks2026/issues/71) | Performance and load | Matthew | 5 | Must | PS-207 |
+| [PS-405](https://github.com/tatsatshah05/NatHacks2026/issues/72) | Data backup and restore | Matthew | 2 | Must | PS-102 |
+| [PS-406](https://github.com/tatsatshah05/NatHacks2026/issues/73) | End-to-end tests | Kaleb | 5 | Must | PS-301, PS-303 |
+| [PS-407](https://github.com/tatsatshah05/NatHacks2026/issues/74) | Data quality checks | Kaleb | 3 | Must | PS-103 |
+| [PS-408](https://github.com/tatsatshah05/NatHacks2026/issues/75) | Accessibility audit | Estella | 5 | Must | PS-301 |
+| [PS-409](https://github.com/tatsatshah05/NatHacks2026/issues/76) | Pitch deck and Devpost | Estella | 3 | Must | None |
+| [PS-410](https://github.com/tatsatshah05/NatHacks2026/issues/77) | Web polish and performance | Kashish | 5 | Must | PS-301 |
+| [PS-411](https://github.com/tatsatshah05/NatHacks2026/issues/78) | Judge page and launch assets | Kashish | 2 | Must | PS-410 |
+| [PS-412](https://github.com/tatsatshah05/NatHacks2026/issues/79) | Model monitoring and fallback | Ipsa | 3 | Must | PS-204 |
+| [PS-413](https://github.com/tatsatshah05/NatHacks2026/issues/80) | Technical write-up | Ipsa | 3 | Must | PS-203 |
+| [PS-414](https://github.com/tatsatshah05/NatHacks2026/issues/81) | Backup demo video | Ipsa | 2 | Must | PS-403 |
 
 #### PS-401: Security and privacy review
 
