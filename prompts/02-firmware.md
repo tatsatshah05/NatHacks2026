@@ -13,7 +13,7 @@ Plan first. For each sketch, write the code, then a README with the exact wiring
    - `/capture` (JPEG), `/stream` on port 81, `/control`; SVGA resolution, JPEG quality 12.
    - Flash LED (GPIO 4) forced off.
    - The README covers the 5 V / 2 A supply, holding IO0 to GND to flash, and what brownout resets look like.
-2. **`firmware/esp32_ice_station/`** (ESP32 dev board). **Path A only.** Skip this sketch if we chose Path B at hour 6 (no DS18B20 or water sensor). In that case, build `firmware/esp32_ultrasonic/` instead (optional): it moves 1 or 2 HC-SR04s onto the spare ESP32 over Wi-Fi, with a 1 kOhm / 2 kOhm divider on each echo line, publishing `{"i", "mm"}` to `pathsense/sensor/ultra-<i>`. Then set up the Path B props: a clear plastic film cut to one segment, and the lamp angled so the film shows a highlight on camera.
+2. **`firmware/esp32_ice_station/`** (ESP32 dev board). **v2 only.** v1 is camera plus weather (decided Nov 6), so build this sketch only after Gate 3, once the camera works end to end. For v1, the spare ESP32 can optionally become `firmware/esp32_ultrasonic/`: it moves 1 or 2 HC-SR04s onto the spare ESP32 over Wi-Fi, with a 1 kOhm / 2 kOhm divider on each echo line, publishing `{"i", "mm"}` to `pathsense/sensor/ultra-<i>`. Then set up the Path B props: a clear plastic film cut to one segment, and the lamp angled so the film shows a highlight on camera.
 
    Path A version:
    - DS18B20 waterproof probe on a OneWire pin with a 4.7 kOhm pull-up; 10-bit, non-blocking conversion.

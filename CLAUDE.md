@@ -23,7 +23,7 @@ A tabletop model of a real Edmonton neighbourhood carries the sensors. Its segme
 | --- | --- |
 | Must | Live accessible map of the demo neighbourhood; routes per profile with up to 2 alternates, distance and minutes; black-ice detection (ice station plus weather watch); live updates over WebSocket; Web Push alerts on saved routes; "Open in Google Maps" with waypoints |
 | Should | Apple Maps hand-off; community hazard reports; city dashboard with clear-first ranking |
-| Could | Servo plow dispatch; SMS alerts; on-device detection on the ESP32-CAM; ML classifier |
+| Could | v2 temperature sensors (ice station, after the camera works); servo plow dispatch; SMS alerts; on-device detection on the ESP32-CAM; ML classifier |
 | Won't (this weekend) | User accounts, native apps, writing data into Google or Apple Maps, real city cameras |
 
 ## Architecture
@@ -31,8 +31,9 @@ A tabletop model of a real Edmonton neighbourhood carries the sensors. Its segme
 ```
 MODEL (venue, our own 2.4 GHz router)
   ESP32-CAM ........ serves JPEG /capture, MJPEG :81/stream, /control
-  ESP32 ice station  (Path A only) DS18B20 surface temp + water + DHT -> MQTT pathsense/sensor/ice-1 (2 Hz)
-                     Path B has no ice station: weather API + camera gloss instead (see Black ice)
+  ESP32 ice station  (v2 only) DS18B20 surface temp + water + DHT -> MQTT pathsense/sensor/ice-1 (2 Hz)
+                     v1 has no ice station: weather API + camera gloss instead (see Black ice)
+  spare ESP32 ...... optional: wireless HC-SR04 node over MQTT; otherwise a backup board
   Arduino .......... HC-SR04 x2-3, WS2812B strip, servo  <-> USB serial to the hub
         |
 EDGE HUB (laptop at the venue; Raspberry Pi is the spare)        edge/
@@ -75,7 +76,7 @@ prompts/     00-kickoff  01-edge-vision  02-firmware  03-cloud  04-web  05-integ
 
 **Segment states:** `clear | snow | ice_risk | blocked | unknown`.
 
-**MQTT** (Mosquitto on the hub, port 1883):
+**MQTT** (Mosquitto on the hub, port 1883). Only needed for the v2 ice station or the optional spare-ESP32 ultrasonic node; v1 runs without it.
 - `pathsense/sensor/ice-1`: `{"surface_c": 0.4, "air_c": 2.1, "rh": 93, "wet": true, "ts": 1794012345}`
 - `pathsense/sensor/ice-1/status`: `online` / `offline` (last will)
 
@@ -112,9 +113,9 @@ prompts/     00-kickoff  01-edge-vision  02-firmware  03-cloud  04-web  05-integ
 | `low_vision` | 1.0 | 2 | 3 | null |
 | `standard` | 1.3 | 1.5 | 1.5 | null |
 
-**Black ice: two pathways.** Set `ICE_MODE` on the edge. Both pathways emit the same `ice_risk` state, so cloud and web code never branch on the pathway.
-- **Path A, `ICE_MODE=sensor`** (ice station present): `ice_risk` when `surface_c <= 1.0` and (`wet` or `surface_c <= dew point`). Sources: `["ice_station"]`.
-- **Path B, `ICE_MODE=weather_camera`** (no temperature or water sensors): the edge computes a per-segment **gloss score**: the share of near-saturated specular pixels compared with the baseline, which shows up when a clear plastic film sits under the angled lamp. The segment is `ice_risk` when gloss is over its threshold **and** the cloud's weather watch is active. Gloss without freezing weather is ignored (wet, not icy). The edge gets the watch from `GET /api/weather`. Sources: `["camera_sheen", "weather"]`.
+**Black ice: v1 is camera plus weather; v2 adds sensors** (decided Nov 6). `ICE_MODE` defaults to `weather_camera`. Both modes emit the same `ice_risk` state, so cloud and web code never branch on the mode. Build v2 only after the camera pipeline passes Gate 3.
+- **v2, Path A, `ICE_MODE=sensor`** (ice station added after the camera works end to end): `ice_risk` when `surface_c <= 1.0` and (`wet` or `surface_c <= dew point`). Sources: `["ice_station"]`.
+- **v1, Path B, `ICE_MODE=weather_camera`** (default; no temperature or water sensors): the edge computes a per-segment **gloss score**: the share of near-saturated specular pixels compared with the baseline, which shows up when a clear plastic film sits under the angled lamp. The segment is `ice_risk` when gloss is over its threshold **and** the cloud's weather watch is active. Gloss without freezing weather is ignored (wet, not icy). The edge gets the watch from `GET /api/weather`. Sources: `["camera_sheen", "weather"]`.
 - **Weather watch (cloud, both pathways; Open-Meteo, no API key):** hourly `temperature_2m, dew_point_2m, relative_humidity_2m, precipitation, soil_temperature_0cm`, `past_days=1`. Active when (air <= 0 C or ground <= 0 C) and one of: precipitation > 0 in the last 6 h; air > 0 C in the last 12 h (melt and refreeze); or air minus dew point <= 1 C (frost). It is applied at low confidence to every edge without fresher data.
 - **`WEATHER_MODE=live|replay`:** replay feeds a real past freeze-thaw night from Open-Meteo's historical API (`REPLAY_DATE`). The UI must show a visible "Replay" badge whenever replay is on. Never present replayed weather as live.
 - **Precedence:** model > report > weather. Reports expire after 2 h, and model states after 30 s without a heartbeat.
