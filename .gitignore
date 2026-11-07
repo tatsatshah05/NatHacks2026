@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local databases and secrets
+*.db
+*.db-journal
+.env
+.env.*
+!.env.example
+secrets.h
+
+# Node and Next.js (web/ has its own .gitignore too)
+node_modules/
+.next/
+web/openapi.json
+
+# Vision: weights and images are never committed (PLAN.md section 7.5)
+*.onnx
+*.pt
+*.pth
+vision/data/
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.idea/

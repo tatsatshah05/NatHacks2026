@@ -19,7 +19,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
-- **November 7, 2026:** planning is complete and there is no application code yet. Phase 1 starts with OP-101 (contracts) and OP-102 (skeleton), which create the folders described below.
+- **November 7, 2026:** planning is complete. OP-102 adds the skeleton: the FastAPI app (`GET /health` only), the Next.js placeholder page, the Makefile, `render.yaml` and `.env.example`. OP-101 (contracts) adds the shared schemas and store next.
+- **Deploys:** the one-time Render, Vercel and GitHub setup is in [docs/DEPLOY.md](docs/DEPLOY.md).
 - **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
@@ -31,7 +32,7 @@ Update this section whenever the status changes.
 | Every user story with its owner and story points | [docs/USER_STORIES.md](docs/USER_STORIES.md) |
 | Acceptance criteria and live status of a story | GitHub issues `OP-101` to `OP-414` (#29 to #81) |
 | Team workflow and Definition of Done | [GUIDELINE.md](GUIDELINE.md) |
-| CI checks, merge rules and deployment | [docs/CI_CD.md](docs/CI_CD.md) |
+| CI checks, merge rules and deployment | [docs/CI_CD.md](docs/CI_CD.md) and [docs/DEPLOY.md](docs/DEPLOY.md) |
 | Data source details and licences (created in Phase 1) | `docs/DATA_SOURCES.md` |
 
 `PLAN.md` section 14 and `docs/USER_STORIES.md` are generated from the backlog. To change a story, edit its GitHub issue and tell the lead; do not edit those sections by hand.
@@ -45,7 +46,7 @@ Update this section whenever the status changes.
 | Estella | `estella1221` | `person: Estella` |
 | Kaleb | `kalebpham` | `person: Kaleb` |
 | Kashish | `kashishgupta2911` | `person: Kashish` |
-| Matthew | not yet a collaborator | `person: Matthew` |
+| Matthew | `Maosro` | `person: Matthew` |
 
 Issues also carry `phase N: ...`, `points: N`, `priority: must|should|could` and `epic: ...` labels, and one of four phase milestones.
 
@@ -196,6 +197,11 @@ These live in the root Makefile and are available after OP-102.
 | `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` |
 | `make record` | Records a replay snapshot of every source (no images) |
 | `make worker` | Runs the vision worker locally |
+| `make lint` | `ruff check`, `ruff format --check` and `npm run lint` (the same lint CI runs) |
+| `make format` | `ruff format` and `ruff check --fix` |
+| `make build` | Production build of the web app (`npm run build`) |
+
+`make graph`, `make record` and `make worker` print "not built yet" and exit with an error until OP-104, OP-305 and OP-204 add their scripts. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux. `make dev` removes API keys from its environment and sets `DATA_MODE=replay` with `REPLAY_SNAPSHOT=cloud/tests/fixtures`, so adapters must read their fixtures in replay mode.
 
 ## Environment Variables
 
@@ -209,6 +215,7 @@ Never commit values. Keep `.env.example` current.
 
 - **Python 3.12:**
   - Type hints everywhere; Pydantic v2 and SQLModel; `ruff format` and `ruff check`; `pytest`.
+  - Imports are rooted at the repository: `from cloud.app import db`, run as `uvicorn cloud.app.main:app` from the root. Tool settings live in the root `pyproject.toml`; dependencies in `cloud/requirements*.txt` and `vision/requirements.txt`.
   - Put units in names (`length_m`, `eta_min`, `air_c`).
   - Use UTC with ISO 8601 everywhere.
 - **Logging:** one line per state change, for example `CHANGE city_lrt_devices:1234 new elevator_out Central/West Platform`.

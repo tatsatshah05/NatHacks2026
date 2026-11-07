@@ -1,0 +1,12 @@
+# Shared tool settings for cloud/ and vision/. Python dependencies live in
+# cloud/requirements*.txt and vision/requirements.txt.
+
+[tool.ruff]
+target-version = "py312"
+extend-exclude = ["web", "docs/archive"]
+
+[tool.pytest.ini_options]
+testpaths = ["cloud/tests", "vision/tests"]
+# Imports are rooted at the repository, for example `from cloud.app import db`.
+pythonpath = ["."]
+addopts = "--import-mode=importlib"
