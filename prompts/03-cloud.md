@@ -1,4 +1,4 @@
-# 03 Cloud API and routing (team lead)
+# 03 Cloud API and routing (Matthew; Kaleb helps on ingest and dispatch)
 
 Paste into Claude Code on branch `cloud/core` after the kickoff skeleton is merged.
 

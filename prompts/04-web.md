@@ -1,4 +1,4 @@
-# 04 Web app (web and pitch owner)
+# 04 Web app (Kashish; Ipsa helps on the live map)
 
 Paste into Claude Code on branch `web/app` after the kickoff skeleton is merged.
 
@@ -42,7 +42,4 @@ Plan first, then build in this order. Run `make types && npm run lint && npm run
 - `/city` dispatch works.
 - Lint and typecheck pass.
 
-You also own the pitch assets:
-- Slides with every statistic linked to its source in the notes.
-- The backup demo video, recorded at hour 40.
-- The Devpost write-up.
+Estella owns the pitch assets (slides with every statistic linked to its source in the notes, the backup demo video recorded at hour 40, and the Devpost write-up). Give her screenshots and a stable demo URL by hour 30.

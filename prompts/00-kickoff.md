@@ -1,4 +1,4 @@
-# 00 Kickoff (team lead, hour 0)
+# 00 Kickoff (Tatsat, hour 0)
 
 Paste this into Claude Code at the repo root after hacking officially starts.
 

@@ -1,4 +1,4 @@
-# 05 Integration and demo hardening (team lead, from Gate 2)
+# 05 Integration and demo hardening (Tatsat, from Gate 2)
 
 Paste into Claude Code on `main` once Gate 2 is reached.
 

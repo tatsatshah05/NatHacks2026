@@ -8,10 +8,23 @@ A tabletop model of a real Edmonton neighbourhood carries the sensors. Its segme
 - Technical spec (editable; discuss in comments; it is the source of truth for open decisions): https://claude.ai/artifact/RXvZzsyhUkjnyc4ix92ZjE
 - Team plan (roles, timeline, demo script, BOM): https://claude.ai/artifact/D7hBPDBBxcMad9je8PTQ63
 
+## Team
+
+| Person | Role | Owns | Prompt |
+| --- | --- | --- | --- |
+| Tatsat | Project lead, hardware, vision support | Contracts (`cloud/app/schemas.py`, `config/`), merges, gates, Pi hub, integration | 00-kickoff, 05-integration |
+| Ipsa | Vision lead | `edge/`: calibration, detection, fusion, uplink | 01-edge-vision |
+| Kaleb | Hardware lead | `firmware/`, wiring, camera mount, model, v2 sensors | 02-firmware |
+| Matthew | Web app co-lead: API | `cloud/`: FastAPI on Render | 03-cloud |
+| Kashish | Web app co-lead: front end | `web/`: Next.js on Vercel | 04-web |
+| Estella | Floater | Model build, testing, accessibility checks, slides, Devpost | none |
+
+Tatsat, Ipsa and Kaleb help Matthew and Kashish once their own Gate 2 work passes. Contract changes still go through Tatsat.
+
 ## Priorities (apply to every task)
 
 1. **The live demo must never fail.** Reliability beats features. Prefer simple, deterministic code with explicit fallbacks.
-2. **Contracts are frozen after hour 2.** Only the team lead changes `cloud/app/schemas.py` and `config/`. If a task seems to need a contract change, stop and say so. Do not work around it.
+2. **Contracts are frozen after hour 2.** Only the team lead (Tatsat) changes `cloud/app/schemas.py` and `config/`. If a task seems to need a contract change, stop and say so. Do not work around it.
 3. **Must, then Should, then Could** (see Scope). Feature freeze at hour 40; after that, bug fixes only.
 4. **Everything runs without hardware.** `make sim` must always run a fake end-to-end demo on a laptop. Never break it.
 5. **Small, working steps.** Plan first for any change that touches more than one file. Run `make test` after changes. `main` always passes.
@@ -30,18 +43,18 @@ A tabletop model of a real Edmonton neighbourhood carries the sensors. Its segme
 
 ```
 MODEL (venue, our own 2.4 GHz router)
-  ESP32-CAM ........ serves JPEG /capture, MJPEG :81/stream, /control
-  ESP32 ice station  (v2 only) DS18B20 surface temp + water + DHT -> MQTT pathsense/sensor/ice-1 (2 Hz)
-                     v1 has no ice station: weather API + camera gloss instead (see Black ice)
-  spare ESP32 ...... optional: wireless HC-SR04 node over MQTT; otherwise a backup board
-  Arduino .......... HC-SR04 x2-3, WS2812B strip, servo  <-> USB serial to the hub
+  Camera ........... overhead; CAM_SOURCE=picamera (Pi Camera Module) or url (phone or any JPEG snapshot URL)
+                     (source still open; the OV7670 in our kit is NOT used)
+  Arduino Uno ...... HC-SR04 x2, 2 SG90 servos (plow, barrier), optional LEDs  <-> USB serial to the Pi
+                     v2: DS18B20 surface temp + water sensor (+ DHT22 if we have one) on the same Arduino
+  Feather ESP32 .... spare; optional wireless HC-SR04 node over MQTT later
         |
-EDGE HUB (laptop at the venue; Raspberry Pi is the spare)        edge/
+EDGE HUB (Raspberry Pi; a laptop is the backup)                  edge/
   Mosquitto broker
-  vision: pull CAM frames -> ArUco warp -> per-segment snow + obstruction scores
-  fusion: camera + ultrasonic + ice station -> one state per model segment (EMA + hysteresis)
+  vision: grab camera frames -> ArUco warp -> per-segment snow + obstruction scores
+  fusion: camera + ultrasonic (+ v2 temperature) -> one state per model segment (EMA + hysteresis)
   uplink: POST /api/ingest/segments on change + every 10 s; listens to cloud WS for route + dispatch
-  serial bridge: ultrasonic in; LED frame + servo commands out
+  serial bridge: ultrasonic (+ v2 T/W/H) in; servo commands (+ optional LED frame) out
         |  HTTPS + X-Device-Key
 CLOUD API (Render: FastAPI + Postgres)                            cloud/
   hazard store: one state per street edge; sources = model > report > weather
@@ -82,7 +95,8 @@ prompts/     00-kickoff  01-edge-vision  02-firmware  03-cloud  04-web  05-integ
 
 **Arduino serial** (115200 baud, newline-terminated ASCII):
 - Arduino to hub: `U<i>,<mm>` ultrasonic reading at 5 Hz (e.g. `U0,182`); `OK` replies to `P`
-- Hub to Arduino: `L<chars>` LED frame with one char per segment in `model_map` order (`G` clear, `W` snow, `C` ice risk, `R` blocked, `B` on route, `.` off); `S<deg>` servo angle; `P` ping
+- v2, Arduino to hub at 1 Hz: `T<surface_c>` (DS18B20, e.g. `T-0.8`), `W<0-1023>` (water sensor, higher = wetter), `H<air_c>,<rh>` (DHT22, only if fitted)
+- Hub to Arduino: `S<i>,<deg>` servo `i` (0 = plow arm, 1 = sidewalk-closed barrier); `P` ping; optional `L<chars>` LED frame with one char per segment in `model_map` order (`G` clear, `W` snow, `C` ice risk, `R` blocked, `B` on route, `.` off)
 
 **Hub to cloud:** `POST /api/ingest/segments`, header `X-Device-Key`
 ```json
@@ -114,7 +128,7 @@ prompts/     00-kickoff  01-edge-vision  02-firmware  03-cloud  04-web  05-integ
 | `standard` | 1.3 | 1.5 | 1.5 | null |
 
 **Black ice: v1 is camera plus weather; v2 adds sensors** (decided Nov 6). `ICE_MODE` defaults to `weather_camera`. Both modes emit the same `ice_risk` state, so cloud and web code never branch on the mode. Build v2 only after the camera pipeline passes Gate 3.
-- **v2, Path A, `ICE_MODE=sensor`** (ice station added after the camera works end to end): `ice_risk` when `surface_c <= 1.0` and (`wet` or `surface_c <= dew point`). Sources: `["ice_station"]`.
+- **v2, Path A, `ICE_MODE=sensor`** (DS18B20 + water sensor, plus DHT22 if fitted, on the Arduino over serial; added after the camera works end to end): `ice_risk` when `surface_c <= 1.0` and (`wet` or `surface_c <= dew point`). Sources: `["ice_station"]`.
 - **v1, Path B, `ICE_MODE=weather_camera`** (default; no temperature or water sensors): the edge computes a per-segment **gloss score**: the share of near-saturated specular pixels compared with the baseline, which shows up when a clear plastic film sits under the angled lamp. The segment is `ice_risk` when gloss is over its threshold **and** the cloud's weather watch is active. Gloss without freezing weather is ignored (wet, not icy). The edge gets the watch from `GET /api/weather`. Sources: `["camera_sheen", "weather"]`.
 - **Weather watch (cloud, both pathways; Open-Meteo, no API key):** hourly `temperature_2m, dew_point_2m, relative_humidity_2m, precipitation, soil_temperature_0cm`, `past_days=1`. Active when (air <= 0 C or ground <= 0 C) and one of: precipitation > 0 in the last 6 h; air > 0 C in the last 12 h (melt and refreeze); or air minus dew point <= 1 C (frost). It is applied at low confidence to every edge without fresher data.
 - **`WEATHER_MODE=live|replay`:** replay feeds a real past freeze-thaw night from Open-Meteo's historical API (`REPLAY_DATE`). The UI must show a visible "Replay" badge whenever replay is on. Never present replayed weather as live.
@@ -142,7 +156,7 @@ prompts/     00-kickoff  01-edge-vision  02-firmware  03-cloud  04-web  05-integ
 ## Environment variables (never commit values; keep `.env.example` current)
 
 - **cloud:** `DATABASE_URL` (Postgres on Render, `sqlite:///./pathsense.db` locally), `DEVICE_KEY`, `ADMIN_KEY`, `CORS_ORIGINS`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:`), `WEATHER_LAT`, `WEATHER_LNG`, `WEATHER_MODE` (`live` or `replay`), `REPLAY_DATE`
-- **edge:** `CLOUD_URL`, `DEVICE_KEY`, `CAM_URL`, `MQTT_HOST`, `SERIAL_PORT`, `ICE_MODE` (`sensor` or `weather_camera`)
+- **edge:** `CLOUD_URL`, `DEVICE_KEY`, `CAM_SOURCE` (`picamera` or `url`), `CAM_URL`, `MQTT_HOST` (optional), `SERIAL_PORT`, `ICE_MODE` (`sensor` or `weather_camera`)
 - **web:** `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
 - **firmware:** `secrets.h` (git-ignored), copied from `secrets.example.h`
 
@@ -161,6 +175,8 @@ Generate VAPID keys with `npx web-push generate-vapid-keys`.
 - **ESP32-CAM:** needs a solid 5 V / 2 A supply or it browns out and resets. Hold IO0 to GND to flash. Wi-Fi is 2.4 GHz only. Lock exposure and white balance through `/control` after a 2 s warm-up; check the variable names in the example's `app_httpd.cpp`. Turn the flash LED (GPIO 4) off.
 - **ESP32 analog:** ADC2 pins stop working while Wi-Fi is on, so read the water sensor on an ADC1 pin (GPIO 32 to 39).
 - **DS18B20:** needs a 4.7 kOhm pull-up to 3.3 V. Use 10-bit resolution with non-blocking conversion.
+- **Servos (SG90 x2):** power them from a 4xAA pack or a 5 V 2 A supply with ground tied to the Arduino, never from a 9 V battery or the Arduino's 5 V pin.
+- **v2 sensors:** the DS18B20 needs a 4.7 kOhm pull-up (data to 5 V); power the water sensor from a digital pin only while reading, to slow corrosion.
 - **HC-SR04:** a 5 V part, so it stays on the Arduino. Fire the sensors one at a time to avoid crosstalk, and use `pulseIn` with a 25 ms timeout.
 - **WS2812B with the servo on one Arduino:** `show()` blocks interrupts, which makes the servo jitter. Only call `show()` when the frame changes, and `detach()` the servo after each move.
 - **LED power:** give the LEDs their own 5 V supply with a common ground, a 330 Ohm resistor on data, and a 1000 uF capacitor across power.

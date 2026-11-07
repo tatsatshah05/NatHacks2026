@@ -15,9 +15,9 @@ PathSense spots snow, black ice and obstructions on sidewalks using an ESP32-CAM
 
 | Prompt | Owner | Builds |
 | --- | --- | --- |
-| `00-kickoff.md` | Lead | Repo skeleton, contracts, simulator, tests |
-| `01-edge-vision.md` | Edge and vision | ESP32-CAM pipeline, fusion, uplink |
-| `02-firmware.md` | Hardware | ESP32-CAM, ice station (Path A), Arduino street controller |
-| `03-cloud.md` | Lead | FastAPI on Render: hazards, routing, black ice, push |
-| `04-web.md` | Web | Next.js on Vercel: map, routes, alerts, dashboard |
-| `05-integration.md` | Lead | Demo checks, offline mode, freeze |
+| `00-kickoff.md` | Tatsat | Repo skeleton, contracts, simulator, tests |
+| `01-edge-vision.md` | Ipsa | Camera pipeline, fusion, uplink |
+| `02-firmware.md` | Kaleb | Arduino street controller (ultrasonic, servos), v2 temperature sensors |
+| `03-cloud.md` | Matthew | FastAPI on Render: hazards, routing, black ice, push |
+| `04-web.md` | Kashish | Next.js on Vercel: map, routes, alerts, dashboard |
+| `05-integration.md` | Tatsat | Demo checks, offline mode, freeze |
