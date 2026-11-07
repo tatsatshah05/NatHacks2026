@@ -119,8 +119,8 @@ web/     Next.js on Vercel: planner, route report, alerts (PWA), city dashboard,
 ```
 PLAN.md  AGENTS.md  CLAUDE.md  GUIDELINE.md  README.md  Makefile  render.yaml  .env.example
 .github/   workflows/ci.yml  CODEOWNERS  pull_request_template.md  ISSUE_TEMPLATE/
-cloud/     app/{main,schemas,db,store,scheduler,status,matching,routing,report,search,weather,push,ws}.py
-           app/adapters/  one file per source   data/ prebuilt walking network   tests/ (fixtures in tests/fixtures/)
+cloud/     app/{main,schemas,db,store,network,scheduler,status,matching,routing,report,search,weather,push,ws}.py
+           app/adapters/  one file per source   data/network.npz (prebuilt walking network, committed)   tests/ (fixtures in tests/fixtures/)
 vision/    train.py  worker.py  tools/label.py  LABELS.md  MODEL_CARD.md  tests/
 web/       src/app/{page.tsx, alerts/, city/, sources/, about/, privacy/, demo/}  src/lib/api-types.ts (generated)  public/sw.js
 config/    profiles.json  sources.json  elevators.json  matching.json  places.json
@@ -174,6 +174,7 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 - **Fixtures:** every adapter has recorded fixtures, and tests never call the network.
 - **Attribution:** attribute every source on `/sources` and on every item, as each licence requires.
 - **Request time:** never run OSMnx on Render, and never call an external geocoder at request time. The network and the address index are prebuilt.
+- **Walking network:** `cloud/app/network.py` loads `cloud/data/network.npz` (compact NumPy arrays: nodes, undirected edges with flags for stairs, elevators, crossings and sidewalks, and edge polylines). Routing works on node and edge indices, never on OSM ids. Weight 0 in `length_matrix()` means the edge is removed.
 
 ## Vision Rules
 
@@ -192,7 +193,7 @@ These live in the root Makefile and are available after OP-102.
 | `make setup` | Creates `.venv` (cloud + vision), runs `npm ci` in `web/` |
 | `make dev` | API on :8000 (SQLite, recorded fixtures, no keys) + web on :3000 |
 | `make test` | `pytest` for cloud and vision, plus `npm run lint` and `npm run typecheck` in `web/` |
-| `make graph` | Rebuilds the walking network with OSMnx (local only, then commit) |
+| `make graph` | Rebuilds `cloud/data/network.npz` with OSMnx (local only, then commit). Until OP-102 adds the Makefile: `pip install -r scripts/requirements-graph.txt` then `python scripts/build_graph.py` |
 | `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` |
 | `make record` | Records a replay snapshot of every source (no images) |
 | `make worker` | Runs the vision worker locally |
