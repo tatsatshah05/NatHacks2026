@@ -40,13 +40,14 @@ Tatsat (lead), Ipsa, Estella, Kaleb, Matthew and Kashish.
 ## Getting Started
 
 1. Read [PLAN.md](PLAN.md) for the product, architecture and backlog.
-2. Read [GUIDELINE.md](GUIDELINE.md) for assignments and the workflow.
+2. Read [User Stories](docs/USER_STORIES.md) to see your stories, and [GUIDELINE.md](GUIDELINE.md) for the workflow.
 3. Find your stories under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) using your name label.
 4. See [CLAUDE.md](CLAUDE.md) for the technical rules Claude Code follows.
 
 ## Documents
 
 - [PathSense Plan (PDF)](docs/PathSense%20Plan.pdf): the full plan, ready to share
+- [User Stories](docs/USER_STORIES.md) ([PDF](docs/PathSense%20User%20Stories.pdf)): all 53 user stories, who owns each one, and story points
 - [Technical Spec](https://claude.ai/artifact/RXvZzsyhUkjnyc4ix92ZjE) (team access): discussion and open decisions
 - [Version 1 hardware design](docs/archive/v1-hardware/) (superseded)
 
