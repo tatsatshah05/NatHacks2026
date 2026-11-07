@@ -212,7 +212,7 @@ jobs:
   deploy:
     # main deploys to the "production" environment; phase_* branches deploy to "staging".
     # Each environment holds its own RENDER_*_DEPLOY_HOOK secrets and API_URL / WEB_URL variables.
-    name: Deploy (${{ github.ref_name == 'main' && 'production' || 'staging' }})
+    name: Deploy
     if: github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'phase_'))
     needs: ci-passed
     runs-on: ubuntu-latest
