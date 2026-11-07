@@ -38,7 +38,7 @@ All checks run in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). The
 | --- | --- | --- |
 | PR rules | Every pull request | Title is `OP-<id>: <story title>`, or starts with `docs:`, `chore:`, `ci:` or `fix:`. Story pull requests contain `Closes #<issue>`. The branch name should be `op-<id>-<short-name>` (warning only) |
 | Repo hygiene | Always | No `.env` or `secrets.h` files, nothing over 5 MB, no model weights, no images outside `web/public/`, `web/src/`, `docs/` and `vision/tests/fixtures/`. Leaked-key scan (gitleaks). New dependencies with high-severity vulnerabilities |
-| Python | Once `cloud/` or `vision/` has `requirements.txt` or `pyproject.toml` | `ruff check`, `ruff format --check`, `pytest` for `cloud/tests` and `vision/tests` |
+| Python | Once `cloud/` or `vision/` contains Python files | Installs every `requirements*.txt` under `cloud/` and `vision/`, then runs `ruff check`, `ruff format --check`, and `pytest` for `cloud/tests` and `vision/tests` (repository root, `cloud/` and `vision/` are on the import path) |
 | Web | Once `web/package.json` exists | `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build` |
 
 ## Deployment
