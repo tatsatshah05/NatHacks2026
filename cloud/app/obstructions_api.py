@@ -1,9 +1,20 @@
-"""``GET /api/obstructions``: current obstructions as GeoJSON.
+"""``GET /api/obstructions``: the current obstructions as GeoJSON.
 
-OP-102's app includes this router and sets ``app.state.store`` in its lifespan::
+This is the endpoint the web app's map layer reads. It returns a GeoJSON
+FeatureCollection (see ``schemas.ObstructionCollection``) that MapLibre can render
+directly, with an optional ``?bbox=`` filter so a phone only downloads the items
+on screen.
+
+Wiring (done by OP-102)
+-----------------------
+The router is self-contained. The main app includes it and creates the store in
+its lifespan::
 
     app.state.store = ObstructionStore(make_engine())
     app.include_router(obstructions_api.router)
+
+``get_store`` and ``get_now`` are FastAPI dependencies, so tests can swap them out
+(a test store, a fixed "now") without touching the endpoint code.
 """
 
 from __future__ import annotations
@@ -17,21 +28,31 @@ from pydantic import ValidationError
 from .schemas import BBox, ObstructionCollection
 from .store import ObstructionStore
 
+# All routes in this file live under /api and appear under "obstructions" in /docs.
 router = APIRouter(prefix="/api", tags=["obstructions"])
 
 
 def get_store(request: Request) -> ObstructionStore:
+    """Dependency: the store the app created at startup."""
     store = getattr(request.app.state, "store", None)
     if store is None:
+        # A clear error beats an AttributeError deep inside a request.
         raise RuntimeError("app.state.store is not set; create it in the app lifespan")
     return store
 
 
 def get_now() -> datetime:
+    """Dependency: the current time. Tests override this to freeze the clock."""
     return datetime.now(UTC)
 
 
 def parse_bbox(value: str | None) -> BBox | None:
+    """Turn the ``?bbox=min_lng,min_lat,max_lng,max_lat`` string into a BBox.
+
+    Returns None when no bbox was given. Any problem (wrong number of parts, not a
+    number, out of range, corners swapped) becomes a 422 with a message that tells
+    the caller the expected format.
+    """
     if value is None:
         return None
     parts = value.split(",")
@@ -39,6 +60,7 @@ def parse_bbox(value: str | None) -> BBox | None:
         if len(parts) != 4:
             raise ValueError
         min_lng, min_lat, max_lng, max_lat = (float(part) for part in parts)
+        # BBox itself validates the ranges and that min <= max.
         return BBox(min_lng=min_lng, min_lat=min_lat, max_lng=max_lng, max_lat=max_lat)
     except (ValueError, ValidationError) as error:
         raise HTTPException(
@@ -60,6 +82,7 @@ def list_obstructions(
     ] = None,
 ) -> ObstructionCollection:
     """Every obstruction that has started and not expired, as a GeoJSON FeatureCollection."""
+    # The store applies the start/expiry rules and the bbox filter in SQL.
     items = store.active(now, bbox=parse_bbox(bbox))
     return ObstructionCollection(
         generated_at=now, features=[item.to_feature() for item in items]
