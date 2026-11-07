@@ -1,10 +1,10 @@
-# PathSense
+# OpenPath
 
 Every barrier between A and B, in one place. Accessible routing for Edmonton. Built for natHACKS 2026 by Team ClaudesPlan.
 
 ## What It Does
 
-Enter where you are and where you are going, and choose how you get around: wheelchair, walker or cane, low vision, or standard. PathSense finds the best route and lists every known barrier along it:
+Enter where you are and where you are going, and choose how you get around: wheelchair, walker or cane, low vision, or standard. OpenPath finds the best route and lists every known barrier along it:
 
 - **Indoor:** LRT elevators and escalators that are out of service
 - **Sidewalks and paths:** construction closures, trail closures, snow complaints and community reports
@@ -46,8 +46,8 @@ Tatsat (lead), Ipsa, Estella, Kaleb, Matthew and Kashish.
 
 ## Documents
 
-- [PathSense Plan (PDF)](docs/PathSense%20Plan.pdf): the full plan, ready to share
-- [User Stories](docs/USER_STORIES.md) ([PDF](docs/PathSense%20User%20Stories.pdf)): all 53 user stories, who owns each one, and story points
+- [OpenPath Plan (PDF)](docs/OpenPath%20Plan.pdf): the full plan, ready to share
+- [User Stories](docs/USER_STORIES.md) ([PDF](docs/OpenPath%20User%20Stories.pdf)): all 53 user stories, who owns each one, and story points
 - [Version 1 hardware design](docs/archive/v1-hardware/) (superseded)
 
 ## Data Attribution

@@ -1,9 +1,9 @@
-# PathSense: CLAUDE.md
+# OpenPath: CLAUDE.md
 
-PathSense plans accessible routes across Edmonton and lists every known barrier between A and B: LRT elevator and escalator outages, sidewalk closures, trail closures, road closures, snow and black-ice risk. It combines City of Edmonton open data, live weather, a vision model that reads road conditions from public cameras, and community reports. It routes by how people get around (wheelchair, walker or cane, low vision, standard). There is no hardware. natHACKS 2026, a 48-hour build by a team of six.
+OpenPath plans accessible routes across Edmonton and lists every known barrier between A and B: LRT elevator and escalator outages, sidewalk closures, trail closures, road closures, snow and black-ice risk. It combines City of Edmonton open data, live weather, a vision model that reads road conditions from public cameras, and community reports. It routes by how people get around (wheelchair, walker or cane, low vision, standard). There is no hardware. natHACKS 2026, a 48-hour build by a team of six.
 
-- **Plan (source of truth for scope, architecture and stories):** [PLAN.md](PLAN.md), also as [PDF](docs/PathSense%20Plan.pdf)
-- **Live status of every story:** GitHub issues `PS-<id>`, labelled by person, phase, points and priority
+- **Plan (source of truth for scope, architecture and stories):** [PLAN.md](PLAN.md), also as [PDF](docs/OpenPath%20Plan.pdf)
+- **Live status of every story:** GitHub issues `OP-<id>`, labelled by person, phase, points and priority
 - **Repo:** https://github.com/tatsatshah05/NatHacks2026
 
 ## Team and phases
@@ -139,8 +139,8 @@ docs/      DATA_SOURCES.md  ARCHITECTURE.md  RUNBOOK.md  PERFORMANCE.md  adr/  d
   - Strict mode, no `any`. API types come only from the generated `api-types.ts`.
   - Small components, Tailwind, no extra state library.
 - **Git:**
-  - Branch `ps-<id>-<short-name>` from `main`.
-  - PR title `PS-<id>: <story title>` with `Closes #<issue>`.
+  - Branch `op-<id>-<short-name>` from `main`.
+  - PR title `OP-<id>: <story title>` with `Closes #<issue>`.
   - One review before merge. Commit messages say what changed and why.
 - **Replay:** `DATA_MODE=replay` shows a visible Replay badge on every page. Never present replayed data as live.
 
@@ -159,7 +159,7 @@ docs/      DATA_SOURCES.md  ARCHITECTURE.md  RUNBOOK.md  PERFORMANCE.md  adr/  d
   - Routing per profile: impassable edges, stairs, ETA maths, distinct alternates.
   - Black-ice rule branches, push triggers (pywebpush mocked), Maps URL builders.
 - **vision:** label tool, worker hysteresis, unusable frames give `unknown`, and the ice rule.
-- **web:** typecheck and lint on every PR; Playwright end-to-end on the critical path (PS-406).
+- **web:** typecheck and lint on every PR; Playwright end-to-end on the critical path (OP-406).
 
 ## Do not
 
