@@ -54,6 +54,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 from .network import WalkNetwork
+from .report import ItemIndex
 from .routing import EdgeHazard, HazardMap
 from .schemas import Category, Kind, Obstruction
 from .store import ObstructionStore
@@ -98,6 +99,8 @@ class MatchResult:
     built_at: datetime
     hazards: dict[int, list[EdgeHazard]] = field(default_factory=dict)
     matches: dict[str, Match] = field(default_factory=dict)
+    # The same items' details and geometry, for the route report (OP-208).
+    items: ItemIndex | None = None
 
     def counts(self) -> dict[str, int]:
         counts: dict[str, int] = {}
@@ -336,6 +339,7 @@ def match_items(
     An item that fails to match (a bug on one odd geometry) is logged and changes no
     edges, so it cannot stop every other item from reaching routing.
     """
+    items = list(items)
     result = MatchResult(built_at=now)
     for item in items:
         try:
@@ -352,6 +356,8 @@ def match_items(
         )
         for edge in match.edges:
             result.hazards.setdefault(edge, []).append(hazard)
+    methods = {item_id: match.method for item_id, match in result.matches.items()}
+    result.items = ItemIndex.build(items, index.to_xy, methods)
     return result
 
 

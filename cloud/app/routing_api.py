@@ -5,6 +5,8 @@ Query: ``from=lat,lng`` ``to=lat,lng`` ``profile=wheelchair|walker_cane|low_visi
 The app loads the walking network once at startup (``app.state.router``). Hazards
 come from ``app.state.hazard_provider``, which OP-206 sets to the matcher; until
 then routes ignore hazards. The Maps links (OP-209) pin our detours as Google waypoints.
+Each route carries a ``report`` (OP-208): every known item on it, within 50 m of it
+or avoided by it, grouped by category.
 """
 
 from __future__ import annotations
@@ -21,6 +23,8 @@ from .maps_links import (
     detour_waypoints,
     google_maps_url,
 )
+from .matching import HazardProvider
+from .report import ItemIndex, RouteReportOut, build_report
 from .routing import HazardMap, Router, RoutingError
 
 router = APIRouter(prefix="/api", tags=["routing"])
@@ -48,6 +52,7 @@ class RouteOut(BaseModel):
     hazards_avoided: list[HazardOut]
     warnings: list[str]
     reason: str | None
+    report: RouteReportOut  # OP-208: on the route, within 50 m, and avoided
     google_maps_url: (
         str  # walking directions with up to 3 waypoints that pin our detours
     )
@@ -91,10 +96,31 @@ def get_hazards(request: Request) -> HazardMap:
     return provider(datetime.now(UTC)) if provider else {}
 
 
+def get_report_items(
+    request: Request, _hazards: Annotated[HazardMap, Depends(get_hazards)]
+) -> list[ItemIndex]:
+    """The records behind the hazards, for the route report: the matcher's items.
+
+    Depends on ``get_hazards`` so the provider has built its first match before it
+    is read. Any other provider gives no records, so the report lists only the
+    hazards routing met. When OP-205's ``CameraIceHazardProvider`` is wired in, it
+    wraps the matcher as its ``base``: add an index of its
+    ``latest.risks[i].obstruction`` here and look at its ``base`` for the matcher.
+    Check the provider's class, not ``latest``: both classes have one.
+    """
+    provider = getattr(request.app.state, "hazard_provider", None)
+    if isinstance(provider, HazardProvider):
+        latest = provider.latest
+        if latest is not None and latest.items is not None:
+            return [latest.items]
+    return []
+
+
 @router.get("/route", response_model=RouteResponse)
 def get_route(
     router_: Annotated[Router, Depends(get_router)],
     hazards: Annotated[HazardMap, Depends(get_hazards)],
+    items: Annotated[list[ItemIndex], Depends(get_report_items)],
     from_: Annotated[
         str, Query(alias="from", description="lat,lng", examples=["53.5444,-113.4909"])
     ],
@@ -147,6 +173,7 @@ def get_route(
                 ],
                 warnings=r.warnings,
                 reason=r.reason,
+                report=RouteReportOut.of(build_report(r, items)),
                 google_maps_url=google_maps_url(
                     (from_lat, from_lng),
                     (to_lat, to_lng),
