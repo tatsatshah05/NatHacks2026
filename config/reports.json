@@ -1,0 +1,5 @@
+{
+  "_comment": "Community reports (OP-308). expiry_hours: how long a report of each type stays live after it is sent (the store drops it afterwards). rate_limit: reports accepted per anonymous client per hour, and in total per hour as abuse protection; both are counted in the database. Change this file only after the team agrees (AGENTS.md, Contracts).",
+  "expiry_hours": {"ice": 2, "snow": 12, "blocked": 6},
+  "rate_limit": {"per_client_per_hour": 5, "global_per_hour": 200}
+}
