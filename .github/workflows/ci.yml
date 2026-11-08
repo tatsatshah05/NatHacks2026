@@ -1,0 +1,264 @@
+# OpenPath CI/CD
+#
+# Branch flow: story branch -> phase_N (one branch per phase) -> main (one release per phase).
+# Pull requests into main or phase_*: PR rules, repo hygiene, Python checks, web checks.
+# The single required status check is "CI passed".
+# Pushes to phase_*: deploy to staging. Pushes to main: deploy to production. Both smoke-test.
+# Checks for cloud/, vision/ and web/ switch on by themselves once those folders exist.
+# See docs/CI_CD.md.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main, "phase_*"]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main, "phase_*"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  pr-rules:
+    name: PR rules
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check title, target branch, story link and branch name
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+          BRANCH: ${{ github.head_ref }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          ok=true
+          if [[ "$TITLE" =~ ^OP-([1-4])[0-9]{2}:\ .+ ]]; then
+            story="${TITLE%%:*}"
+            phase="${BASH_REMATCH[1]}"
+            if [[ "$BASE" != "phase_$phase" ]]; then
+              echo "::error::$story is a Phase $phase story, so it must go into the phase_$phase branch, not '$BASE'. Click Edit next to the title and change the base branch to phase_$phase."
+              ok=false
+            fi
+            if ! grep -Eiq '(close[sd]?|fix(e[sd])?|resolve[sd]?) #[0-9]+' <<<"$BODY"; then
+              echo "::error::Story pull requests must link their issue. Add 'Closes #<issue number>' to the description."
+              ok=false
+            fi
+            prefix="$(tr '[:upper:]' '[:lower:]' <<<"$story")-"
+            if [[ "$BRANCH" != "$prefix"* ]]; then
+              echo "::warning::Name story branches ${prefix}<short-name> (this branch is '$BRANCH')."
+            fi
+            echo "Story pull request: $story"
+          elif [[ "$TITLE" =~ ^Phase\ ([1-4]):\ .+ ]]; then
+            phase="${BASH_REMATCH[1]}"
+            if [[ "$BASE" != "main" || "$BRANCH" != "phase_$phase" ]]; then
+              echo "::error::'Phase $phase: ...' pull requests release phase_$phase into main (base main, head phase_$phase)."
+              ok=false
+            fi
+            echo "Phase release: phase_$phase into main"
+          elif [[ "$TITLE" =~ ^(docs|chore|ci|fix):\ .+ ]]; then
+            echo "Pull request outside a story: $TITLE (into $BASE)"
+          else
+            echo "::error::Title the pull request 'OP-<id>: <story title>' (for example 'OP-105: LRT elevator and escalator adapter'), 'Phase <n>: <name>' to release a phase into main, or start it with docs:, chore:, ci: or fix: for work outside a story."
+            ok=false
+          fi
+          $ok
+
+  detect:
+    name: Detect project parts
+    runs-on: ubuntu-latest
+    outputs:
+      python: ${{ steps.parts.outputs.python }}
+      web: ${{ steps.parts.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: parts
+        run: |
+          python=false; web=false
+          if [ -n "$(git ls-files 'cloud/*.py' 'vision/*.py')" ]; then python=true; fi
+          if [ -f web/package.json ]; then web=true; fi
+          echo "python=$python" >> "$GITHUB_OUTPUT"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+          echo "Python checks: $python. Web checks: $web."
+
+  hygiene:
+    name: Repo hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: No secrets files, large files, model weights or stray images
+        run: |
+          bad=0
+          files="$(git ls-files)"
+          env_files="$(grep -E '(^|/)\.env($|\.)|(^|/)secrets\.h$' <<<"$files" | grep -Ev '\.env\.example$' || true)"
+          if [ -n "$env_files" ]; then
+            echo "::error::Secret files must never be committed: $env_files"; bad=1
+          fi
+          # 5 MB for everything, except the prebuilt walking network in cloud/data/ (50 MB).
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            limit=5242880; case "$f" in cloud/data/*) limit=52428800 ;; esac
+            if [ "$(stat -c%s "$f")" -gt "$limit" ]; then
+              echo "::error file=$f::Larger than $((limit / 1048576)) MB. Keep large files out of git."; bad=1
+            fi
+          done <<<"$files"
+          weights="$(grep -Ei '\.(onnx|pt|pth|ckpt|safetensors)$' <<<"$files" || true)"
+          if [ -n "$weights" ]; then
+            echo "::error::Model weights belong in a GitHub release asset, not in git: $weights"; bad=1
+          fi
+          images="$(grep -Ei '\.(jpe?g|png|webp|bmp|heic|gif)$' <<<"$files" | grep -Ev '^(web/public/|web/src/|docs/|vision/tests/fixtures/)' || true)"
+          if [ -n "$images" ]; then
+            echo "::error::Images are only allowed in web/public/, web/src/, docs/ and vision/tests/fixtures/ (synthetic test images). Never commit camera frames: $images"; bad=1
+          fi
+          exit $bad
+      - name: Scan for leaked keys
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false
+      - name: Review new dependencies
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+  python:
+    name: Python (cloud and vision)
+    needs: detect
+    if: needs.detect.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          # Teammates keep per-story requirements files (requirements-weather.txt and
+          # so on). Without this, setup-python looks only for requirements.txt and fails.
+          cache-dependency-path: "**/*requirements*.txt"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          # Every requirements file under cloud/ and vision/, one at a time.
+          for f in $(git ls-files 'cloud/*requirements*.txt' 'vision/*requirements*.txt'); do
+            echo "::group::pip install -r $f"; pip install -r "$f"; echo "::endgroup::"
+          done
+          for d in cloud vision; do
+            if [ -f "$d/pyproject.toml" ]; then pip install -e "$d"; fi
+          done
+          # Pinned so a new ruff release cannot break every pull request mid-hackathon.
+          pip install "ruff==0.17.4" pytest
+      - name: Lint and format
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Tests
+        env:
+          # Supports both "from cloud.app import ..." and "from app import ..." imports.
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/cloud:${{ github.workspace }}/vision
+        run: |
+          for d in cloud vision; do
+            if [ -d "$d/tests" ]; then
+              echo "::group::pytest $d"
+              set +e; pytest -q "$d/tests"; code=$?; set -e
+              echo "::endgroup::"
+              # Exit code 5 means no tests were collected yet.
+              if [ "$code" -ne 0 ] && [ "$code" -ne 5 ]; then exit "$code"; fi
+            fi
+          done
+
+  web:
+    name: Web
+    needs: detect
+    if: needs.detect.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_WS_URL: ws://localhost:8000/ws
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [pr-rules, detect, hygiene, python, web]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All checks passed
+        if: ${{ !(contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
+        run: echo "Every check passed or was not needed yet."
+      - name: A check failed
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          echo "::error::A required check failed. Open the failed job above for details."
+          exit 1
+
+  deploy:
+    # main deploys to the "production" environment; phase_* branches deploy to "staging".
+    # Each environment holds its own RENDER_*_DEPLOY_HOOK secrets and API_URL / WEB_URL variables.
+    name: Deploy
+    if: github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'phase_'))
+    needs: ci-passed
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      url: ${{ vars.WEB_URL }}
+    concurrency:
+      group: deploy-${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      cancel-in-progress: false
+    steps:
+      - name: Trigger Render deploys
+        env:
+          API_HOOK: ${{ secrets.RENDER_API_DEPLOY_HOOK }}
+          WORKER_HOOK: ${{ secrets.RENDER_WORKER_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$API_HOOK" ]; then curl -fsS -X POST "$API_HOOK" >/dev/null && echo "API deploy started."; else echo "::notice::RENDER_API_DEPLOY_HOOK is not set yet; skipping the API deploy."; fi
+          if [ -n "$WORKER_HOOK" ]; then curl -fsS -X POST "$WORKER_HOOK" >/dev/null && echo "Vision worker deploy started."; else echo "::notice::RENDER_WORKER_DEPLOY_HOOK is not set yet; skipping the vision worker deploy."; fi
+      - name: Smoke test the API (waits for this commit)
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then echo "::notice::API_URL is not set yet; skipping."; exit 0; fi
+          deadline=$((SECONDS + 900))
+          while true; do
+            body="$(curl -fsS "$API_URL/health" || true)"
+            version="$(jq -r '.version // empty' <<<"$body" 2>/dev/null || true)"
+            if [ -n "$body" ] && { [ -z "$version" ] || [ "$version" = "$GITHUB_SHA" ]; }; then
+              echo "API is healthy: $body"; break
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::The API did not report commit $GITHUB_SHA on /health within 15 minutes."; exit 1
+            fi
+            sleep 20
+          done
+      - name: Smoke test the web app
+        env:
+          WEB_URL: ${{ vars.WEB_URL }}
+        run: |
+          if [ -z "$WEB_URL" ]; then echo "::notice::WEB_URL is not set yet; skipping."; exit 0; fi
+          for _ in $(seq 1 30); do
+            if curl -fsS -o /dev/null "$WEB_URL"; then echo "Web app is up."; exit 0; fi
+            sleep 20
+          done
+          echo "::error::The web app at $WEB_URL did not respond."; exit 1

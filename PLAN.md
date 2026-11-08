@@ -1,4 +1,4 @@
-# PathSense Plan
+# OpenPath Plan
 
 **Every barrier between A and B, in one place.**
 
@@ -8,14 +8,14 @@ This plan replaces the hardware design (version 1). It is the source of truth fo
 
 ## 1. Summary
 
-PathSense is a web app that plans accessible routes across Edmonton. Enter where you are and where you are going, choose how you get around (wheelchair, walker or cane, low vision, or standard), and PathSense finds the best route and lists every known barrier along it:
+OpenPath is a web app that plans accessible routes across Edmonton. Enter where you are and where you are going, choose how you get around (wheelchair, walker or cane, low vision, or standard), and OpenPath finds the best route and lists every known barrier along it:
 
 - **Indoor:** LRT elevators and escalators that are out of service
 - **Sidewalks and paths:** construction closures, trail closures, snow complaints and community reports
 - **Roads and crossings:** road closures, incidents, and snow ridges left by plows
 - **Weather and ice:** a black-ice watch from live weather data, and road conditions read from public cameras by our vision model
 
-The City of Edmonton already publishes most of this information, but it is spread across separate datasets and websites. PathSense brings it together, adds a vision model for winter road conditions, and turns it into routes that avoid what each person cannot pass. When something changes on a saved route, PathSense sends an alert. Any route opens in Google Maps or Apple Maps for turn-by-turn directions.
+The City of Edmonton already publishes most of this information, but it is spread across separate datasets and websites. OpenPath brings it together, adds a vision model for winter road conditions, and turns it into routes that avoid what each person cannot pass. When something changes on a saved route, OpenPath sends an alert. Any route opens in Google Maps or Apple Maps for turn-by-turn directions.
 
 **There is no hardware.** Everything runs on public data, public cameras and community reports.
 
@@ -45,6 +45,7 @@ To check one trip, a person would have to search several of these sources and th
 | The demo depended on snow, night lighting and one window | City data is live every day (elevators, closures, construction); a labelled Replay mode covers winter scenarios |
 | Filming a public sidewalk risked recording people | Camera frames are processed in memory and never stored |
 | Outdoor sensor sealing, cold and cabling | None |
+| The name PathSense described sensors we no longer use | Renamed to **OpenPath**: an open path for everyone, built on open data |
 
 Kept from version 1: the four mobility profiles, accessible routing with alternates, the black-ice watch, live updates, push alerts, Maps hand-off, the city dashboard, and the accessibility requirements.
 
@@ -52,7 +53,7 @@ Kept from version 1: the four mobility profiles, accessible routing with alterna
 
 These personas are fictional and guide design decisions.
 
-| Person | Situation | What PathSense does for them |
+| Person | Situation | What OpenPath does for them |
 | --- | --- | --- |
 | Maya | Uses a power wheelchair; rides the LRT to work | Avoids stations with a broken elevator, closed sidewalks and snow-blocked curb ramps |
 | Sam | Walks with a cane | Avoids ice risk and long detours; warns about trail closures |
@@ -107,15 +108,15 @@ Rules for every source:
 
 ### 7.1 Camera sources
 
-1. **511 Alberta cameras** through the official API with a free developer key (10 calls per 60 seconds). The cameras are mostly on provincial highways, including the Edmonton ring road. We count how many are inside Edmonton in Phase 1 (PS-112).
-2. **City of Edmonton traffic cameras** at intersections, where crosswalks and curb ramps are. The City streams them live and does not record them. We use them only after the City gives written permission (PS-112); until then, the app links to the City's viewer.
-3. **Community photos.** A user can attach a photo to a report; the model classifies it and the photo is discarded (PS-308).
+1. **511 Alberta cameras** through the official API with a free developer key (10 calls per 60 seconds). The cameras are mostly on provincial highways, including the Edmonton ring road. We count how many are inside Edmonton in Phase 1 (OP-112).
+2. **City of Edmonton traffic cameras** at intersections, where crosswalks and curb ramps are. The City streams them live and does not record them. We use them only after the City gives written permission (OP-112); until then, the app links to the City's viewer.
+3. **Community photos.** A user can attach a photo to a report; the model classifies it and the photo is discarded (OP-308).
 
 ### 7.2 Classes and training data
 
 The model sorts each image into one of six classes: `dry`, `wet`, `snow_partial`, `snow_covered`, `ice` and `unusable` (dark, fogged, blocked or offline). These classes follow the bare, partly covered and fully covered scheme used in Ontario road-weather camera research.
 
-Training data comes from 511 camera images that we label ourselves (PS-201). Snow and ice examples can come from cameras anywhere in Alberta where it is snowing. We add the public RSCD road-surface dataset (about 1 million labelled images, including snow and ice) if its licence allows. Test cameras never appear in training, so the score reflects cameras the model has never seen.
+Training data comes from 511 camera images that we label ourselves (OP-201). Snow and ice examples can come from cameras anywhere in Alberta where it is snowing. We add the public RSCD road-surface dataset (about 1 million labelled images, including snow and ice) if its licence allows. Test cameras never appear in training, so the score reflects cameras the model has never seen.
 
 ### 7.3 Model and worker
 
@@ -123,7 +124,7 @@ A small pretrained network (MobileNetV3 or EfficientNet-B0) is fine-tuned on a l
 
 ### 7.4 Black-ice rule
 
-Black ice is hard to see by definition, so PathSense never claims to "detect black ice". It reports **ice risk** from two signals:
+Black ice is hard to see by definition, so OpenPath never claims to "detect black ice". It reports **ice risk** from two signals:
 
 - **Weather watch (city-wide):** active when (air ≤ 0 °C or ground ≤ 0 °C) and at least one of: precipitation in the last 6 hours; air above 0 °C in the last 12 hours (melt and refreeze); or air temperature within 1 °C of the dew point (frost).
 - **Camera reading (local):** a camera reading of `ice`, or of `wet` while the watch is active, sets `ice_risk` at medium confidence on crossings within 50 m of that camera. A `wet` reading without freezing conditions is ignored (wet, not icy).
@@ -198,7 +199,7 @@ flowchart TB
 **Repository layout**
 
 ```
-PLAN.md  CLAUDE.md  GUIDELINE.md  README.md  Makefile  render.yaml  .env.example
+PLAN.md  AGENTS.md  CLAUDE.md  GUIDELINE.md  README.md  Makefile  render.yaml  .env.example
 cloud/     app/{main,schemas,db,store,scheduler,status,matching,routing,report,search,weather,push,ws}.py
            app/adapters/   one file per source
            data/           prebuilt walking network (committed)
@@ -328,7 +329,7 @@ Each person plans for about 8 points per phase, which leaves time for reviews, h
 - Any UI change passes the accessibility checklist
 - No secrets or images are committed
 
-**Workflow:** branch `ps-<id>-<short-name>` from `main` → commit → pull request titled `PS-<id>: <story title>` with `Closes #<issue>` → review → merge. See [GUIDELINE.md](GUIDELINE.md).
+**Workflow:** branch `op-<id>-<short-name>` from the phase branch (`phase_1` during Phase 1) → commit → pull request into the phase branch, titled `OP-<id>: <story title>` with `Closes #<issue>` → `CI passed` → scrum master approval → squash merge → staging deploy. At each checkpoint, the scrum master releases the phase branch into `main` (production) and starts the next phase branch. See [GUIDELINE.md](GUIDELINE.md) and [docs/CI_CD.md](docs/CI_CD.md).
 
 **Check-ins:**
 - 15-minute kickoff at the start of each phase
@@ -341,12 +342,12 @@ Story points per person per phase. The stories behind each number are listed in 
 
 | Person | Phase 1: Data Foundation | Phase 2: Vision and Routing | Phase 3: Web App and Alerts | Phase 4: Production and Launch | Total |
 | --- | --- | --- | --- | --- | --- |
-| Tatsat | PS-101, PS-104 (8 pts) | PS-207, PS-209 (7 pts) | PS-304, PS-305 (8 pts) | PS-401, PS-402, PS-403 (8 pts) | 31 |
-| Ipsa | PS-108, PS-112, PS-115 (8 pts) | PS-202, PS-203 (8 pts) | PS-308, PS-309 (8 pts) | PS-412, PS-413, PS-414 (8 pts) | 32 |
-| Estella | PS-109, PS-110, PS-111 (8 pts) | PS-201, PS-212 (8 pts) | PS-306, PS-307 (8 pts) | PS-408, PS-409 (8 pts) | 32 |
-| Kaleb | PS-105, PS-106, PS-107 (8 pts) | PS-204, PS-205 (8 pts) | PS-310, PS-311 (8 pts) | PS-406, PS-407 (8 pts) | 32 |
-| Kashish | PS-113, PS-114 (7 pts) | PS-210, PS-211 (8 pts) | PS-301, PS-312 (7 pts) | PS-410, PS-411 (7 pts) | 29 |
-| Matthew | PS-102, PS-103 (8 pts) | PS-206, PS-208 (8 pts) | PS-302, PS-303 (8 pts) | PS-404, PS-405 (7 pts) | 31 |
+| Tatsat | OP-101, OP-104 (8 pts) | OP-207, OP-209 (7 pts) | OP-304, OP-305 (8 pts) | OP-401, OP-402, OP-403 (8 pts) | 31 |
+| Ipsa | OP-108, OP-112, OP-115 (8 pts) | OP-202, OP-203 (8 pts) | OP-308, OP-309 (8 pts) | OP-412, OP-413, OP-414 (8 pts) | 32 |
+| Estella | OP-109, OP-110, OP-111 (8 pts) | OP-201, OP-212 (8 pts) | OP-306, OP-307 (8 pts) | OP-408, OP-409 (8 pts) | 32 |
+| Kaleb | OP-105, OP-106, OP-107 (8 pts) | OP-204, OP-205 (8 pts) | OP-310, OP-311 (8 pts) | OP-406, OP-407 (8 pts) | 32 |
+| Kashish | OP-113, OP-114 (7 pts) | OP-210, OP-211 (8 pts) | OP-301, OP-312 (7 pts) | OP-410, OP-411 (7 pts) | 29 |
+| Matthew | OP-102, OP-103 (8 pts) | OP-206, OP-208 (8 pts) | OP-302, OP-303 (8 pts) | OP-404, OP-405 (7 pts) | 31 |
 | **Team** | **47 pts** | **47 pts** | **47 pts** | **46 pts** | **187** |
 
 ## 14. Backlog
@@ -359,23 +360,23 @@ Story points per person per phase. The stories behind each number are listed in 
 
 | ID | Story | Owner | Points | Priority | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| [PS-101](https://github.com/tatsatshah05/NatHacks2026/issues/29) | Obstruction contract and store | Tatsat | 3 | Must | None |
-| [PS-102](https://github.com/tatsatshah05/NatHacks2026/issues/30) | Deployable skeleton with CI | Matthew | 5 | Must | None |
-| [PS-103](https://github.com/tatsatshah05/NatHacks2026/issues/31) | Source scheduler and status page | Matthew | 3 | Must | PS-101 |
-| [PS-104](https://github.com/tatsatshah05/NatHacks2026/issues/32) | City walking network | Tatsat | 5 | Must | None |
-| [PS-105](https://github.com/tatsatshah05/NatHacks2026/issues/33) | LRT elevator and escalator adapter | Kaleb | 3 | Must | PS-101 |
-| [PS-106](https://github.com/tatsatshah05/NatHacks2026/issues/34) | Map LRT elevators to the walking network | Kaleb | 3 | Must | PS-104, PS-105 |
-| [PS-107](https://github.com/tatsatshah05/NatHacks2026/issues/35) | Construction sidewalk closures adapter | Kaleb | 2 | Must | PS-101 |
-| [PS-108](https://github.com/tatsatshah05/NatHacks2026/issues/36) | Traffic disruptions adapter | Ipsa | 2 | Must | PS-101 |
-| [PS-109](https://github.com/tatsatshah05/NatHacks2026/issues/37) | Weather and black-ice watch | Estella | 3 | Must | PS-101 |
-| [PS-110](https://github.com/tatsatshah05/NatHacks2026/issues/38) | 311 snow complaints and trail closures | Estella | 3 | Must | PS-101 |
-| [PS-111](https://github.com/tatsatshah05/NatHacks2026/issues/39) | Snow-clearing status adapter | Estella | 2 | Should | PS-101 |
-| [PS-112](https://github.com/tatsatshah05/NatHacks2026/issues/40) | Public camera access | Ipsa | 3 | Must | None |
-| [PS-113](https://github.com/tatsatshah05/NatHacks2026/issues/41) | Web app shell and live map | Kashish | 5 | Must | PS-101 |
-| [PS-114](https://github.com/tatsatshah05/NatHacks2026/issues/42) | Wireframes for the main screens | Kashish | 2 | Must | None |
-| [PS-115](https://github.com/tatsatshah05/NatHacks2026/issues/43) | Label guide and labelling tool | Ipsa | 3 | Must | PS-112 |
+| [OP-101](https://github.com/tatsatshah05/NatHacks2026/issues/29) | Obstruction contract and store | Tatsat | 3 | Must | None |
+| [OP-102](https://github.com/tatsatshah05/NatHacks2026/issues/30) | Deployable skeleton with CI | Matthew | 5 | Must | None |
+| [OP-103](https://github.com/tatsatshah05/NatHacks2026/issues/31) | Source scheduler and status page | Matthew | 3 | Must | OP-101 |
+| [OP-104](https://github.com/tatsatshah05/NatHacks2026/issues/32) | City walking network | Tatsat | 5 | Must | None |
+| [OP-105](https://github.com/tatsatshah05/NatHacks2026/issues/33) | LRT elevator and escalator adapter | Kaleb | 3 | Must | OP-101 |
+| [OP-106](https://github.com/tatsatshah05/NatHacks2026/issues/34) | Map LRT elevators to the walking network | Kaleb | 3 | Must | OP-104, OP-105 |
+| [OP-107](https://github.com/tatsatshah05/NatHacks2026/issues/35) | Construction sidewalk closures adapter | Kaleb | 2 | Must | OP-101 |
+| [OP-108](https://github.com/tatsatshah05/NatHacks2026/issues/36) | Traffic disruptions adapter | Ipsa | 2 | Must | OP-101 |
+| [OP-109](https://github.com/tatsatshah05/NatHacks2026/issues/37) | Weather and black-ice watch | Estella | 3 | Must | OP-101 |
+| [OP-110](https://github.com/tatsatshah05/NatHacks2026/issues/38) | 311 snow complaints and trail closures | Estella | 3 | Must | OP-101 |
+| [OP-111](https://github.com/tatsatshah05/NatHacks2026/issues/39) | Snow-clearing status adapter | Estella | 2 | Should | OP-101 |
+| [OP-112](https://github.com/tatsatshah05/NatHacks2026/issues/40) | Public camera access | Ipsa | 3 | Must | None |
+| [OP-113](https://github.com/tatsatshah05/NatHacks2026/issues/41) | Web app shell and live map | Kashish | 5 | Must | OP-101 |
+| [OP-114](https://github.com/tatsatshah05/NatHacks2026/issues/42) | Wireframes for the main screens | Kashish | 2 | Must | None |
+| [OP-115](https://github.com/tatsatshah05/NatHacks2026/issues/43) | Label guide and labelling tool | Ipsa | 3 | Must | OP-112 |
 
-#### PS-101: Obstruction contract and store
+#### OP-101: Obstruction contract and store
 
 **Owner:** Tatsat · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** None
 
@@ -388,7 +389,7 @@ Acceptance criteria:
 - `GET /api/obstructions` returns a GeoJSON FeatureCollection and accepts a `bbox` filter.
 - Unit tests cover validation and upsert. Finished in the first two hours, because every adapter depends on it.
 
-#### PS-102: Deployable skeleton with CI
+#### OP-102: Deployable skeleton with CI
 
 **Owner:** Matthew · **Points:** 5 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** None
 
@@ -398,12 +399,13 @@ Acceptance criteria:
 
 - Repository layout matches PLAN.md section 9; hardware folders are removed.
 - FastAPI on Render with `GET /health`, Postgres on Render, Next.js on Vercel; every variable is listed in `.env.example`.
-- GitHub Actions runs lint, typecheck, tests and build on every pull request; `main` requires a passing run and one review.
+- The existing CI pipeline (`.github/workflows/ci.yml`) passes for the skeleton: `ruff`, `pytest`, `npm run lint`, `npm run typecheck` and `npm run build`.
+- `GET /health` returns `{"status": "ok", "version": "<git commit>"}` from `RENDER_GIT_COMMIT`; Render auto-deploy is off and the deploy hooks, `API_URL` and `WEB_URL` are set up as in `docs/CI_CD.md`.
 - `make dev` runs the API and web app locally from recorded fixtures, with no API keys.
 
-#### PS-103: Source scheduler and status page
+#### OP-103: Source scheduler and status page
 
-**Owner:** Matthew · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** PS-101
+**Owner:** Matthew · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** OP-101
 
 *As a user, I want to see how fresh each data source is, so that I can trust what the app tells me.*
 
@@ -414,7 +416,7 @@ Acceptance criteria:
 - `GET /api/status` lists each source with last success, last error, item count and age.
 - Test: a mocked failing source keeps its last good data.
 
-#### PS-104: City walking network
+#### OP-104: City walking network
 
 **Owner:** Tatsat · **Points:** 5 · **Priority:** Must · **Epic:** Routing · **Depends on:** None
 
@@ -427,9 +429,9 @@ Acceptance criteria:
 - Node count, edge count, file size, load time and memory are measured and recorded in `docs/DATA_SOURCES.md`.
 - If memory exceeds the budget in PLAN.md section 8, switch to the central service area and record the decision.
 
-#### PS-105: LRT elevator and escalator adapter
+#### OP-105: LRT elevator and escalator adapter
 
-**Owner:** Kaleb · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** PS-101
+**Owner:** Kaleb · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** OP-101
 
 *As a wheelchair user, I want to know when an elevator at an LRT station is out of service, so that I am never sent to a station I cannot use.*
 
@@ -440,9 +442,9 @@ Acceptance criteria:
 - Station coordinates come from the stations dataset.
 - Tests use recorded JSON fixtures; no live network calls in tests.
 
-#### PS-106: Map LRT elevators to the walking network
+#### OP-106: Map LRT elevators to the walking network
 
-**Owner:** Kaleb · **Points:** 3 · **Priority:** Must · **Epic:** Routing · **Depends on:** PS-104, PS-105
+**Owner:** Kaleb · **Points:** 3 · **Priority:** Must · **Epic:** Routing · **Depends on:** OP-104, OP-105
 
 *As a wheelchair user, I want a broken elevator to change my route, not just show a warning, so that the route I get is truly step-free.*
 
@@ -452,9 +454,9 @@ Acceptance criteria:
 - Elevators without an OpenStreetMap match are listed with a reason; the report still warns at station level for them.
 - Test: an outage on a mapped elevator removes that elevator edge for every profile.
 
-#### PS-107: Construction sidewalk closures adapter
+#### OP-107: Construction sidewalk closures adapter
 
-**Owner:** Kaleb · **Points:** 2 · **Priority:** Must · **Epic:** Data sources · **Depends on:** PS-101
+**Owner:** Kaleb · **Points:** 2 · **Priority:** Must · **Epic:** Data sources · **Depends on:** OP-101
 
 *As a pedestrian, I want sidewalk closures from construction permits on my route, so that I do not walk into a closed sidewalk.*
 
@@ -464,9 +466,9 @@ Acceptance criteria:
 - Uses `geometry_multiline` when present, otherwise the point.
 - Fixture tests.
 
-#### PS-108: Traffic disruptions adapter
+#### OP-108: Traffic disruptions adapter
 
-**Owner:** Ipsa · **Points:** 2 · **Priority:** Must · **Epic:** Data sources · **Depends on:** PS-101
+**Owner:** Ipsa · **Points:** 2 · **Priority:** Must · **Epic:** Data sources · **Depends on:** OP-101
 
 *As a pedestrian, I want to know about road closures and incidents along my route, so that I can expect detours at crossings.*
 
@@ -476,9 +478,9 @@ Acceptance criteria:
 - Closures become `caution` items in category `road` with plain text, for example "124 Ave closed from 66 St to 67 St. Sidewalks may be affected."
 - Fixture tests.
 
-#### PS-109: Weather and black-ice watch
+#### OP-109: Weather and black-ice watch
 
-**Owner:** Estella · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** PS-101
+**Owner:** Estella · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** OP-101
 
 *As someone walking in winter, I want a warning when the weather makes black ice likely, so that I can choose a safer route or time.*
 
@@ -489,9 +491,9 @@ Acceptance criteria:
 - A failed call keeps the last good reading.
 - One test per rule branch.
 
-#### PS-110: 311 snow complaints and trail closures
+#### OP-110: 311 snow complaints and trail closures
 
-**Owner:** Estella · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** PS-101
+**Owner:** Estella · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** OP-101
 
 *As a pedestrian, I want to see where neighbours report snowy sidewalks and where trails are closed, so that I know which areas to avoid.*
 
@@ -501,9 +503,9 @@ Acceptance criteria:
 - River Valley Trail Cautions and Closures (`k4mi-dkvi`) every 15 minutes: closures become `blocked`, cautions become `caution`.
 - Fixture tests.
 
-#### PS-111: Snow-clearing status adapter
+#### OP-111: Snow-clearing status adapter
 
-**Owner:** Estella · **Points:** 2 · **Priority:** Should · **Epic:** Data sources · **Depends on:** PS-101
+**Owner:** Estella · **Points:** 2 · **Priority:** Should · **Epic:** Data sources · **Depends on:** OP-101
 
 *As a wheelchair user, I want to know when a plow has just passed a road on my route, so that I am warned about snow ridges across curb ramps.*
 
@@ -513,7 +515,7 @@ Acceptance criteria:
 - Outside snow events the feed reads `NA`; the adapter then creates no items.
 - Fixture tests, including an `NA` fixture.
 
-#### PS-112: Public camera access
+#### OP-112: Public camera access
 
 **Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** None
 
@@ -526,9 +528,9 @@ Acceptance criteria:
 - A written request to use City of Edmonton traffic camera streams is sent to the City; its status is tracked in this issue.
 - 511 terms of use and the RSCD dataset licence are checked and recorded in `docs/DATA_SOURCES.md`.
 
-#### PS-113: Web app shell and live map
+#### OP-113: Web app shell and live map
 
-**Owner:** Kashish · **Points:** 5 · **Priority:** Must · **Epic:** Web app · **Depends on:** PS-101
+**Owner:** Kashish · **Points:** 5 · **Priority:** Must · **Epic:** Web app · **Depends on:** OP-101
 
 *As a user, I want a fast, accessible map that shows every current obstruction with icons and labels, so that I can see the city's conditions at a glance.*
 
@@ -539,7 +541,7 @@ Acceptance criteria:
 - Keyboard and screen-reader friendly, 44 px touch targets, usable at 200% zoom.
 - Every pull request gets a Vercel preview.
 
-#### PS-114: Wireframes for the main screens
+#### OP-114: Wireframes for the main screens
 
 **Owner:** Kashish · **Points:** 2 · **Priority:** Must · **Epic:** Web app · **Depends on:** None
 
@@ -550,9 +552,9 @@ Acceptance criteria:
 - Low-fidelity wireframes for the planner, the route report, alerts and the city view, saved in `docs/design/`.
 - Reviewed with Estella for accessibility before Phase 2 starts.
 
-#### PS-115: Label guide and labelling tool
+#### OP-115: Label guide and labelling tool
 
-**Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** PS-112
+**Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** OP-112
 
 *As a labeller, I want a clear label guide and a fast keyboard tool, so that I can label hundreds of camera images consistently.*
 
@@ -570,22 +572,22 @@ Acceptance criteria:
 
 | ID | Story | Owner | Points | Priority | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| [PS-201](https://github.com/tatsatshah05/NatHacks2026/issues/44) | Collect and label training data | Estella | 5 | Must | PS-112, PS-115 |
-| [PS-202](https://github.com/tatsatshah05/NatHacks2026/issues/45) | Train the road-condition model | Ipsa | 5 | Must | PS-201 |
-| [PS-203](https://github.com/tatsatshah05/NatHacks2026/issues/46) | Evaluate the model and write the model card | Ipsa | 3 | Must | PS-202 |
-| [PS-204](https://github.com/tatsatshah05/NatHacks2026/issues/47) | Camera vision worker | Kaleb | 5 | Must | PS-112, PS-202 |
-| [PS-205](https://github.com/tatsatshah05/NatHacks2026/issues/48) | Black-ice risk from cameras and weather | Kaleb | 3 | Must | PS-109, PS-204 |
-| [PS-206](https://github.com/tatsatshah05/NatHacks2026/issues/49) | Match obstructions to the network | Matthew | 5 | Must | PS-101, PS-104 |
-| [PS-207](https://github.com/tatsatshah05/NatHacks2026/issues/50) | Profile routing with alternates | Tatsat | 5 | Must | PS-104, PS-206 |
-| [PS-208](https://github.com/tatsatshah05/NatHacks2026/issues/51) | Route report | Matthew | 3 | Must | PS-206, PS-207 |
-| [PS-209](https://github.com/tatsatshah05/NatHacks2026/issues/52) | Google Maps and Apple Maps hand-off | Tatsat | 2 | Must | PS-207 |
-| [PS-210](https://github.com/tatsatshah05/NatHacks2026/issues/53) | Planner screens with mock data | Kashish | 5 | Must | PS-113, PS-114 |
-| [PS-211](https://github.com/tatsatshah05/NatHacks2026/issues/54) | Route report screen | Kashish | 3 | Must | PS-210 |
-| [PS-212](https://github.com/tatsatshah05/NatHacks2026/issues/55) | Accessibility review of designs | Estella | 3 | Must | PS-114 |
+| [OP-201](https://github.com/tatsatshah05/NatHacks2026/issues/44) | Collect and label training data | Estella | 5 | Must | OP-112, OP-115 |
+| [OP-202](https://github.com/tatsatshah05/NatHacks2026/issues/45) | Train the road-condition model | Ipsa | 5 | Must | OP-201 |
+| [OP-203](https://github.com/tatsatshah05/NatHacks2026/issues/46) | Evaluate the model and write the model card | Ipsa | 3 | Must | OP-202 |
+| [OP-204](https://github.com/tatsatshah05/NatHacks2026/issues/47) | Camera vision worker | Kaleb | 5 | Must | OP-112, OP-202 |
+| [OP-205](https://github.com/tatsatshah05/NatHacks2026/issues/48) | Black-ice risk from cameras and weather | Kaleb | 3 | Must | OP-109, OP-204 |
+| [OP-206](https://github.com/tatsatshah05/NatHacks2026/issues/49) | Match obstructions to the network | Matthew | 5 | Must | OP-101, OP-104 |
+| [OP-207](https://github.com/tatsatshah05/NatHacks2026/issues/50) | Profile routing with alternates | Tatsat | 5 | Must | OP-104, OP-206 |
+| [OP-208](https://github.com/tatsatshah05/NatHacks2026/issues/51) | Route report | Matthew | 3 | Must | OP-206, OP-207 |
+| [OP-209](https://github.com/tatsatshah05/NatHacks2026/issues/52) | Google Maps and Apple Maps hand-off | Tatsat | 2 | Must | OP-207 |
+| [OP-210](https://github.com/tatsatshah05/NatHacks2026/issues/53) | Planner screens with mock data | Kashish | 5 | Must | OP-113, OP-114 |
+| [OP-211](https://github.com/tatsatshah05/NatHacks2026/issues/54) | Route report screen | Kashish | 3 | Must | OP-210 |
+| [OP-212](https://github.com/tatsatshah05/NatHacks2026/issues/55) | Accessibility review of designs | Estella | 3 | Must | OP-114 |
 
-#### PS-201: Collect and label training data
+#### OP-201: Collect and label training data
 
-**Owner:** Estella · **Points:** 5 · **Priority:** Must · **Epic:** Vision model · **Depends on:** PS-112, PS-115
+**Owner:** Estella · **Points:** 5 · **Priority:** Must · **Epic:** Vision model · **Depends on:** OP-112, OP-115
 
 *As the vision team, we want a labelled set of real camera images across day, night, dry, wet, snow and ice, so that the model learns the conditions it will see.*
 
@@ -595,21 +597,21 @@ Acceptance criteria:
 - Data is split by camera: test cameras never appear in training.
 - 10% of images are labelled twice to measure agreement; the result goes in the model card.
 
-#### PS-202: Train the road-condition model
+#### OP-202: Train the road-condition model
 
-**Owner:** Ipsa · **Points:** 5 · **Priority:** Must · **Epic:** Vision model · **Depends on:** PS-201
+**Owner:** Ipsa · **Points:** 5 · **Priority:** Must · **Epic:** Vision model · **Depends on:** OP-201
 
 *As a user, I want the app to recognise snow and ice from camera images, so that warnings come from what cameras see, not only from the forecast.*
 
 Acceptance criteria:
 
-- Fine-tunes a small pretrained network (MobileNetV3 or EfficientNet-B0) on PS-201 data, plus RSCD if its licence allows.
+- Fine-tunes a small pretrained network (MobileNetV3 or EfficientNet-B0) on OP-201 data, plus RSCD if its licence allows.
 - Exported to ONNX; CPU inference under 200 ms per image (target).
 - Training is reproducible from `vision/train.py` with a fixed seed; weights are published as a GitHub release asset, not committed.
 
-#### PS-203: Evaluate the model and write the model card
+#### OP-203: Evaluate the model and write the model card
 
-**Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** PS-202
+**Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** OP-202
 
 *As a user and a judge, I want honest numbers on how well the model works, so that I know when to trust it.*
 
@@ -619,9 +621,9 @@ Acceptance criteria:
 - Checkpoint target: at least 80% accuracy on unseen cameras. The team confirms or revises the target after the first baseline.
 - Every number is measured, never estimated.
 
-#### PS-204: Camera vision worker
+#### OP-204: Camera vision worker
 
-**Owner:** Kaleb · **Points:** 5 · **Priority:** Must · **Epic:** Vision model · **Depends on:** PS-112, PS-202
+**Owner:** Kaleb · **Points:** 5 · **Priority:** Must · **Epic:** Vision model · **Depends on:** OP-112, OP-202
 
 *As a user, I want camera readings refreshed automatically, so that the map shows what the road looks like now.*
 
@@ -632,9 +634,9 @@ Acceptance criteria:
 - Dark, fogged or offline frames produce `unknown`, never a false `dry`.
 - A reading changes only after 2 agreeing frames in a row; each change writes one log line.
 
-#### PS-205: Black-ice risk from cameras and weather
+#### OP-205: Black-ice risk from cameras and weather
 
-**Owner:** Kaleb · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** PS-109, PS-204
+**Owner:** Kaleb · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** OP-109, OP-204
 
 *As someone walking in winter, I want black-ice warnings that combine what cameras see with the temperature, so that warnings are specific to a place and time.*
 
@@ -644,9 +646,9 @@ Acceptance criteria:
 - Wet without freezing conditions never raises ice risk.
 - One test per branch.
 
-#### PS-206: Match obstructions to the network
+#### OP-206: Match obstructions to the network
 
-**Owner:** Matthew · **Points:** 5 · **Priority:** Must · **Epic:** Routing · **Depends on:** PS-101, PS-104
+**Owner:** Matthew · **Points:** 5 · **Priority:** Must · **Epic:** Routing · **Depends on:** OP-101, OP-104
 
 *As a user, I want every obstruction tied to the exact paths it affects, so that routes avoid the right streets.*
 
@@ -657,9 +659,9 @@ Acceptance criteria:
 - Effects follow the table in PLAN.md section 8.
 - Tests use synthetic geometry.
 
-#### PS-207: Profile routing with alternates
+#### OP-207: Profile routing with alternates
 
-**Owner:** Tatsat · **Points:** 5 · **Priority:** Must · **Epic:** Routing · **Depends on:** PS-104, PS-206
+**Owner:** Tatsat · **Points:** 5 · **Priority:** Must · **Epic:** Routing · **Depends on:** OP-104, OP-206
 
 *As a wheelchair, walker, low-vision or standard user, I want the best route for how I move plus up to two alternates with distance and time, so that I can choose.*
 
@@ -670,9 +672,9 @@ Acceptance criteria:
 - `GET /api/route` returns geometry, `distance_m`, `eta_min` and text steps; p95 under 1 s on the city network (target, measured).
 - Tests: impassable edges, stairs, ETA maths, distinct alternates.
 
-#### PS-208: Route report
+#### OP-208: Route report
 
-**Owner:** Matthew · **Points:** 3 · **Priority:** Must · **Epic:** Routing · **Depends on:** PS-206, PS-207
+**Owner:** Matthew · **Points:** 3 · **Priority:** Must · **Epic:** Routing · **Depends on:** OP-206, OP-207
 
 *As a user, I want a list of every obstruction on or near my route, grouped by indoor, sidewalks, roads and weather, so that I know exactly what I will face.*
 
@@ -682,9 +684,9 @@ Acceptance criteria:
 - Items the route avoided are listed as avoided.
 - Tests.
 
-#### PS-209: Google Maps and Apple Maps hand-off
+#### OP-209: Google Maps and Apple Maps hand-off
 
-**Owner:** Tatsat · **Points:** 2 · **Priority:** Must · **Epic:** Routing · **Depends on:** PS-207
+**Owner:** Tatsat · **Points:** 2 · **Priority:** Must · **Epic:** Routing · **Depends on:** OP-207
 
 *As a user, I want to open my route in Google Maps or Apple Maps, so that I get turn-by-turn directions in an app I already know.*
 
@@ -694,21 +696,21 @@ Acceptance criteria:
 - Apple Maps URL (`dirflg=w`); the UI notes that Apple Maps may not keep the detour.
 - Unit tests for both URL builders.
 
-#### PS-210: Planner screens with mock data
+#### OP-210: Planner screens with mock data
 
-**Owner:** Kashish · **Points:** 5 · **Priority:** Must · **Epic:** Web app · **Depends on:** PS-113, PS-114
+**Owner:** Kashish · **Points:** 5 · **Priority:** Must · **Epic:** Web app · **Depends on:** OP-113, OP-114
 
 *As a user, I want to enter where I am and where I am going, choose how I move, and compare routes, so that planning takes seconds.*
 
 Acceptance criteria:
 
 - From and To fields (search, tap on map, current location), a profile picker with plain names and icons, and up to 3 route cards with minutes, distance and avoided items.
-- Works against a typed mock built from the OpenAPI types until PS-207 is merged.
+- Works against a typed mock built from the OpenAPI types until OP-207 is merged.
 - Fully usable by keyboard, with screen-reader labels.
 
-#### PS-211: Route report screen
+#### OP-211: Route report screen
 
-**Owner:** Kashish · **Points:** 3 · **Priority:** Must · **Epic:** Web app · **Depends on:** PS-210
+**Owner:** Kashish · **Points:** 3 · **Priority:** Must · **Epic:** Web app · **Depends on:** OP-210
 
 *As a screen-reader user, I want the route report as a clear text list, so that the map is never the only way to get information.*
 
@@ -718,9 +720,9 @@ Acceptance criteria:
 - A text list of steps for every route.
 - Empty state: "No known obstructions on this route", with source freshness.
 
-#### PS-212: Accessibility review of designs
+#### OP-212: Accessibility review of designs
 
-**Owner:** Estella · **Points:** 3 · **Priority:** Must · **Epic:** Web app · **Depends on:** PS-114
+**Owner:** Estella · **Points:** 3 · **Priority:** Must · **Epic:** Web app · **Depends on:** OP-114
 
 *As a disabled user, I want accessibility designed in from the start, so that the app works for me on day one.*
 
@@ -738,22 +740,22 @@ Acceptance criteria:
 
 | ID | Story | Owner | Points | Priority | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| [PS-301](https://github.com/tatsatshah05/NatHacks2026/issues/56) | Connect the planner to the live API | Kashish | 5 | Must | PS-207, PS-208, PS-210 |
-| [PS-302](https://github.com/tatsatshah05/NatHacks2026/issues/57) | Address and place search | Matthew | 3 | Must | PS-101 |
-| [PS-303](https://github.com/tatsatshah05/NatHacks2026/issues/58) | Live updates | Matthew | 5 | Must | PS-206, PS-207 |
-| [PS-304](https://github.com/tatsatshah05/NatHacks2026/issues/59) | Saved routes and push alerts (server) | Tatsat | 5 | Must | PS-207 |
-| [PS-305](https://github.com/tatsatshah05/NatHacks2026/issues/60) | Replay mode | Tatsat | 3 | Must | PS-103 |
-| [PS-306](https://github.com/tatsatshah05/NatHacks2026/issues/61) | Alerts page and push client | Estella | 5 | Must | PS-304 |
-| [PS-307](https://github.com/tatsatshah05/NatHacks2026/issues/62) | Accessibility settings | Estella | 3 | Must | PS-113 |
-| [PS-308](https://github.com/tatsatshah05/NatHacks2026/issues/63) | Community reports with photo check | Ipsa | 5 | Should | PS-202, PS-206 |
-| [PS-309](https://github.com/tatsatshah05/NatHacks2026/issues/64) | Camera readings on the map | Ipsa | 3 | Must | PS-204 |
-| [PS-310](https://github.com/tatsatshah05/NatHacks2026/issues/65) | City dashboard | Kaleb | 3 | Should | PS-206 |
-| [PS-311](https://github.com/tatsatshah05/NatHacks2026/issues/66) | Walk and LRT trips | Kaleb | 5 | Should | PS-106, PS-207 |
-| [PS-312](https://github.com/tatsatshah05/NatHacks2026/issues/67) | About, sources and privacy pages | Kashish | 2 | Must | PS-113 |
+| [OP-301](https://github.com/tatsatshah05/NatHacks2026/issues/56) | Connect the planner to the live API | Kashish | 5 | Must | OP-207, OP-208, OP-210 |
+| [OP-302](https://github.com/tatsatshah05/NatHacks2026/issues/57) | Address and place search | Matthew | 3 | Must | OP-101 |
+| [OP-303](https://github.com/tatsatshah05/NatHacks2026/issues/58) | Live updates | Matthew | 5 | Must | OP-206, OP-207 |
+| [OP-304](https://github.com/tatsatshah05/NatHacks2026/issues/59) | Saved routes and push alerts (server) | Tatsat | 5 | Must | OP-207 |
+| [OP-305](https://github.com/tatsatshah05/NatHacks2026/issues/60) | Replay mode | Tatsat | 3 | Must | OP-103 |
+| [OP-306](https://github.com/tatsatshah05/NatHacks2026/issues/61) | Alerts page and push client | Estella | 5 | Must | OP-304 |
+| [OP-307](https://github.com/tatsatshah05/NatHacks2026/issues/62) | Accessibility settings | Estella | 3 | Must | OP-113 |
+| [OP-308](https://github.com/tatsatshah05/NatHacks2026/issues/63) | Community reports with photo check | Ipsa | 5 | Should | OP-202, OP-206 |
+| [OP-309](https://github.com/tatsatshah05/NatHacks2026/issues/64) | Camera readings on the map | Ipsa | 3 | Must | OP-204 |
+| [OP-310](https://github.com/tatsatshah05/NatHacks2026/issues/65) | City dashboard | Kaleb | 3 | Should | OP-206 |
+| [OP-311](https://github.com/tatsatshah05/NatHacks2026/issues/66) | Walk and LRT trips | Kaleb | 5 | Should | OP-106, OP-207 |
+| [OP-312](https://github.com/tatsatshah05/NatHacks2026/issues/67) | About, sources and privacy pages | Kashish | 2 | Must | OP-113 |
 
-#### PS-301: Connect the planner to the live API
+#### OP-301: Connect the planner to the live API
 
-**Owner:** Kashish · **Points:** 5 · **Priority:** Must · **Epic:** Web app · **Depends on:** PS-207, PS-208, PS-210
+**Owner:** Kashish · **Points:** 5 · **Priority:** Must · **Epic:** Web app · **Depends on:** OP-207, OP-208, OP-210
 
 *As a user, I want real routes and reports on my phone, so that I can rely on the app for a trip.*
 
@@ -763,9 +765,9 @@ Acceptance criteria:
 - Loading, error and offline states; selecting a route card highlights it on the map; Maps buttons on every card.
 - A link such as `/?from=…&to=…&profile=…` reopens the same route.
 
-#### PS-302: Address and place search
+#### OP-302: Address and place search
 
-**Owner:** Matthew · **Points:** 3 · **Priority:** Must · **Epic:** Web app · **Depends on:** PS-101
+**Owner:** Matthew · **Points:** 3 · **Priority:** Must · **Epic:** Web app · **Depends on:** OP-101
 
 *As a user, I want to type an address or a place name, so that I do not have to find it on the map.*
 
@@ -775,9 +777,9 @@ Acceptance criteria:
 - `GET /api/search?q=` returns the top 8 matches in under 200 ms (target).
 - No external geocoder is called at request time.
 
-#### PS-303: Live updates
+#### OP-303: Live updates
 
-**Owner:** Matthew · **Points:** 5 · **Priority:** Must · **Epic:** Live updates and alerts · **Depends on:** PS-206, PS-207
+**Owner:** Matthew · **Points:** 5 · **Priority:** Must · **Epic:** Live updates and alerts · **Depends on:** OP-206, OP-207
 
 *As a user with a route open, I want it to update by itself when something changes, so that I learn about a new obstruction before I reach it.*
 
@@ -788,9 +790,9 @@ Acceptance criteria:
 - Changes are announced in an `aria-live="assertive"` region, spoken with `speechSynthesis` (user toggle) and vibrated where supported.
 - End-to-end test with a seeded change.
 
-#### PS-304: Saved routes and push alerts (server)
+#### OP-304: Saved routes and push alerts (server)
 
-**Owner:** Tatsat · **Points:** 5 · **Priority:** Must · **Epic:** Live updates and alerts · **Depends on:** PS-207
+**Owner:** Tatsat · **Points:** 5 · **Priority:** Must · **Epic:** Live updates and alerts · **Depends on:** OP-207
 
 *As a commuter, I want an alert when my usual route becomes blocked or much slower, so that I can leave early or go another way.*
 
@@ -801,9 +803,9 @@ Acceptance criteria:
 - At most one push per saved route every 2 minutes; a "clear again" message when it recovers.
 - Tests with pywebpush mocked.
 
-#### PS-305: Replay mode
+#### OP-305: Replay mode
 
-**Owner:** Tatsat · **Points:** 3 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** PS-103
+**Owner:** Tatsat · **Points:** 3 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** OP-103
 
 *As the demo team, we want to replay recorded real data from every source, so that the demo works when the weather does not cooperate, and judges always know it is a replay.*
 
@@ -813,9 +815,9 @@ Acceptance criteria:
 - `DATA_MODE=replay` serves the recording on a clock; weather replay uses a real past freeze-thaw night from Open-Meteo's archive.
 - Every page shows a Replay badge while replay is on; replayed data is never presented as live.
 
-#### PS-306: Alerts page and push client
+#### OP-306: Alerts page and push client
 
-**Owner:** Estella · **Points:** 5 · **Priority:** Must · **Epic:** Live updates and alerts · **Depends on:** PS-304
+**Owner:** Estella · **Points:** 5 · **Priority:** Must · **Epic:** Live updates and alerts · **Depends on:** OP-304
 
 *As a commuter, I want to save a route and turn on alerts in two taps, so that I am told when it changes.*
 
@@ -826,9 +828,9 @@ Acceptance criteria:
 - On iOS without a home-screen install, shows "Add to Home Screen to get alerts" instead of failing silently.
 - A "Send me a test alert" button.
 
-#### PS-307: Accessibility settings
+#### OP-307: Accessibility settings
 
-**Owner:** Estella · **Points:** 3 · **Priority:** Must · **Epic:** Web app · **Depends on:** PS-113
+**Owner:** Estella · **Points:** 3 · **Priority:** Must · **Epic:** Web app · **Depends on:** OP-113
 
 *As a low-vision user, I want to control speech, text size and motion, so that the app works the way I need.*
 
@@ -838,9 +840,9 @@ Acceptance criteria:
 - A high-contrast map style passes WCAG 2.2 AA.
 - Every setting works by keyboard and screen reader.
 
-#### PS-308: Community reports with photo check
+#### OP-308: Community reports with photo check
 
-**Owner:** Ipsa · **Points:** 5 · **Priority:** Should · **Epic:** Vision model · **Depends on:** PS-202, PS-206
+**Owner:** Ipsa · **Points:** 5 · **Priority:** Should · **Epic:** Vision model · **Depends on:** OP-202, OP-206
 
 *As a pedestrian, I want to report snow, ice or a blocked path in a few taps, with an optional photo, so that others are warned about places no camera can see.*
 
@@ -851,9 +853,9 @@ Acceptance criteria:
 - Rate limited per client; reports expire (ice 2 h, snow 12 h, blocked 6 h; set in `config/`).
 - A floating Report button with a confirm step.
 
-#### PS-309: Camera readings on the map
+#### OP-309: Camera readings on the map
 
-**Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** PS-204
+**Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** OP-204
 
 *As a user, I want to see each public camera's reading and when it was taken, so that I understand where an ice warning comes from.*
 
@@ -862,9 +864,9 @@ Acceptance criteria:
 - Camera points on the map with reading, confidence and time.
 - Each links to the official camera viewer (511 Alberta or the City); images are not re-hosted unless the terms allow it.
 
-#### PS-310: City dashboard
+#### OP-310: City dashboard
 
-**Owner:** Kaleb · **Points:** 3 · **Priority:** Should · **Epic:** Web app · **Depends on:** PS-206
+**Owner:** Kaleb · **Points:** 3 · **Priority:** Should · **Epic:** Web app · **Depends on:** OP-206
 
 *As a City operations coordinator, I want one list of every barrier ranked by how many trips it affects, so that crews clear the most important places first.*
 
@@ -874,9 +876,9 @@ Acceptance criteria:
 - Clear-first ranking: saved routes affected, weighted by nearby pedestrian counts (`sw7k-ptx8`).
 - Source status panel and CSV export.
 
-#### PS-311: Walk and LRT trips
+#### OP-311: Walk and LRT trips
 
-**Owner:** Kaleb · **Points:** 5 · **Priority:** Should · **Epic:** Routing · **Depends on:** PS-106, PS-207
+**Owner:** Kaleb · **Points:** 5 · **Priority:** Should · **Epic:** Routing · **Depends on:** OP-106, OP-207
 
 *As a wheelchair user who rides the LRT, I want trips that combine walking and the LRT and only use stations whose elevators work, so that I can cross the city step-free.*
 
@@ -887,15 +889,15 @@ Acceptance criteria:
 - Wait time is estimated from the schedule and labelled as an estimate; station elevator and escalator status appears in the report.
 - Behind the feature flag `LRT_TRIPS`; when off, routes are walking only.
 
-#### PS-312: About, sources and privacy pages
+#### OP-312: About, sources and privacy pages
 
-**Owner:** Kashish · **Points:** 2 · **Priority:** Must · **Epic:** Web app · **Depends on:** PS-113
+**Owner:** Kashish · **Points:** 2 · **Priority:** Must · **Epic:** Web app · **Depends on:** OP-113
 
 *As a user, I want to know where the data comes from and what the app stores about me, so that I can trust it.*
 
 Acceptance criteria:
 
-- `/about`: how PathSense works and its limits.
+- `/about`: how OpenPath works and its limits.
 - `/sources`: every source with licence, attribution and live freshness from `/api/status`.
 - `/privacy`: exactly what is stored (anonymous ID, saved routes, push endpoint) and that no images are kept.
 
@@ -907,22 +909,22 @@ Acceptance criteria:
 
 | ID | Story | Owner | Points | Priority | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| [PS-401](https://github.com/tatsatshah05/NatHacks2026/issues/68) | Security and privacy review | Tatsat | 3 | Must | None |
-| [PS-402](https://github.com/tatsatshah05/NatHacks2026/issues/69) | Monitoring and runbook | Tatsat | 3 | Must | None |
-| [PS-403](https://github.com/tatsatshah05/NatHacks2026/issues/70) | Release v1.0 | Tatsat | 2 | Must | PS-401, PS-402 |
-| [PS-404](https://github.com/tatsatshah05/NatHacks2026/issues/71) | Performance and load | Matthew | 5 | Must | PS-207 |
-| [PS-405](https://github.com/tatsatshah05/NatHacks2026/issues/72) | Data backup and restore | Matthew | 2 | Must | PS-102 |
-| [PS-406](https://github.com/tatsatshah05/NatHacks2026/issues/73) | End-to-end tests | Kaleb | 5 | Must | PS-301, PS-303 |
-| [PS-407](https://github.com/tatsatshah05/NatHacks2026/issues/74) | Data quality checks | Kaleb | 3 | Must | PS-103 |
-| [PS-408](https://github.com/tatsatshah05/NatHacks2026/issues/75) | Accessibility audit | Estella | 5 | Must | PS-301 |
-| [PS-409](https://github.com/tatsatshah05/NatHacks2026/issues/76) | Pitch deck and Devpost | Estella | 3 | Must | None |
-| [PS-410](https://github.com/tatsatshah05/NatHacks2026/issues/77) | Web polish and performance | Kashish | 5 | Must | PS-301 |
-| [PS-411](https://github.com/tatsatshah05/NatHacks2026/issues/78) | Judge page and launch assets | Kashish | 2 | Must | PS-410 |
-| [PS-412](https://github.com/tatsatshah05/NatHacks2026/issues/79) | Model monitoring and fallback | Ipsa | 3 | Must | PS-204 |
-| [PS-413](https://github.com/tatsatshah05/NatHacks2026/issues/80) | Technical write-up | Ipsa | 3 | Must | PS-203 |
-| [PS-414](https://github.com/tatsatshah05/NatHacks2026/issues/81) | Backup demo video | Ipsa | 2 | Must | PS-403 |
+| [OP-401](https://github.com/tatsatshah05/NatHacks2026/issues/68) | Security and privacy review | Tatsat | 3 | Must | None |
+| [OP-402](https://github.com/tatsatshah05/NatHacks2026/issues/69) | Monitoring and runbook | Tatsat | 3 | Must | None |
+| [OP-403](https://github.com/tatsatshah05/NatHacks2026/issues/70) | Release v1.0 | Tatsat | 2 | Must | OP-401, OP-402 |
+| [OP-404](https://github.com/tatsatshah05/NatHacks2026/issues/71) | Performance and load | Matthew | 5 | Must | OP-207 |
+| [OP-405](https://github.com/tatsatshah05/NatHacks2026/issues/72) | Data backup and restore | Matthew | 2 | Must | OP-102 |
+| [OP-406](https://github.com/tatsatshah05/NatHacks2026/issues/73) | End-to-end tests | Kaleb | 5 | Must | OP-301, OP-303 |
+| [OP-407](https://github.com/tatsatshah05/NatHacks2026/issues/74) | Data quality checks | Kaleb | 3 | Must | OP-103 |
+| [OP-408](https://github.com/tatsatshah05/NatHacks2026/issues/75) | Accessibility audit | Estella | 5 | Must | OP-301 |
+| [OP-409](https://github.com/tatsatshah05/NatHacks2026/issues/76) | Pitch deck and Devpost | Estella | 3 | Must | None |
+| [OP-410](https://github.com/tatsatshah05/NatHacks2026/issues/77) | Web polish and performance | Kashish | 5 | Must | OP-301 |
+| [OP-411](https://github.com/tatsatshah05/NatHacks2026/issues/78) | Judge page and launch assets | Kashish | 2 | Must | OP-410 |
+| [OP-412](https://github.com/tatsatshah05/NatHacks2026/issues/79) | Model monitoring and fallback | Ipsa | 3 | Must | OP-204 |
+| [OP-413](https://github.com/tatsatshah05/NatHacks2026/issues/80) | Technical write-up | Ipsa | 3 | Must | OP-203 |
+| [OP-414](https://github.com/tatsatshah05/NatHacks2026/issues/81) | Backup demo video | Ipsa | 2 | Must | OP-403 |
 
-#### PS-401: Security and privacy review
+#### OP-401: Security and privacy review
 
 **Owner:** Tatsat · **Points:** 3 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** None
 
@@ -934,7 +936,7 @@ Acceptance criteria:
 - Secrets only in platform settings; `pip-audit` and `npm audit` are clean or each finding is documented.
 - The privacy page matches what is actually stored; a check confirms no images are stored.
 
-#### PS-402: Monitoring and runbook
+#### OP-402: Monitoring and runbook
 
 **Owner:** Tatsat · **Points:** 3 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** None
 
@@ -946,9 +948,9 @@ Acceptance criteria:
 - Structured logs with one line per state change.
 - `docs/RUNBOOK.md` gives the fix for each known failure; `scripts/demo_check.py` prints green or red for each dependency.
 
-#### PS-403: Release v1.0
+#### OP-403: Release v1.0
 
-**Owner:** Tatsat · **Points:** 2 · **Priority:** Must · **Epic:** Launch · **Depends on:** PS-401, PS-402
+**Owner:** Tatsat · **Points:** 2 · **Priority:** Must · **Epic:** Launch · **Depends on:** OP-401, OP-402
 
 *As the team, we want a clean, tagged release at the feature freeze, so that we demo and submit exactly what we tested.*
 
@@ -957,9 +959,9 @@ Acceptance criteria:
 - Feature freeze at hour 40: only bug fixes after it.
 - `CHANGELOG.md` written and `v1.0` tagged; production deploy confirmed by `demo_check`.
 
-#### PS-404: Performance and load
+#### OP-404: Performance and load
 
-**Owner:** Matthew · **Points:** 5 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** PS-207
+**Owner:** Matthew · **Points:** 5 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** OP-207
 
 *As a user on a phone network, I want routes in about a second, so that the app feels instant.*
 
@@ -970,9 +972,9 @@ Acceptance criteria:
 - No cold starts during judging: always-on instance or a documented keep-warm.
 - Measured results in `docs/PERFORMANCE.md`, real numbers only.
 
-#### PS-405: Data backup and restore
+#### OP-405: Data backup and restore
 
-**Owner:** Matthew · **Points:** 2 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** PS-102
+**Owner:** Matthew · **Points:** 2 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** OP-102
 
 *As the team, we want backups we have actually restored, so that a database problem cannot end the demo.*
 
@@ -981,9 +983,9 @@ Acceptance criteria:
 - Daily Postgres backup enabled; one restore tested and written up in the runbook.
 - The replay snapshot is stored in two places.
 
-#### PS-406: End-to-end tests
+#### OP-406: End-to-end tests
 
-**Owner:** Kaleb · **Points:** 5 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** PS-301, PS-303
+**Owner:** Kaleb · **Points:** 5 · **Priority:** Must · **Epic:** Platform and operations · **Depends on:** OP-301, OP-303
 
 *As the team, we want the critical path tested automatically on every merge, so that late fixes never break the demo.*
 
@@ -992,9 +994,9 @@ Acceptance criteria:
 - Playwright: plan a route, open the report, receive a seeded live change, save a route.
 - Runs in CI against the preview deploy, and as a smoke test against production after each deploy.
 
-#### PS-407: Data quality checks
+#### OP-407: Data quality checks
 
-**Owner:** Kaleb · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** PS-103
+**Owner:** Kaleb · **Points:** 3 · **Priority:** Must · **Epic:** Data sources · **Depends on:** OP-103
 
 *As a user, I want the app to notice when a city feed changes or breaks, so that I am never shown silently wrong data.*
 
@@ -1004,9 +1006,9 @@ Acceptance criteria:
 - A daily check compares item counts with the previous day and flags sudden drops.
 - Tests for a changed-schema fixture.
 
-#### PS-408: Accessibility audit
+#### OP-408: Accessibility audit
 
-**Owner:** Estella · **Points:** 5 · **Priority:** Must · **Epic:** Web app · **Depends on:** PS-301
+**Owner:** Estella · **Points:** 5 · **Priority:** Must · **Epic:** Web app · **Depends on:** OP-301
 
 *As a disabled user, I want the whole app to meet WCAG 2.2 AA, so that an accessibility app is itself accessible.*
 
@@ -1016,7 +1018,7 @@ Acceptance criteria:
 - VoiceOver (iOS) and TalkBack (Android) walkthroughs; 200% zoom; reduced motion.
 - Results and fixes recorded in `web/ACCESSIBILITY.md`.
 
-#### PS-409: Pitch deck and Devpost
+#### OP-409: Pitch deck and Devpost
 
 **Owner:** Estella · **Points:** 3 · **Priority:** Must · **Epic:** Launch · **Depends on:** None
 
@@ -1027,9 +1029,9 @@ Acceptance criteria:
 - Slides with every statistic linked to its source in the notes.
 - Devpost write-up with measured metrics and honest limits.
 
-#### PS-410: Web polish and performance
+#### OP-410: Web polish and performance
 
-**Owner:** Kashish · **Points:** 5 · **Priority:** Must · **Epic:** Web app · **Depends on:** PS-301
+**Owner:** Kashish · **Points:** 5 · **Priority:** Must · **Epic:** Web app · **Depends on:** OP-301
 
 *As a judge opening the site from a QR code, I want it to load fast and look finished, so that the first impression is strong.*
 
@@ -1038,9 +1040,9 @@ Acceptance criteria:
 - Lighthouse mobile scores of at least 90 for performance and accessibility (target).
 - Error and offline states on every page; no console errors.
 
-#### PS-411: Judge page and launch assets
+#### OP-411: Judge page and launch assets
 
-**Owner:** Kashish · **Points:** 2 · **Priority:** Must · **Epic:** Launch · **Depends on:** PS-410
+**Owner:** Kashish · **Points:** 2 · **Priority:** Must · **Epic:** Launch · **Depends on:** OP-410
 
 *As a judge, I want to open the app on my own phone in seconds, so that I can try it during judging.*
 
@@ -1049,9 +1051,9 @@ Acceptance criteria:
 - `/demo` with a large QR code, the one-line pitch and a suggested trip to try.
 - Favicon, social preview image and app icons.
 
-#### PS-412: Model monitoring and fallback
+#### OP-412: Model monitoring and fallback
 
-**Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** PS-204
+**Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Vision model · **Depends on:** OP-204
 
 *As a user, I want ice warnings to keep working when cameras or the model fail, so that I am never left without a warning.*
 
@@ -1060,9 +1062,9 @@ Acceptance criteria:
 - Reading confidence and model version shown on `/api/status`.
 - If cameras or the model fail, the app falls back to the weather watch and says so in the UI.
 
-#### PS-413: Technical write-up
+#### OP-413: Technical write-up
 
-**Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Launch · **Depends on:** PS-203
+**Owner:** Ipsa · **Points:** 3 · **Priority:** Must · **Epic:** Launch · **Depends on:** OP-203
 
 *As a judge or future contributor, I want a clear technical overview, so that I can understand and extend the system.*
 
@@ -1071,9 +1073,9 @@ Acceptance criteria:
 - `docs/ARCHITECTURE.md` with the system diagram, data flow and key decisions (ADRs in `docs/adr/`).
 - The technical section of the Devpost, using measured metrics only.
 
-#### PS-414: Backup demo video
+#### OP-414: Backup demo video
 
-**Owner:** Ipsa · **Points:** 2 · **Priority:** Must · **Epic:** Launch · **Depends on:** PS-403
+**Owner:** Ipsa · **Points:** 2 · **Priority:** Must · **Epic:** Launch · **Depends on:** OP-403
 
 *As the team, we want a recorded demo of the full product, so that judging goes ahead even if the network fails.*
 

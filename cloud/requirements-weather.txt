@@ -1,0 +1,5 @@
+# Isolated OP-109 dependencies until OP-102 provides shared dependency files.
+fastapi>=0.115,<0.129
+httpx>=0.27,<0.29
+uvicorn>=0.30,<0.40
+pydantic>=2.9,<3

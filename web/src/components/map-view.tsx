@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import maplibregl, { Map, Marker, NavigationControl } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import { Map, Marker, NavigationControl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Obstruction } from "@/lib/types";
 import { getKindMeta } from "./obstruction-meta";

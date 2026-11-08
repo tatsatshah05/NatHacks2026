@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: OpenPath plan
+    url: https://github.com/tatsatshah05/NatHacks2026/blob/main/PLAN.md
+    about: Scope, architecture and the full backlog.
