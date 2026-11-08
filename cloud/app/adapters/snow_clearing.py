@@ -1,9 +1,10 @@
 """Purpose: warn about curb-ramp snow ridges after verified recent road clearing.
 
-Read the City's road-status feed once per scheduler refresh. Skip inactive NA
-records and individual rows missing status or service-time evidence. Emit each
-recently plowed road's own line as a caution; OP-206 matches that line to walking
-crossings with a 15 m buffer. HTTP retries/backoff belong to OP-103.
+Read the City's road-status feed once per scheduler refresh. Leave out inactive NA
+records and the area records that carry no status at all, and skip individual
+rows missing service-time evidence. Emit each recently plowed road's own line as
+a caution; OP-206 matches that line to walking crossings with a 15 m buffer. HTTP
+retries/backoff belong to OP-103.
 """
 
 from __future__ import annotations
@@ -153,9 +154,13 @@ class SnowClearingAdapter:
                 "$limit": self.page_size if limit is None else limit,
                 "$offset": offset,
                 "$order": "route_id,fid",
-                # Avoid inactive road geometry while still accepting/observing
-                # nullable area records, which normalization skips and logs.
-                "$where": "(upper(route_stat) != 'NA' OR route_stat IS NULL) AND (upper(seg_stat) != 'NA' OR seg_stat IS NULL)",
+                # Leave out inactive roads and the area records, which have no
+                # status at all (222 of 2,240 rows on November 8, 2026): they are
+                # not roads, so they are neither items nor rejected rows.
+                "$where": (
+                    "route_stat IS NOT NULL AND seg_stat IS NOT NULL"
+                    " AND upper(route_stat) != 'NA' AND upper(seg_stat) != 'NA'"
+                ),
             },
             headers=headers,
             timeout=10,
@@ -180,10 +185,18 @@ class SnowClearingAdapter:
         """Build cautions from usable rows, allowing five seconds of clock skew."""
         now = as_utc(now)
         by_route: dict[str, Row] = {}
+        statusless = 0
         for row in rows:
             self.quality.see(row)
-            # Area records often have no status. One such record must not stale
-            # the entire feed or stop an inactive snow event returning zero items.
+            # Area records have no status at all (Socrata leaves a null field out of
+            # the row). They are not roads and not rows gone wrong, so they are
+            # neither items nor rejected rows; the $where already leaves them out
+            # live, and a recorded file may still hold them.
+            if row.get("route_stat") is None or row.get("seg_stat") is None:
+                statusless += 1
+                continue
+            # A row with a status that is not usable text is a row gone wrong: it is
+            # skipped and counted, and it never stales the whole feed.
             try:
                 required_text(row, "route_stat")
                 required_text(row, "seg_stat")
@@ -196,6 +209,10 @@ class SnowClearingAdapter:
             if route_id in by_route and by_route[route_id] != comparison:
                 raise ValueError("Conflicting duplicate road segment: " + route_id)
             by_route[route_id] = comparison
+        if statusless:
+            logger.debug(
+                "AREA %s rows=%d without a status left out", self.source, statusless
+            )
 
         items = []
         for route_id, row in sorted(by_route.items()):
