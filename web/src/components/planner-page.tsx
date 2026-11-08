@@ -183,7 +183,7 @@ export default function PlannerPage() {
           <section className="results" aria-label="Routes">
             <StatusLine>{status}</StatusLine>
             {result && routes.length > 0 && (
-              <ol className="routes">
+              <ol className="routes" role="list">
                 {routes.map((route) => (
                   <Panel as="li" key={`${result.now.getTime()}-${route.rank}`} aria-labelledby={`route-${route.rank}-heading`}>
                     <RouteLine

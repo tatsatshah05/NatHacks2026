@@ -47,14 +47,16 @@ export default function MapView({
     const map = mapRef.current;
     if (!map) return;
     markersRef.current.forEach((marker) => marker.remove());
+    // Markers are a pointer shortcut only. The list beside the map is the keyboard and
+    // screen-reader path and selects the same items, so markers stay out of the tab
+    // order and the accessibility tree (no 50+ duplicate tab stops; WCAG 2.5.8's
+    // equivalent-control exception covers markers that overlap when zoomed out).
     markersRef.current = obstructions.map((item, index) => {
-      const label = getKindMeta(item.kind).label;
-      const element = document.createElement("button");
-      element.type = "button";
+      const element = document.createElement("div");
       element.className = `map-marker${selectedId === item.id ? " is-selected" : ""}`;
-      element.setAttribute("aria-label", `${label}: ${item.title}`);
-      element.setAttribute("aria-pressed", String(selectedId === item.id));
-      // A constant SVG from hazard-shapes.ts; the title goes in aria-label, never in HTML.
+      element.setAttribute("aria-hidden", "true");
+      element.title = `${getKindMeta(item.kind).label}: ${item.title}`;
+      // A constant SVG from hazard-shapes.ts; the item's text never goes into HTML.
       element.innerHTML = hazardShapeSvg(effectShape(item.effect), 24, `marker-${index}`);
       element.addEventListener("click", () => onSelect(item.id));
       return new Marker({ element, anchor: "center" }).setLngLat(item.geometry.coordinates).addTo(map);

@@ -86,13 +86,16 @@ export default function MapPage() {
               </Button>
             </div>
           )}
-          <StatusLine>{count}</StatusLine>
+          <div className="count-row">
+            <StatusLine>{count}</StatusLine>
+            {obstructions.length > 0 && <a href="#city-map">Go to the map</a>}
+          </div>
 
           {!loading && !error && !obstructions.length && (
             <p>No current obstructions are reported. Plan a route to see conditions along it.</p>
           )}
           {obstructions.length > 0 && (
-            <ul className="city-list" aria-label="Current conditions">
+            <ul className="city-list" role="list" aria-label="Current conditions">
               {obstructions.map((item) => {
                 const kind = getKindMeta(item.kind).label;
                 const pressed = selectedId === item.id;
@@ -104,11 +107,10 @@ export default function MapPage() {
                       aria-pressed={pressed}
                       onClick={() => setSelectedId(pressed ? null : item.id)}
                     >
-                      <HazardMark shape={effectShape(item.effect)} label={kind} />
-                      <p className="item-title">{item.title}</p>
-                      {item.detail && <p className="muted">{item.detail}</p>}
+                      <HazardMark shape={effectShape(item.effect)} label={item.title} />
+                      {item.detail && <p>{item.detail}</p>}
                       <p className="muted">
-                        <TimeAgo iso={item.observed_at} now={now} />
+                        {kind}, {effectText(item.effect).toLowerCase()}. <TimeAgo iso={item.observed_at} now={now} />
                       </p>
                       <span className="sr-only">{pressed ? ", shown on the map" : ", show on the map"}</span>
                     </button>
@@ -129,7 +131,7 @@ export default function MapPage() {
           )}
         </div>
 
-        <div className="page-side">
+        <div className="page-side" id="city-map" tabIndex={-1}>
           <h2 className="sr-only">Map</h2>
           <MapView obstructions={obstructions} selectedId={selectedId} onSelect={setSelectedId} />
           <ul className="legend" aria-label="Map shapes">
@@ -139,7 +141,10 @@ export default function MapPage() {
               </li>
             ))}
           </ul>
-          <p className="muted">The list holds everything the map shows. Use the + and − buttons to zoom.</p>
+          <p className="muted">
+            The list holds everything the map shows; choosing an item there marks it on the map. Use the + and −
+            buttons to zoom.
+          </p>
         </div>
       </main>
 

@@ -20,11 +20,11 @@ export default function PlannerMapPreview({ from, to, onPick }: Props) {
       </h2>
       <div className="preview-map">
         <svg className="preview-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-          <g stroke="var(--line)" strokeWidth="6" vectorEffect="non-scaling-stroke" fill="none">
-            <path d="M-5 42 L105 22" />
-            <path d="M-5 80 L105 62" />
-            <path d="M30 -5 L38 105" />
-            <path d="M68 -5 L62 105" />
+          <g stroke="var(--line)" strokeWidth="12" fill="none">
+            <path d="M-5 42 L105 22" vectorEffect="non-scaling-stroke" />
+            <path d="M-5 80 L105 62" vectorEffect="non-scaling-stroke" />
+            <path d="M30 -5 L38 105" vectorEffect="non-scaling-stroke" />
+            <path d="M68 -5 L62 105" vectorEffect="non-scaling-stroke" />
           </g>
           {from && to && (
             <path

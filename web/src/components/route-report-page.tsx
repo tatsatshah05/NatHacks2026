@@ -163,7 +163,9 @@ function ReportBody({ response, status, route, from, to, params, now, announceme
             profile={params.profile}
             now={now}
             headingId={`report-route-${route.rank}`}
+            compact
           />
+          <p className="route-note note">Every condition is described in full under Conditions.</p>
         </Panel>
       </div>
 

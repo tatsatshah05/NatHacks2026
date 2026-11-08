@@ -117,8 +117,10 @@ p {
 .muted {
   color: var(--muted);
 }
+/* Links are underlined: Tailwind's preflight removes it, and colour alone is not enough. */
 a {
   color: var(--action);
+  text-decoration: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 0.18em;
 }
@@ -159,6 +161,7 @@ svg {
   align-items: start;
   display: grid;
   gap: 32px;
+  grid-template-columns: minmax(0, 1fr);
   padding: 24px 0 48px;
 }
 .page-main,
@@ -371,6 +374,12 @@ main > .page-title,
 .field-help,
 .field-note {
   color: var(--muted);
+}
+.field-note:empty {
+  margin: 0;
+}
+.nowrap {
+  white-space: nowrap;
 }
 .field-error {
   font-weight: 700;
@@ -660,13 +669,13 @@ main > .page-title,
   color: var(--muted);
 }
 .route-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
   margin-top: 20px;
 }
-.route-actions .button {
-  flex: 1 1 auto;
+.route-actions .button:first-child {
+  grid-column: 1 / -1;
 }
 .route-note {
   margin: 8px 0 0;
@@ -676,6 +685,8 @@ main > .page-title,
 .form-stack {
   display: grid;
   gap: 16px;
+  /* minmax(0, …) so an input's intrinsic width never widens the column at 200% text. */
+  grid-template-columns: minmax(0, 1fr);
 }
 .results {
   margin-top: 36px;
@@ -738,9 +749,7 @@ main > .page-title,
   top: 62%;
 }
 .map-place.chosen {
-  background: var(--chosen);
-  border-color: var(--chosen);
-  color: var(--on-chosen);
+  border-color: var(--ink);
 }
 .map-place strong {
   display: block;
@@ -749,15 +758,16 @@ main > .page-title,
   display: block;
   color: var(--muted);
 }
-.map-place.chosen span {
-  color: var(--on-chosen);
-}
 .map-place-mark {
-  background: currentColor;
+  border: 2px solid var(--muted);
   border-radius: 50%;
-  flex: 0 0 12px;
-  height: 12px;
-  width: 12px;
+  flex: 0 0 14px;
+  height: 14px;
+  width: 14px;
+}
+.map-place.chosen .map-place-mark {
+  background: var(--ink);
+  border-color: var(--ink);
 }
 .preview-caption {
   color: var(--muted);
@@ -771,10 +781,12 @@ main > .page-title,
   gap: 8px;
 }
 .warnings {
+  list-style: disc;
   margin: 0 0 12px;
   padding-left: 20px;
 }
 .steps {
+  list-style: decimal;
   margin: 0;
   padding-left: 1.75rem;
 }
@@ -862,20 +874,34 @@ main > .page-title,
   margin: 0;
   padding: 0;
 }
-@media (min-width: 900px) {
-  .city-list {
-    max-height: calc(100vh - 200px);
-    overflow: auto;
-    padding: 2px 6px 6px 2px;
-  }
-}
 /* Rows, not cards: decorative rules between them; the pressed row gets an action bar. */
 .city-list > li + li {
   border-top: 1px solid var(--line);
 }
+.list-button .hazard-mark {
+  align-items: flex-start;
+}
+.list-button .hazard-shape {
+  margin-top: 2px;
+}
+.count-row {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
+.count-row .status-line {
+  margin: 0;
+}
+.count-row a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
+}
 .list-button {
   background: transparent;
   border: 0;
+  position: relative;
   border-left: 4px solid transparent;
   cursor: pointer;
   display: grid;

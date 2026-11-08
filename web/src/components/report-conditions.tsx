@@ -1,4 +1,3 @@
-import { getKindMeta } from "./obstruction-meta";
 import HazardMark, { effectShape } from "./ui/hazard-mark";
 import TimeAgo from "./ui/time-ago";
 import { ReportGroup, ReportItem } from "@/lib/planner-types";
@@ -21,7 +20,7 @@ export default function ReportConditions({ groups, now, headingLevel = 3 }: Prop
               {group.label} <span className="group-count">({group.items.length})</span>
             </Heading>
             {group.items.length ? (
-              <ul className="group-items">
+              <ul className="group-items" role="list">
                 {group.items.map((item) => (
                   <li key={`${item.id}-${item.status}`}>
                     <ReportItemText item={item} now={now} />
@@ -39,15 +38,11 @@ export default function ReportConditions({ groups, now, headingLevel = 3 }: Prop
 }
 
 function ReportItemText({ item, now }: { item: ReportItem; now: Date }) {
-  const kind = item.kind ? getKindMeta(item.kind).label : null;
   return (
     <article className="item">
       <HazardMark shape={effectShape(item.effect)} label={effectLabel(item.effect)} />
       <p className="item-title">{item.title}</p>
-      <p className="item-status">
-        {statusLabel(item.status, item.distance_m)}
-        {kind ? `. ${kind}.` : "."}
-      </p>
+      <p className="item-status">{statusLabel(item.status, item.distance_m)}.</p>
       {item.detail && <p>{item.detail}</p>}
       {item.note && <p className="item-note">{item.note}</p>}
       <ul className="item-meta" aria-label="Details">

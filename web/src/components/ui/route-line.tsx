@@ -14,6 +14,8 @@ type Props = {
   headingLevel?: 2 | 3;
   /** Draw the line top to bottom once, when routes arrive. Off under reduced motion. */
   reveal?: boolean;
+  /** Title and status only, for pages where the full condition report follows. */
+  compact?: boolean;
 };
 
 type Stop = { key: string; item: ReportItem };
@@ -54,7 +56,8 @@ export default function RouteLine({
   now,
   headingId,
   headingLevel = 2,
-  reveal = false
+  reveal = false,
+  compact = false
 }: Props) {
   const Heading = headingLevel === 2 ? "h2" : "h3";
   const extra = qualifier(profile);
@@ -70,13 +73,23 @@ export default function RouteLine({
     <div className="route">
       <Heading className="route-heading" id={headingId}>
         <span className="route-eta">{Math.round(route.eta_min)} min</span>, {formatDistance(route.distance_m)}
-        {extra ? `, ${extra}` : ""}
+        {extra ? (
+          <>
+            , <span className="nowrap">{extra}</span>
+          </>
+        ) : (
+          ""
+        )}
       </Heading>
       <p className="route-reason">
         {rank}
         {route.reason ? `. ${route.reason}` : ""}.
       </p>
-      <ol className={reveal ? "route-line is-revealing" : "route-line"} aria-label={`Route ${route.rank}: start, conditions and end`}>
+      <ol
+        className={reveal ? "route-line is-revealing" : "route-line"}
+        // Safari drops list semantics when list-style is none; keep them.
+        role="list"
+        aria-label={`Route ${route.rank}: start, conditions and end`}>
         <li className="stop is-first">
           <span className="stop-mark">
             <HazardShapeIcon shape="start" size={24} />
@@ -110,10 +123,12 @@ export default function RouteLine({
                 <p className="stop-label">
                   <strong>{statusText(item)}</strong>: {effectText(item.effect).toLowerCase()}
                 </p>
-                {item.detail && <p className="stop-detail">{item.detail}</p>}
-                <p className="stop-checked">
-                  <TimeAgo iso={item.observed_at} now={now} />
-                </p>
+                {!compact && item.detail && <p className="stop-detail">{item.detail}</p>}
+                {!compact && (
+                  <p className="stop-checked">
+                    <TimeAgo iso={item.observed_at} now={now} />
+                  </p>
+                )}
               </div>
             </li>
           );
