@@ -9,9 +9,11 @@ from __future__ import annotations
 import time
 from statistics import quantiles
 
+import numpy as np
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from scipy.sparse.csgraph import connected_components
 
 from cloud.app import routing_api
 from cloud.app.network import (
@@ -248,18 +250,31 @@ def test_alternates_are_distinct_and_capped(router) -> None:
             assert shared < 0.7
 
 
-def test_unreachable_destination_gives_no_route(router, grid) -> None:
-    """Cut the top row off for wheelchairs: 1-4 and 3-6 blocked, 2-5 is stairs. No route."""
+def test_unreachable_destination_gives_no_route(router, grid, config) -> None:
+    """Cut the top row off for wheelchairs: 1-4 and 3-6 blocked, 2-5 is stairs.
+
+    The top row is a pocket: its paths work but lead nowhere else. Within a 50 m
+    snap limit the start cannot leave it, so there is no route.
+    """
+    from cloud.app.profiles import Snap
+
     _, index = grid
     hazards = {
         index[(1, 4)]: [EdgeHazard("b:1", Effect.BLOCKED, Confidence.HIGH)],
         index[(3, 6)]: [EdgeHazard("b:2", Effect.BLOCKED, Confidence.HIGH)],
     }
-    result = router.route(*latlng(1), *latlng(9), "wheelchair", hazards)
+    tight = Router(
+        grid[0], config.model_copy(update={"snap": Snap(warn_m=40, max_m=50)})
+    )
+    result = tight.route(*latlng(1), *latlng(9), "wheelchair", hazards)
     assert result.routes == []
     assert any("No route is possible" in w for w in result.warnings)
     # A standard walker can take the stairs, so the same hazards still leave a route.
-    assert router.route(*latlng(1), *latlng(9), "standard", hazards).routes
+    assert tight.route(*latlng(1), *latlng(9), "standard", hazards).routes
+    # With the normal limit the start leaves the pocket for node 4, 100 m away.
+    joined = router.route(*latlng(1), *latlng(9), "wheelchair", hazards)
+    assert joined.routes and joined.origin == (3, pytest.approx(100, abs=1))
+    assert any("cut off" in w and "begins" in w for w in joined.warnings)
 
 
 def test_start_inside_a_blocked_stretch_snaps_to_the_nearest_open_path(
@@ -355,6 +370,88 @@ def test_snapping_never_exceeds_the_configured_limit(router, grid, config) -> No
     )
     # The normal limit (1,000 m) still allows the 100 m move, as the earlier test shows.
     assert router.route(*latlng(1), *latlng(9), "wheelchair", hazards).routes
+
+
+def courtyard() -> tuple[WalkNetwork, int]:
+    """Main Street M1-M2-M3, and a courtyard P1-P2 reached by stairs (P2-M1) or a gate (P1-M2).
+
+    P2 ------- P1        (60 m north of Main Street)
+    |  stairs     |  gate
+    M1 ------- M2 ------- M3
+    """
+
+    def at(x: float, y: float) -> tuple[float, float]:  # grid units of about 100 m
+        return LAT0 + y * DLAT, LNG0 + x * DLNG
+
+    places = {1: at(0, 0), 2: at(1, 0), 3: at(2, 0), 4: at(1, 0.6), 5: at(0.4, 0.6)}
+    nodes = [RawNode(osmid, lat, lng) for osmid, (lat, lng) in places.items()]
+    edges = [
+        RawEdge(1, 2, 100.0, highway="footway", name="Main Street", osmid=1),
+        RawEdge(2, 3, 100.0, highway="footway", name="Main Street", osmid=2),
+        RawEdge(4, 5, 60.0, highway="footway", name="Courtyard path", osmid=3),
+        RawEdge(5, 1, 72.0, highway="steps", name="Courtyard stairs", osmid=4),
+        RawEdge(4, 2, 60.0, highway="footway", name="Courtyard gate", osmid=5),
+    ]
+    net = small_network(edges, nodes)
+    gate = next(
+        e
+        for e in range(net.edge_count)
+        if {int(net.edge_u[e]), int(net.edge_v[e])} == {3, 1}  # P1 and M2
+    )
+    return net, gate
+
+
+def test_a_start_boxed_in_by_stairs_and_a_closure_joins_the_main_network(
+    config,
+) -> None:
+    """The start's nearest node has a usable path, but it only leads around the pocket."""
+    net, gate = courtyard()
+    router = Router(net, config)
+    hazards = {gate: [EdgeHazard("c:gate", Effect.BLOCKED, Confidence.HIGH)]}
+    start = (LAT0 + 0.6 * DLAT, LNG0 + 1.1 * DLNG)  # 10 m from P1, 61 m from M2
+    m3 = (LAT0, LNG0 + 2 * DLNG)
+
+    result = router.route(*start, *m3, "wheelchair", hazards)
+    assert result.routes, result.warnings  # used to be "No route is possible"
+    assert result.origin == (1, pytest.approx(61, abs=1))  # M2, the nearest joined node
+    assert result.routes[0].distance_m == 100  # M2 to M3
+    assert any("cut off" in w and "begins" in w for w in result.warnings)
+
+    # A standard walker can take the stairs, so the start stays in the courtyard.
+    standard = router.route(*start, *m3, "standard", hazards)
+    assert standard.origin[0] == 3 and standard.routes
+    assert not any("cut off" in w for w in standard.warnings)
+
+    # A trip inside the courtyard is not moved out of it.
+    p2 = (LAT0 + 0.6 * DLAT, LNG0 + 0.4 * DLNG)
+    inside = router.route(*start, *p2, "wheelchair", hazards)
+    assert inside.routes[0].distance_m == 60 and inside.warnings == []
+
+    # The end is joined the same way.
+    back = router.route(*m3, *start, "wheelchair", hazards)
+    assert back.destination[0] == 1 and any("ends" in w for w in back.warnings)
+
+
+@pytest.mark.skipif(
+    not DEFAULT_NETWORK_PATH.exists(), reason="cloud/data/network.npz not built"
+)
+def test_the_city_pocket_from_the_op206_review(config) -> None:
+    """#116 review: closing edge 4562 cuts a wheelchair start off between stairs and it."""
+    net = WalkNetwork.load()
+    hazards = {4562: [EdgeHazard("test:closure", Effect.BLOCKED, Confidence.HIGH)]}
+    weights = profile_weights(net, config.profile("wheelchair"), hazards)
+    _, labels = connected_components(net.length_matrix(weights), directed=False)
+    main = np.bincount(labels).argmax()
+    ends = (int(net.edge_u[4562]), int(net.edge_v[4562]))
+    pocket = [node for node in ends if labels[node] != main]
+    if not pocket:
+        pytest.skip("edge 4562 no longer closes off a pocket in this network build")
+    lat, lng = float(net.node_lat[pocket[0]]), float(net.node_lng[pocket[0]])
+    churchill = (53.5444, -113.4909)
+    result = Router(net, config).route(lat, lng, *churchill, "wheelchair", hazards)
+    assert result.routes, result.warnings
+    assert labels[result.origin[0]] == main
+    assert any("cut off" in w for w in result.warnings)
 
 
 def test_a_hazard_still_crossed_is_not_reported_as_avoided(config) -> None:
