@@ -39,9 +39,6 @@ Tatsat (lead), Ipsa, Estella, Kaleb, Matthew and Kashish.
 
 ## Getting Started
 
-Estella's OP-111 work is documented in
-[the snow-clearing adapter guide](docs/ESTELLA_OP111.md), including the missing
-service-time data required before this story can be completed.
 For Estella's OP-110 snow-complaint and trail-closure adapters, see
 [the local preview and integration guide](docs/ESTELLA_OP110.md).
 

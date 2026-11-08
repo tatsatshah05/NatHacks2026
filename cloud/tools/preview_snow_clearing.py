@@ -1,13 +1,14 @@
-"""Purpose: preview the verified portion of OP-111 using recordings or live data.
+"""Purpose: preview snow-clearing cautions using recordings or live data.
 
-The actual recorded feed is inactive (NA). A completed active segment raises a
-clear error until verified service-time evidence and crossing mappings are wired.
+Inactive records produce no warnings. Unusable rows are skipped and logged;
+only verified recent service can create a road-line caution for OP-206 matching.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import sys
 from datetime import UTC, datetime
@@ -31,11 +32,12 @@ def preview(live: bool) -> dict:
         "mode": "live" if live else "replay",
         "count": len(items),
         "items": [item.model_dump(mode="json") for item in items],
-        "integration_needed": "Verified service times and walking-crossing mappings",
+        "integration_needed": "Verified service-time evidence; OP-206 matches road lines to crossings",
     }
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true")
     args = parser.parse_args()
