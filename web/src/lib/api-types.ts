@@ -114,8 +114,180 @@ export interface paths {
         /**
          * List Cameras
          * @description The latest unexpired reading for every camera view, as GeoJSON points.
+         *
+         *     Read at the app's clock, like the map and route hazards, so a replay with a
+         *     frozen or running clock (OP-305) shows the recorded readings of that time.
          */
         get: operations["list_cameras_api_cameras_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/public-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Key
+         * @description The VAPID public key for ``pushManager.subscribe({applicationServerKey})``.
+         */
+        get: operations["public_key_api_push_public_key_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/subscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subscribe
+         * @description Store (or refresh) a browser's push subscription for this client.
+         */
+        post: operations["subscribe_api_push_subscribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Test
+         * @description Send one test notification to every subscription of this client.
+         */
+        post: operations["send_test_api_push_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/saved-routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Routes
+         * @description A client's saved routes, oldest first, with their current status.
+         */
+        get: operations["list_routes_api_saved_routes_get"];
+        put?: never;
+        /**
+         * Save Route
+         * @description Save a trip and compute its baseline route (edges and ETA) right away.
+         */
+        post: operations["save_route_api_saved_routes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/saved-routes/{route_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Route
+         * @description Stop watching a route. 404 when it is not this client's.
+         */
+        delete: operations["delete_route_api_saved_routes__route_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Endpoint
+         * @description Up to 8 addresses, LRT stations and places matching the text, best first.
+         */
+        get: operations["search_endpoint_api_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Report
+         * @description Report snow, ice or a blocked path at a point in Edmonton, with an optional photo.
+         *
+         *     The report becomes a ``community_report`` obstruction straight away and expires
+         *     after the hours in ``config/reports.json``. A photo that the road-condition model
+         *     and Claude both confirm gives medium confidence; anything else gives low, and
+         *     ``photo.checked_by`` names the checks that answered. The photo is never stored.
+         */
+        post: operations["post_report_api_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/priority": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Priority
+         * @description Every active obstruction, ranked clear-first, with a sentence on why.
+         */
+        get: operations["get_priority_api_priority_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -295,6 +467,25 @@ export interface components {
          * @enum {string}
          */
         Confidence: "high" | "medium" | "low";
+        /** DeviceOut */
+        DeviceOut: {
+            /** Device Id */
+            device_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "elevator" | "escalator";
+            /** Location */
+            location: string;
+            /** Role */
+            role: ("platform" | "entrance") | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_service" | "out_of_service";
+        };
         /**
          * Effect
          * @description What the barrier does to routes (PLAN.md section 8).
@@ -373,6 +564,90 @@ export interface components {
          * @enum {string}
          */
         Kind: "elevator_out" | "escalator_out" | "sidewalk_closed" | "road_closed" | "trail_closed" | "trail_caution" | "plow_passed" | "snow_complaints" | "snow" | "ice_risk" | "blocked";
+        /** LatLng */
+        LatLng: {
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+        };
+        /**
+         * LegOut
+         * @description One part of a walk and LRT trip.
+         */
+        LegOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "walk" | "ride" | "transfer";
+            /** From Name */
+            from_name: string;
+            /** To Name */
+            to_name: string;
+            /** Distance M */
+            distance_m: number;
+            /**
+             * Duration Min
+             * @description For a ride: the wait plus the ride.
+             */
+            duration_min: number;
+            /** Geometry */
+            geometry: {
+                [key: string]: unknown;
+            };
+            /** Lines */
+            lines?: string[] | null;
+            /** Line Colors */
+            line_colors?: string[] | null;
+            /** Headsigns */
+            headsigns?: string[] | null;
+            /** Stops */
+            stops?: number | null;
+            /**
+             * Ride Min
+             * @description Scheduled ride time (median over the timetable).
+             */
+            ride_min?: number | null;
+            wait?: components["schemas"]["WaitOut"] | null;
+        };
+        /**
+         * LrtTripOut
+         * @description What only a walk and LRT trip has.
+         */
+        LrtTripOut: {
+            /** Stations */
+            stations: components["schemas"]["StationOut"][];
+            /** Walk Distance M */
+            walk_distance_m: number;
+            /**
+             * Wait Is Estimate
+             * @default true
+             * @constant
+             */
+            wait_is_estimate: true;
+            /**
+             * Schedule
+             * @description The ETS GTFS feed version the times come from.
+             */
+            schedule: string;
+            /** Attribution */
+            attribution: string;
+            /**
+             * Maps Note
+             * @default Google Maps and Apple Maps plan their own transit trip and may not use the same stations or elevators.
+             */
+            maps_note: string;
+        };
+        /** NearestCounter */
+        NearestCounter: {
+            /** Name */
+            name: string;
+            /** Distance M */
+            distance_m: number;
+            /** Daily Pedestrians */
+            daily_pedestrians: number;
+        };
         /**
          * ObstructionCollection
          * @description Response of ``GET /api/obstructions``: a GeoJSON FeatureCollection.
@@ -453,6 +728,137 @@ export interface components {
          * @enum {string}
          */
         Outcome: "new" | "changed" | "same" | "older";
+        /** PedestrianCountsInfo */
+        PedestrianCountsInfo: {
+            /** Dataset */
+            dataset: string;
+            /** Url */
+            url: string;
+            /** Attribution */
+            attribution: string;
+            /** Counters */
+            counters: number;
+            /** Window Start */
+            window_start: string | null;
+            /** Window End */
+            window_end: string | null;
+            /** Radius M */
+            radius_m: number;
+            /** Statistic */
+            statistic: string;
+        };
+        /**
+         * PhotoResult
+         * @description What happened to the photo, for the response. Never the photo itself.
+         */
+        PhotoResult: {
+            /** Received */
+            received: boolean;
+            /** Checked */
+            checked: boolean;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "none" | "agrees" | "disagrees" | "unusable" | "unverifiable" | "unavailable";
+            /** Label */
+            label: string | null;
+            /** Note */
+            note: string;
+            /**
+             * Checked By
+             * @description The checks that answered for this photo, in the order they ran: 'model' (the ONNX road-condition model) and 'claude'. Empty when no check answered. Medium confidence with both is the decided setup.
+             */
+            checked_by: ("model" | "claude")[];
+        };
+        /** PriorityItem */
+        PriorityItem: {
+            /**
+             * Rank
+             * @description 1 is the barrier to clear first
+             */
+            rank: number;
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Detail */
+            detail: string | null;
+            kind: components["schemas"]["Kind"];
+            effect: components["schemas"]["Effect"];
+            category: components["schemas"]["Category"];
+            confidence: components["schemas"]["Confidence"];
+            /** Source */
+            source: string;
+            /** Attribution */
+            attribution: string;
+            /** Url */
+            url: string | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Age S */
+            age_s: number;
+            /** Lng */
+            lng: number;
+            /** Lat */
+            lat: number;
+            /** On Network */
+            on_network: boolean;
+            /** Saved Routes Affected */
+            saved_routes_affected: number;
+            /** Pedestrian Weight */
+            pedestrian_weight: number;
+            nearest_counter: components["schemas"]["NearestCounter"] | null;
+            /** Score */
+            score: number;
+            /** Why */
+            why: string;
+        };
+        /** PriorityResponse */
+        PriorityResponse: {
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Mode */
+            mode: string;
+            /** Saved Routes */
+            saved_routes: number;
+            /** Saved Routes Pending */
+            saved_routes_pending: number;
+            /** People Scale */
+            people_scale: number;
+            pedestrian_counts: components["schemas"]["PedestrianCountsInfo"] | null;
+            /** Items */
+            items: components["schemas"]["PriorityItem"][];
+        };
+        /** PublicKeyOut */
+        PublicKeyOut: {
+            /** Public Key */
+            public_key: string | null;
+            /** Push Enabled */
+            push_enabled: boolean;
+        };
+        /** PushKeys */
+        PushKeys: {
+            /** P256Dh */
+            p256dh: string;
+            /** Auth */
+            auth: string;
+        };
+        /**
+         * PushSubscription
+         * @description ``PushSubscription.toJSON()`` from the browser, minus ``expirationTime``.
+         */
+        PushSubscription: {
+            /** Endpoint */
+            endpoint: string;
+            keys: components["schemas"]["PushKeys"];
+        };
         /** ReportGroupOut */
         ReportGroupOut: {
             category: components["schemas"]["Category"];
@@ -506,6 +912,39 @@ export interface components {
              */
             note: string | null;
         };
+        /**
+         * ReportResult
+         * @description The ``POST /api/reports`` response: the stored item's identity and what happened.
+         */
+        ReportResult: {
+            /** Id */
+            id: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "snow" | "ice" | "blocked";
+            kind: components["schemas"]["Kind"];
+            effect: components["schemas"]["Effect"];
+            confidence: components["schemas"]["Confidence"];
+            /** Title */
+            title: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Expires In Hours */
+            expires_in_hours: number;
+            photo: components["schemas"]["PhotoResult"];
+            /** Message */
+            message: string;
+        };
         /** RouteOut */
         RouteOut: {
             /** Rank */
@@ -533,6 +972,11 @@ export interface components {
             google_maps_url: string;
             /** Apple Maps Url */
             apple_maps_url: string;
+            /** Mode */
+            mode?: ("walk" | "walk_lrt") | null;
+            /** Legs */
+            legs?: components["schemas"]["LegOut"][] | null;
+            lrt?: components["schemas"]["LrtTripOut"] | null;
         };
         /**
          * RouteReportOut
@@ -567,6 +1011,89 @@ export interface components {
             warnings: string[];
             /** Apple Maps Note */
             apple_maps_note: string;
+            /** Mode */
+            mode?: ("walk" | "walk_lrt") | null;
+        };
+        /** SavedRouteIn */
+        SavedRouteIn: {
+            /**
+             * Client Id
+             * @description A random URL-safe id (16 to 64 characters) the browser generated and keeps.
+             * @example c7Hq2pL9xZ4vT1mK8nR3
+             */
+            client_id: string;
+            /**
+             * Name
+             * @example Work
+             */
+            name: string;
+            from: components["schemas"]["LatLng"];
+            to: components["schemas"]["LatLng"];
+            /**
+             * Profile
+             * @description wheelchair, walker_cane, low_vision or standard
+             * @example wheelchair
+             */
+            profile: string;
+        };
+        /** SavedRouteOut */
+        SavedRouteOut: {
+            /** Id */
+            id: number;
+            /** Client Id */
+            client_id: string;
+            /** Name */
+            name: string;
+            from: components["schemas"]["LatLng"];
+            to: components["schemas"]["LatLng"];
+            /** Profile */
+            profile: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "changed" | "impossible";
+            /** Eta Min */
+            eta_min: number | null;
+            /** Baseline Eta Min */
+            baseline_eta_min: number | null;
+            /** Last Checked At */
+            last_checked_at: string | null;
+            /** Last Push At */
+            last_push_at: string | null;
+            /** Url */
+            url: string;
+        };
+        /** SavedRoutesOut */
+        SavedRoutesOut: {
+            /** Client Id */
+            client_id: string;
+            /** Routes */
+            routes: components["schemas"]["SavedRouteOut"][];
+        };
+        /**
+         * SearchResult
+         * @description One match of ``GET /api/search``.
+         */
+        SearchResult: {
+            /** Label */
+            label: string;
+            /** Detail */
+            detail: string | null;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "address" | "station" | "place";
         };
         /**
          * SourceStatus
@@ -609,6 +1136,27 @@ export interface components {
             age_s?: number | null;
         };
         /**
+         * StationOut
+         * @description A station the trip uses, with its elevator and escalator status.
+         */
+        StationOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Access
+             * @enum {string}
+             */
+            access: "elevator" | "at_grade";
+            /** Usable */
+            usable: boolean;
+            /** Note */
+            note: string | null;
+            /** Devices */
+            devices: components["schemas"]["DeviceOut"][];
+        };
+        /**
          * Status
          * @description How an item relates to one route.
          * @enum {string}
@@ -637,6 +1185,47 @@ export interface components {
             /** Distance M */
             distance_m: number;
         };
+        /** SubscribeIn */
+        SubscribeIn: {
+            /**
+             * Client Id
+             * @description A random URL-safe id (16 to 64 characters) the browser generated and keeps.
+             * @example c7Hq2pL9xZ4vT1mK8nR3
+             */
+            client_id: string;
+            subscription: components["schemas"]["PushSubscription"];
+        };
+        /** SubscribeOut */
+        SubscribeOut: {
+            /** Client Id */
+            client_id: string;
+            /** Created */
+            created: boolean;
+            /** Subscriptions */
+            subscriptions: number;
+            /** Push Enabled */
+            push_enabled: boolean;
+        };
+        /** TestIn */
+        TestIn: {
+            /**
+             * Client Id
+             * @description A random URL-safe id (16 to 64 characters) the browser generated and keeps.
+             * @example c7Hq2pL9xZ4vT1mK8nR3
+             */
+            client_id: string;
+        };
+        /** TestOut */
+        TestOut: {
+            /** Client Id */
+            client_id: string;
+            /** Sent */
+            sent: number;
+            /** Subscriptions */
+            subscriptions: number;
+            /** Push Enabled */
+            push_enabled: boolean;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -649,6 +1238,33 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * WaitOut
+         * @description The wait for a train: always an estimate from the schedule.
+         *
+         *     Build these (and every model below) with every field passed: ``/api/route``
+         *     leaves unset fields out of the response, defaults included.
+         */
+        WaitOut: {
+            /** Minutes */
+            minutes: number;
+            /**
+             * Estimate
+             * @default true
+             * @constant
+             */
+            estimate: true;
+            /**
+             * Headway Min
+             * @description Scheduled time between trains at this hour (lines combined).
+             */
+            headway_min: number;
+            /**
+             * Note
+             * @default Estimate: half the scheduled time between trains at this hour, from the ETS schedule. Not a live arrival time.
+             */
+            note: string;
         };
         /**
          * WeatherResponse
@@ -747,6 +1363,8 @@ export interface operations {
                 to: string;
                 /** @description wheelchair, walker_cane, low_vision or standard */
                 profile?: string;
+                /** @description walk, or walk_lrt for walk and LRT trips (LRT_TRIPS on) */
+                mode?: "walk" | "walk_lrt";
             };
             header?: never;
             path?: never;
@@ -845,6 +1463,339 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CameraCollection"];
+                };
+            };
+        };
+    };
+    public_key_api_push_public_key_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicKeyOut"];
+                };
+            };
+        };
+    };
+    subscribe_api_push_subscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscribeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscribeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_test_api_push_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_routes_api_saved_routes_get: {
+        parameters: {
+            query: {
+                /** @description The browser's anonymous id */
+                client_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedRoutesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_route_api_saved_routes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedRouteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedRouteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_route_api_saved_routes__route_id__delete: {
+        parameters: {
+            query: {
+                /** @description The browser's anonymous id */
+                client_id: string;
+            };
+            header?: never;
+            path: {
+                route_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_endpoint_api_search_get: {
+        parameters: {
+            query?: {
+                /** @description An address, LRT station or place name, complete or partial */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResult"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_report_api_reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Client Id
+                     * @description The device's anonymous id: 16 to 64 letters, digits, _ or -.
+                     * @example 3f9c2a7d1e8b4c6f9a0d2e4b6c8f1a3d
+                     */
+                    client_id: string;
+                    /**
+                     * Type
+                     * @enum {string}
+                     */
+                    type: "snow" | "ice" | "blocked";
+                    /** Lat */
+                    lat: number;
+                    /** Lng */
+                    lng: number;
+                    /**
+                     * Note
+                     * @description Optional plain text shown with the report.
+                     */
+                    note?: string | null;
+                    /**
+                     * Photo
+                     * @description Optional JPEG or PNG file, at most 5 MB. Classified in memory and never stored.
+                     */
+                    photo?: string | null;
+                };
+                "application/json": {
+                    /**
+                     * Client Id
+                     * @description The device's anonymous id: 16 to 64 letters, digits, _ or -.
+                     * @example 3f9c2a7d1e8b4c6f9a0d2e4b6c8f1a3d
+                     */
+                    client_id: string;
+                    /**
+                     * Type
+                     * @enum {string}
+                     */
+                    type: "snow" | "ice" | "blocked";
+                    /** Lat */
+                    lat: number;
+                    /** Lng */
+                    lng: number;
+                    /**
+                     * Note
+                     * @description Optional plain text shown with the report.
+                     */
+                    note?: string | null;
+                    /**
+                     * Photo
+                     * @description Optional JPEG or PNG, base64 encoded (a data: URL is accepted), at most 5 MB decoded. Classified in memory and never stored.
+                     */
+                    photo?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResult"];
+                };
+            };
+            /** @description The body or the photo is too large (5 MB photo limit). */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not JSON or multipart, or the photo is not JPEG or PNG. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many reports; see the Retry-After header. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_priority_api_priority_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriorityResponse"];
                 };
             };
         };

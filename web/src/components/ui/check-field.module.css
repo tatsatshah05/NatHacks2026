@@ -1,0 +1,31 @@
+/* OP-301: a native checkbox row. The box is the browser's own control, drawn in ink
+   (accent-color) at 24 px so it reads in glare; the whole row is the 44 px target. */
+
+.field {
+  margin: 0;
+}
+
+.row {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.box {
+  accent-color: var(--ink);
+  flex: 0 0 24px;
+  height: 24px;
+  margin: 0;
+  width: 24px;
+}
+
+.label {
+  font-weight: 700;
+}
+
+.help {
+  color: var(--muted);
+  margin: 0 0 0 36px;
+}

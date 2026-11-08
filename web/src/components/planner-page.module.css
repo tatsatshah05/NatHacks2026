@@ -1,0 +1,67 @@
+/* OP-301: the live planner. Everything here is quiet; the route line is the bold part. */
+
+.results {
+  min-width: 0;
+}
+
+/* The route drawn as the thick line on the map: its top rule thickens in the line's colour. */
+.selected {
+  border-top: 6px solid var(--action);
+}
+
+.notes {
+  color: var(--ink);
+}
+
+.refresh {
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+
+.side {
+  min-width: 0;
+}
+
+/* Focus arrives here from "Show on the map"; the ring sits around the whole map. */
+.side:focus-visible {
+  outline-offset: 4px;
+}
+
+.mapLoading {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  display: flex;
+  height: 56vh;
+  justify-content: center;
+  max-height: 520px;
+  min-height: 300px;
+}
+
+@media (min-width: 900px) {
+  .mapLoading {
+    height: calc(100vh - 330px);
+    max-height: none;
+    min-height: 380px;
+  }
+}
+
+.mapNote {
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+.report {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 12px;
+}
+
+.reportTitle {
+  font-size: 1.25rem;
+}
+
+.report p {
+  margin-bottom: 8px;
+}

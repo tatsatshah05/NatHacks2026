@@ -11,16 +11,21 @@
 - ``SCHEDULER``: ``on`` (the default) runs every data source on its cadence (OP-103);
   ``off`` serves only what the database already holds, which tests rely on.
 - ``REPLAY_SNAPSHOT``: in replay mode, the folder of recorded responses
-  (``cloud/tests/fixtures`` for ``make dev``). ``REPLAY_AT`` optionally freezes the clock.
+  (``cloud/tests/fixtures`` for ``make dev``). ``REPLAY_AT`` optionally freezes the clock;
+  ``REPLAY_CLOCK=running`` lets it advance from the recording's time (OP-305), and
+  ``WEATHER_REPLAY`` picks a named weather recording (``sources.py``).
 - ``SOCRATA_APP_TOKEN``: raises the City open data rate limit. Optional.
+- ``LRT_TRIPS``: ``true`` adds walk and LRT trips to ``/api/route?mode=walk_lrt``
+  (OP-311). Off by default; then every route is walking only.
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
@@ -32,11 +37,18 @@ from pydantic import BaseModel
 
 from cloud.app import (
     ingest_api,
+    lrt,
     obstructions_api,
+    priority,
+    push,
+    push_api,
+    reports_api,
     routing_api,
+    search,
     sources,
     status,
     weather_service,
+    ws,
 )
 from cloud.app.camera_ice_routing import CameraIceHazardProvider
 from cloud.app.camera_readings import CameraReadingStore
@@ -144,6 +156,49 @@ def camera_ice_provider(
         return base
 
 
+async def stop_store_users(app: FastAPI, scheduler: Scheduler | None) -> bool:
+    """Stop everything that uses the database, in order. True if all of it stopped.
+
+    The engine may be disposed only after this returns True. In-memory SQLite (tests,
+    ``db.py``) has one shared connection, and closing it while a worker thread is
+    still executing on it crashes the process (a segmentation fault in CI). The
+    order follows who calls whom:
+
+    1. the scheduler, which writes the store (and whose runs feed the live hub);
+    2. the push watcher (OP-304), whose ticks read saved routes and hazards;
+    3. the live hub (OP-303), whose timer and re-routes read hazards;
+    4. the hazard providers (OP-206 matcher, OP-205 camera ice), whose rebuild
+       thread and camera reads use the database.
+
+    Every step is bounded and wrapped, so one failure never skips the others.
+    """
+    steps: list[tuple[str, Callable[[], Awaitable[bool]]]] = []
+    if scheduler is not None:
+        steps.append(("scheduler", scheduler.stop))
+    push_services = getattr(app.state, "push", None)
+    watcher = push_services.watcher if push_services is not None else None
+    if watcher is not None:
+        steps.append(("push watcher", lambda: asyncio.to_thread(watcher.stop)))
+    hub = getattr(app.state, "live", None)
+    if hub is not None:
+        steps.append(("live hub", hub.stop))
+    provider = getattr(app.state, "hazard_provider", None)
+    provider_stop = getattr(provider, "stop", None)
+    if callable(provider_stop):
+        steps.append(("hazard provider", lambda: asyncio.to_thread(provider_stop)))
+    all_stopped = True
+    for name, stop in steps:
+        try:
+            stopped = await stop()
+        except Exception:  # one failure must not skip the other stops
+            log.exception("SHUTDOWN %s failed to stop", name)
+            stopped = False
+        if not stopped:
+            all_stopped = False
+            log.warning("SHUTDOWN %s did not stop cleanly", name)
+    return all_stopped
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Open the store, build the data sources and start the scheduler; undo it all at shutdown."""
@@ -155,6 +210,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     camera_store.create_tables()
     camera_store.purge_expired(utcnow())  # drop readings that expired over a week ago
     app.state.camera_store = camera_store
+    app.state.photo_checker = reports_api.build_photo_checker()  # OP-308
     mode: str = app.state.mode
     snapshot_raw = os.environ.get("REPLAY_SNAPSHOT")
     snapshot = Path(snapshot_raw) if snapshot_raw else None
@@ -163,24 +219,32 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # In replay mode REPLAY_AT freezes it, so recorded closures stay active everywhere.
     clock = sources.replay_clock(snapshot) if mode == "replay" else utcnow
     app.state.clock = clock
+    if mode == "replay" and snapshot is not None:
+        # OP-305: recorded camera readings, re-labelled "replay"; none in the fixtures.
+        sources.load_replay_cameras(snapshot, camera_store, clock())
     app.state.scheduler = None
     app.state.weather_service = None
     # Routing (OP-207): the prebuilt walking network loads in well under a second.
     # Without the file (a bare checkout) /api/route answers 503 instead of crashing startup.
     app.state.router = None
     app.state.hazard_provider = None
+    app.state.lrt_planner = None  # OP-311: only with LRT_TRIPS on
     if DEFAULT_NETWORK_PATH.exists():
         network = WalkNetwork.load()
         app.state.router = Router(network, load_routing_config())
         # OP-206: matches the store's active obstructions to network edges for routing.
         # OP-205 wraps it below, once the weather service exists.
         app.state.hazard_provider = HazardProvider(store, network)
+        if lrt.enabled(os.environ.get("LRT_TRIPS")):
+            app.state.lrt_planner = lrt.load_planner(app.state.router)
     # One HTTP client per flavour, shared by every adapter and closed at shutdown.
     async with httpx.AsyncClient(timeout=10) as async_client:
         with httpx.Client(timeout=10) as sync_client:
             scheduler: Scheduler | None = None
             if run_scheduler:
-                weather = sources.build_weather_service(mode, snapshot, async_client)
+                weather = sources.build_weather_service(
+                    mode, snapshot, async_client, clock=clock
+                )
                 app.state.weather_service = (
                     weather  # read by weather_service.get_weather
                 )
@@ -203,12 +267,29 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     app.state.hazard_provider,
                     app.state.mode,
                 )
+            # OP-304: saved routes and push alerts; the watcher thread rechecks saved
+            # routes when hazards change (idle with SCHEDULER=off, as in tests).
+            app.state.push = push.start_route_watcher(
+                store.engine,
+                app.state.router,
+                app.state.hazard_provider,
+                hazard_clock=clock,
+                run=run_scheduler,
+            )
+            app.state.live = ws.attach(app)  # OP-303: WS /ws live updates
             try:
                 yield
             finally:
-                if scheduler is not None:
-                    await scheduler.stop()
-                store.engine.dispose()
+                # Every thread that uses the store stops before the engine closes.
+                if await stop_store_users(app, scheduler):
+                    store.engine.dispose()
+                else:
+                    # Closing the connection under a running call is what crashed;
+                    # leave it to process exit instead.
+                    log.warning(
+                        "SHUTDOWN a database call is still running; "
+                        "not disposing the engine"
+                    )
 
 
 def create_app() -> FastAPI:
@@ -225,7 +306,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=origins,
         allow_origin_regex=origin_regex,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
     )
 
@@ -234,6 +315,12 @@ def create_app() -> FastAPI:
     app.include_router(routing_api.router)
     app.include_router(weather_service.router)
     app.include_router(ingest_api.router)
+    app.include_router(push_api.router)
+    app.include_router(search.router)
+    app.state.search = search.load_index()  # OP-302: prebuilt, None if missing (503)
+    app.include_router(reports_api.router)
+    app.include_router(ws.router)  # WS /ws (OP-303)
+    app.include_router(priority.router)  # GET /api/priority (OP-310)
 
     @app.get("/health", tags=["ops"])
     def health() -> Health:

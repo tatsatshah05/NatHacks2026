@@ -10,8 +10,17 @@ and one retry, and after 3 API failures in a row the check pauses for 5 minutes
 (every frame it would have checked posts `unknown`), then tries again.
 
 Frames are sent to the Anthropic API in memory and never stored by us. The key is
-ANTHROPIC_API_KEY on the worker laptop only; the API on Render never needs it, and
+ANTHROPIC_API_KEY on the worker laptop, and on Render for report photos (below);
 `make dev` and the tests run without it.
+
+Report photos (OP-308; lead decision, November 8)
+-------------------------------------------------
+``ClaudeCheck(model, subject="report_photo")`` checks a community report photo instead
+of a camera frame: a pedestrian's phone photo of a sidewalk, path or crossing. It has
+its own system prompt (``REPORT_PHOTO_RULES``), labels with the same six classes, and
+adds ``blocked()``, a yes/no/unclear answer to "Is the walking path in this photo
+blocked?", because no road-condition class can confirm a blocked path. The default
+subject, ``camera_frame``, sends exactly the request the camera worker always sent.
 """
 
 from __future__ import annotations
@@ -24,7 +33,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import anthropic
 from PIL import Image
@@ -78,6 +87,76 @@ SCHEMA = {
 }
 
 
+# What ClaudeCheck looks at: a road-camera frame (the worker) or a report photo (the API).
+Subject = Literal["camera_frame", "report_photo"]
+SUBJECTS: tuple[Subject, ...] = ("camera_frame", "report_photo")
+
+# The report-photo label schema: the same classes, with the reason about the walking surface.
+REPORT_LABEL_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "label": {"type": "string", "enum": list(LABELS)},
+        "reason": {
+            "type": "string",
+            "description": "One short sentence: what on the walking surface shows this.",
+        },
+    },
+    "required": ["label", "reason"],
+    "additionalProperties": False,
+}
+
+BlockedAnswer = Literal["yes", "no", "unclear"]
+BLOCKED_ANSWERS: tuple[BlockedAnswer, ...] = ("yes", "no", "unclear")
+BLOCKED_QUESTION = "Is the walking path in this photo blocked?"
+BLOCKED_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "blocked": {"type": "string", "enum": list(BLOCKED_ANSWERS)},
+        "reason": {
+            "type": "string",
+            "description": "One short sentence: what in the photo shows this.",
+        },
+    },
+    "required": ["blocked", "reason"],
+    "additionalProperties": False,
+}
+
+REPORT_PHOTO_RULES = """
+You check photos for OpenPath, an accessible route planner in Edmonton. A person sends a photo
+from their phone with a community report of snow, ice or a blocked path, taken where they walk
+or roll. Look only at the walking surface in the photo: the sidewalk, path, curb ramp or
+pedestrian crossing the person is on or facing. Lawns, boulevards, roofs, parked cars, the sky
+and the road for cars are clues at most. You are asked one of two questions.
+
+To label the walking surface, give exactly one class, the first that fits in this order:
+1. unusable: the photo does not show a walking surface well enough to judge. For example it is
+   dark, blurred or covered by a finger; it shows mostly sky, a wall, a person, a room, a
+   screen or an object up close; or it shows no sidewalk, path or crossing at all. Do not guess.
+2. snow_covered: snow, packed snow or slush covers the whole walking surface in view, with no
+   bare pavement showing through.
+3. snow_partial: snow or slush covers part of the walking surface (ruts, a windrow or snowbank
+   on the path or curb ramp, snow in the crosswalk) and bare pavement shows elsewhere. Snow only
+   on the lawn or boulevard beside a bare sidewalk is not snow on the walking surface.
+4. ice: a frozen layer on the walking surface: a glassy or polished sheen that does not look like
+   liquid water, white grainy frost, frozen puddles or frozen ruts. Only when you are confident;
+   an uncertain glossy surface is wet. Ice under snow is a snow class.
+5. wet: bare pavement that is dark and saturated, with reflections, sheen or puddles.
+6. dry: bare, matte pavement with no reflections.
+
+To say whether the walking path is blocked, answer:
+- yes: something in the photo stops a person walking or using a wheelchair from going along
+  the path or across the crossing, for example a fence, barrier, closed sign or construction
+  across it, a snowbank or windrow across the path or its curb ramp, or a vehicle or object
+  filling its width.
+- no: the path in the photo is open, even if it is snowy, icy or narrow.
+- unclear: the photo does not show a walking path well enough to tell.
+
+Judge what the pixels show, never what the report, the weather or the place suggests.
+Answer with the JSON object only. The reason is one short plain sentence about the walking
+surface or what blocks it.
+"""
+
+
 def _system_prompt() -> str:
     guide = GUIDE_PATH.read_text(encoding="utf-8")
     return (
@@ -86,6 +165,11 @@ def _system_prompt() -> str:
         f"{guide}\n{NIGHT_RULES}\n"
         "Answer with the JSON object only. The reason is one short plain sentence about the road surface."
     )
+
+
+def _report_photo_prompt() -> str:
+    """The system prompt for community report photos (subject ``report_photo``)."""
+    return REPORT_PHOTO_RULES.strip()
 
 
 def _prices(answered: str, requested: str) -> tuple[float, float, float]:
@@ -107,6 +191,17 @@ class AiLabel:
     )
 
 
+@dataclass
+class AiBlocked:
+    """Claude's answer to "Is the walking path in this photo blocked?" (report photos)."""
+
+    blocked: BlockedAnswer
+    reason: str
+    usage: dict[str, int] = field(default_factory=dict)
+    cost_usd: float = 0.0
+    model: str = ""
+
+
 class ClaudeCheck:
     """One Claude call per frame; returns None on any failure (the caller posts unknown)."""
 
@@ -116,17 +211,24 @@ class ClaudeCheck:
         client: anthropic.Anthropic | None = None,
         timeout_s: float = TIMEOUT_S,
         clock: Callable[[], float] = time.monotonic,
+        subject: Subject = "camera_frame",
     ) -> None:
         if model not in PRICES:
             raise ValueError(f"Unsupported model for the AI check: {model}")
+        if subject not in SUBJECTS:
+            raise ValueError(f"Unsupported subject for the AI check: {subject}")
         self.model = model
+        self.subject = subject
         self.client = client or anthropic.Anthropic(
             timeout=timeout_s, max_retries=MAX_RETRIES
+        )
+        prompt = (
+            _system_prompt() if subject == "camera_frame" else _report_photo_prompt()
         )
         self.system = [
             {
                 "type": "text",
-                "text": _system_prompt(),
+                "text": prompt,
                 "cache_control": {"type": "ephemeral"},
             }
         ]
@@ -135,6 +237,40 @@ class ClaudeCheck:
         self._paused_until = 0.0
 
     def label(self, frame: bytes) -> AiLabel | None:
+        """One of LABELS for the frame or photo, or None on any failure."""
+        if self.subject == "camera_frame":
+            asked = self._ask(frame, "Label this frame.", SCHEMA)
+        else:
+            asked = self._ask(frame, "Label this photo.", REPORT_LABEL_SCHEMA)
+        if asked is None:
+            return None
+        data, response, answered = asked
+        if data.get("label") not in LABELS:
+            return None
+        counts, cost = self._measure(response, answered)
+        return AiLabel(
+            data["label"], str(data.get("reason", ""))[:200], counts, cost, answered
+        )
+
+    def blocked(self, photo: bytes) -> AiBlocked | None:
+        """Whether the walking path in a report photo is blocked, or None on any failure."""
+        if self.subject != "report_photo":
+            raise ValueError("The blocked question is only asked about report photos")
+        asked = self._ask(photo, BLOCKED_QUESTION, BLOCKED_SCHEMA)
+        if asked is None:
+            return None
+        data, response, answered = asked
+        if data.get("blocked") not in BLOCKED_ANSWERS:
+            return None
+        counts, cost = self._measure(response, answered)
+        return AiBlocked(
+            data["blocked"], str(data.get("reason", ""))[:200], counts, cost, answered
+        )
+
+    def _ask(
+        self, frame: bytes, question: str, schema: dict[str, Any]
+    ) -> tuple[dict[str, Any], Any, str] | None:
+        """One structured call: (the JSON object, the response, the model that answered)."""
         if self._clock() < self._paused_until:
             return None
         try:
@@ -153,7 +289,7 @@ class ClaudeCheck:
                         "data": base64.standard_b64encode(frame).decode("ascii"),
                     },
                 },
-                {"type": "text", "text": "Label this frame."},
+                {"type": "text", "text": question},
             ]
             request: dict[str, Any] = {
                 "model": self.model,
@@ -162,7 +298,7 @@ class ClaudeCheck:
                 "messages": [{"role": "user", "content": content}],
                 "output_config": {
                     "effort": "low",
-                    "format": {"type": "json_schema", "schema": SCHEMA},
+                    "format": {"type": "json_schema", "schema": schema},
                 },
             }
             if self.model in FALLBACK_MODELS:
@@ -195,8 +331,12 @@ class ClaudeCheck:
             data = json.loads(text)
         except json.JSONDecodeError:
             return None
-        if not isinstance(data, dict) or data.get("label") not in LABELS:
+        if not isinstance(data, dict):
             return None
+        return data, response, answered
+
+    def _measure(self, response: Any, answered: str) -> tuple[dict[str, int], float]:
+        """Token counts from response.usage and their measured cost in USD."""
         usage = response.usage
         counts = {
             "input": usage.input_tokens or 0,
@@ -211,9 +351,7 @@ class ClaudeCheck:
             + counts["cache_read"] * price_cache
             + counts["output"] * price_out
         ) / 1_000_000
-        return AiLabel(
-            data["label"], str(data.get("reason", ""))[:200], counts, cost, answered
-        )
+        return counts, cost
 
     def _failed(self) -> None:
         self._failures += 1

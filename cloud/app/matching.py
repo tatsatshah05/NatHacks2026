@@ -39,7 +39,10 @@ Speed and safety
     ``HazardProvider`` rebuilds the map from the store at most every
     ``REFRESH_S`` seconds, in a background thread, so a route request only reads a
     dictionary. A failed rebuild keeps the last good map: routing never depends on
-    a database read succeeding.
+    a database read succeeding. Live updates (OP-303) and push alerts (OP-304)
+    register ``on_rebuild`` callbacks to learn about each new map. At shutdown
+    ``stop()`` waits for a rebuild in progress, so the database is never closed
+    under one.
 """
 
 from __future__ import annotations
@@ -72,6 +75,7 @@ LINE_MIN_INSIDE_M = 25.0  # ...or at least this many metres of it are
 PIECE_M = 50.0  # index pieces are at most this long, so a midpoint is within 25 m
 SAMPLE_M = 5.0  # spacing of the points used to measure how much of an edge is inside
 REFRESH_S = 30.0  # the provider rebuilds the map at most this often
+STOP_TIMEOUT_S = 5.0  # how long stop() waits for a rebuild in progress
 
 # Items that describe an area or the whole city, never particular paths.
 AREA_KINDS = frozenset({Kind.SNOW_COMPLAINTS})
@@ -387,6 +391,8 @@ class HazardProvider:
     - **A failed rebuild** (a database read error, say) is logged; routing keeps the
       last good map, and the next attempt is ``refresh_s`` later. Before any map has
       been built, routes get no hazards.
+    - **After ``stop()``** (shutdown) calls answer with the last map and never read
+      the store again.
     """
 
     def __init__(
@@ -409,18 +415,58 @@ class HazardProvider:
         self.worker: threading.Thread | None = None  # the last background rebuild
         self._attempted_at = -math.inf  # clock() when the last rebuild started
         self._lock = threading.Lock()  # held while a rebuild runs
+        self._stopped = False  # set by stop(): no more rebuilds
+        # Called with each new MatchResult, in the thread that rebuilt it (on_rebuild).
+        self._rebuild_callbacks: list[Callable[[MatchResult], None]] = []
+
+    def on_rebuild(self, callback: Callable[[MatchResult], None]) -> None:
+        """Register ``callback`` to receive every new ``MatchResult``.
+
+        Live updates (OP-303) and push alerts (OP-304) both attach here, so neither
+        has to edit the other. Callbacks run in the thread that rebuilt the map (the
+        background thread after the first build), right after ``latest`` is replaced.
+        A callback that raises is logged, the others still run, and matching is
+        never affected.
+        """
+        self._rebuild_callbacks.append(callback)
 
     def __call__(self, now: datetime) -> HazardMap:
+        if not self._stopped:  # after stop(): the last map, and no store reads
+            self._rebuild_if_due(now)
+        latest = self.latest
+        return latest.hazards if latest is not None else {}
+
+    def _rebuild_if_due(self, now: datetime) -> None:
         if self.latest is None or not self.background:
             # No map yet: build it before answering. Waiting on the lock also makes a
             # concurrent first request wait for the build already running.
             with self._lock:
-                if self._due():
+                if self._due() and not self._stopped:
                     self._rebuild(now)
         elif self._due() and self._lock.acquire(blocking=False):
-            self._rebuild_in_background(now)  # releases the lock when done
-        latest = self.latest
-        return latest.hazards if latest is not None else {}
+            if self._stopped:  # stop() ran just before this call took the lock
+                self._lock.release()
+            else:
+                self._rebuild_in_background(now)  # releases the lock when done
+
+    def stop(self, timeout_s: float = STOP_TIMEOUT_S) -> bool:
+        """Start no more rebuilds and wait for the one in progress, if any.
+
+        Blocking; the lifespan calls it in a worker thread before it disposes the
+        engine. Returns False, and logs, if a rebuild is still running after
+        ``timeout_s``.
+        """
+        self._stopped = True  # set first: a call that takes the lock later sees it
+        deadline = time.monotonic() + timeout_s
+        if not self._lock.acquire(timeout=timeout_s):
+            log.warning("MATCH a rebuild was still running after %g s", timeout_s)
+            return False
+        self._lock.release()
+        worker = self.worker
+        if worker is not None and worker is not threading.current_thread():
+            # The rebuild is over once the lock is free; the thread only has to exit.
+            worker.join(max(0.0, deadline - time.monotonic()))
+        return True
 
     def _due(self) -> bool:
         return self.clock() - self._attempted_at >= self.refresh_s
@@ -463,4 +509,9 @@ class HazardProvider:
             (time.perf_counter() - started) * 1000,
         )
         self.latest = result
+        for callback in list(self._rebuild_callbacks):
+            try:
+                callback(result)
+            except Exception:  # a listener must never break matching
+                log.exception("MATCH rebuild callback failed")
         return result

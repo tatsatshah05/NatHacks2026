@@ -517,6 +517,35 @@ def test_a_failing_store_before_any_map_gives_no_hazards(
     assert list(provider(now)) == [edge_of(network, "AB")]  # built in the call
 
 
+def test_stop_waits_for_a_rebuild_and_then_never_reads_the_store(
+    network, store: ObstructionStore, item, now
+) -> None:
+    """Shutdown: the database must not close under a background rebuild."""
+    flaky = FlakyStore(store)
+    ticks = [0.0]
+    provider = HazardProvider(flaky, network, refresh_s=30, clock=lambda: ticks[0])
+    assert provider(now) == {}  # the first map is built in the call
+    store.upsert([item(point(50, -48))], now)
+    flaky.gate.clear()
+    flaky.reading.clear()
+    ticks[0] = 30.0
+    provider(now)  # starts a background rebuild, held at the gate
+    assert flaky.reading.wait(10)
+    assert provider.stop(timeout_s=0.05) is False  # still rebuilding: says so
+    result: list[bool] = []
+    stopper = threading.Thread(target=lambda: result.append(provider.stop()))
+    stopper.start()
+    stopper.join(0.2)
+    assert stopper.is_alive()  # waiting for the rebuild
+    flaky.gate.set()
+    stopper.join(10)
+    assert result == [True]
+    assert provider.worker is not None and not provider.worker.is_alive()
+    ticks[0] = 600.0  # long overdue, but stopped: the last map, no store read
+    assert list(provider(now)) == [edge_of(network, "AB")]
+    assert flaky.calls == 2
+
+
 def test_routes_keep_working_when_the_store_fails(
     network, store: ObstructionStore
 ) -> None:

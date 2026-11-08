@@ -1,0 +1,29 @@
+/* OP-301: a failed or impossible route. An ink rule on the left marks it; the words
+   say what happened and the buttons say what to do. No hazard colour on chrome. */
+
+.problem {
+  border-left: 4px solid var(--ink);
+  margin: 0 0 20px;
+  padding: 2px 0 2px 14px;
+}
+
+.problem p {
+  margin: 0 0 8px;
+}
+
+.title {
+  font-size: 1.25rem;
+  margin: 0 0 6px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.note {
+  color: var(--muted);
+  margin-top: 8px;
+}

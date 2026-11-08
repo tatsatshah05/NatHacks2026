@@ -1,0 +1,40 @@
+{
+  "dataset": "ut27-nrpn",
+  "title": "Parcel Addresses",
+  "portal": "https://data.edmonton.ca/d/ut27-nrpn",
+  "attribution": "City of Edmonton Open Data",
+  "licence": "City of Edmonton Open Data Terms of Use",
+  "area": "Downtown Edmonton: latitude 53.539 to 53.548, longitude -113.500 to -113.485",
+  "note": "Unmodified responses from the official City API, recorded for offline tests and scripts/build_search_index.py --fixtures. Public address points only; no personal information and no keys.",
+  "files": [
+    {
+      "file": "parcels.json",
+      "dataset": "ut27-nrpn",
+      "url": "https://data.edmonton.ca/resource/ut27-nrpn.json",
+      "query": {
+        "$select": "record_id,house_number,street_name,latitude,longitude,object_type",
+        "$where": "object_type='PARCEL' AND latitude between 53.539 and 53.548 AND longitude between -113.500 and -113.485",
+        "$order": "record_id",
+        "$limit": "5000"
+      },
+      "captured_at": "2026-11-08T15:41:49Z",
+      "rows": 310,
+      "sha256": "5e4f760c7eec32a165e923958b62d0cda640a615d3d7eecc3fc608cdf17cfbba"
+    },
+    {
+      "file": "suites.json",
+      "dataset": "ut27-nrpn",
+      "url": "https://data.edmonton.ca/resource/ut27-nrpn.json",
+      "query": {
+        "$select": "house_number,street_name,latitude,longitude,object_type",
+        "$where": "object_type='SUITE' AND latitude between 53.539 and 53.548 AND longitude between -113.500 and -113.485",
+        "$group": "house_number,street_name,latitude,longitude,object_type",
+        "$order": "street_name,house_number,latitude,longitude",
+        "$limit": "5000"
+      },
+      "captured_at": "2026-11-08T15:41:49Z",
+      "rows": 515,
+      "sha256": "ec10fe03745c8c78d1eee2ef77fe7e95e852917c860e0985002ab927de5ec038"
+    }
+  ]
+}

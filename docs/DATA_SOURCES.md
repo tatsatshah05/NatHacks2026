@@ -74,7 +74,7 @@ One section per source. Each adapter's owner keeps their section current: what t
 
 **City-owned cameras in the 511 feed (November 8, 2026).** Some 511 Alberta cameras belong to cities and carry a City's watermark (for example the City of Calgary). The team's rules require a City's written permission for City cameras, so their frames are not kept for training. The camera list's `Source` field does not show ownership (City of Calgary cameras also appear as `Alberta511`), so the Calgary area is excluded by location as well, and frames are reviewed for City watermarks before labelling.
 
-**Decision D-3 (decided by Tatsat on November 8, 2026; [issue #132](https://github.com/tatsatshah05/NatHacks2026/issues/132)).** No RSCD for the November 8 models: they train only on real 511 camera frames. Any class with no real 511 examples (likely `ice`) is reported as not covered in `vision/MODEL_CARD.md`, never filled in from another dataset. Keeping 511 frames follows the camera images decision above. Never keep an image in which a person can be identified, and never commit images.
+**Decision D-3 (decided by Tatsat on November 8, 2026, and revised by Tatsat the same morning; [issue #132](https://github.com/tatsatshah05/NatHacks2026/issues/132)).** The night model (`v1-night`) trained only on real 511 camera frames. Mid-morning on November 8, with 2 snow frames and no ice frames among about 1,400 collected 511 frames and no snow in the Alberta forecast before the demo, the lead allowed outside datasets whose licence permits training use. The snow model (`v2-rscd`) trains on the same 511 frames plus a seeded sample of RSCD (CC BY 4.0, credited as above): 400 each of `fresh_snow`, `melted_snow` and `ice`, plus 70 from each of the six dry and wet asphalt folders so the model cannot learn that a dashcam close-up means snow. The main model (`v2-ours`) uses no RSCD; the worker takes the snow model's answer only when it is snow or ice (`vision/snow_assist.py`). RSCD goes only into training, never validation or test; every number in `vision/MODEL_CARD.md` is measured on 511 cameras the model never trained on, and snow and ice are reported as not measured until real 511 frames of them exist. No scraping: only datasets with a licence that allows this use. Keeping 511 frames follows the camera images decision above. Never keep an image in which a person can be identified, and never commit images.
 
 ## Environment and Climate Change Canada
 
@@ -108,6 +108,13 @@ One section per source. Each adapter's owner keeps their section current: what t
   timestamps, wrong units and negative precipitation.
 - Attribution: Weather data by Open-Meteo.com, CC BY 4.0:
   https://open-meteo.com/en/licence
+- Historical archive (OP-305, replay only): https://archive-api.open-meteo.com/v1/archive
+  (ERA5 reanalysis), hourly `temperature_2m`, `dew_point_2m`, `precipitation` and
+  `soil_temperature_0_to_7cm` in UTC. Recorded by `scripts/record_snapshot.py
+  --weather-archive`; the committed freeze-thaw night is in
+  `cloud/tests/fixtures/weather/freeze_thaw/` (see [OP-305](OP-305.md)). Its soil
+  value is a 0 to 7 cm layer average, not the 0 cm surface value. Attribution adds
+  "Contains modified Copernicus Climate Change Service information".
 
 ## Reliability and recordings
 
@@ -144,3 +151,109 @@ shared app's sources page when integrated.
 **Licence and attribution.** City of Edmonton Open Data Terms of Use; shown as "City of Edmonton Open Data".
 
 **Recorded sample.** `cloud/tests/fixtures/traffic_disruptions/current.json` holds 30 current rows recorded on November 8, 2026 (see `manifest.json`), used by the tests and by replay mode.
+
+## Daily Pedestrian Counts (OP-310)
+
+**What it is.** The City's Daily Pedestrian and Bike Counts (dataset `sw7k-ptx8`): one row per counter location and day, with the counter's latitude and longitude and the day's pedestrians and cyclists in both directions. The dataset says the counts are raw equipment data with no quality control, and that a day can be incomplete.
+
+**How we use it.** Only for the clear-first ranking on `/city` (`GET /api/priority`): a barrier near busy counters ranks higher. `scripts/build_pedestrian_counts.py` reads the last 120 days of rows once from the official City API (`https://data.edmonton.ca/resource/sw7k-ptx8.json`, pages of 5,000 rows, `SOCRATA_APP_TOKEN` sent when set) and writes `cloud/data/pedestrian_counts.json`, which is committed. The API loads that file at startup and never calls the City at request time; without it every barrier simply gets no pedestrian weight.
+
+**What we keep.** One typical day per counter: the median daily pedestrian count over the 28 days ending on the dataset's latest day, from the days that have a row. A counter needs at least 7 such days. Counters that report 0 pedestrians on every day are bicycle-only counters and are left out, not treated as empty streets. The median keeps the ranking steady against broken days (the data holds one day of 477,654 pedestrians at a park entrance).
+
+**Measured on November 8, 2026** (read at 16:28 UTC): 6,060 rows from 2026-07-11 on; window October 11 to November 7, 2026; 31 counters with pedestrians kept; 22 left out (19 bicycle-only, 3 with no rows in the window). Typical days range from 42 (East Trails) to 808 (Railtown Park SUP) pedestrians.
+
+**Weight near a barrier.** Every kept counter within 400 m of the barrier's geometry adds its typical day times `1 - distance / 400 m`. The 400 m radius (about a five-minute walk) and the linear fall-off are our choice, not a measured value.
+
+**Licence and attribution.** City of Edmonton Open Data Terms of Use (the dataset metadata lists "See Terms of Use" and attribution "City of Edmonton"). Shown as "City of Edmonton Open Data" in the ranking explanation on `/city`, with a link to the dataset. No personal information: the file holds counter names, positions and daily totals only.
+
+**Recorded sample.** `cloud/tests/fixtures/pedestrian_counts/rows.json` holds the official rows of five counters for October 4 to November 7, 2026 (171 rows, including one bicycle-only counter), recorded with `--record` (see `manifest.json`).
+
+## Parcel Addresses, LRT Stations and Named Places: Search (OP-302, Matthew)
+
+**What it is.** The index behind `GET /api/search?q=`, which turns typed text into a point to route from or to. It has three parts:
+
+- **Addresses:** the City's Parcel Addresses (dataset `ut27-nrpn`, updated weekly).
+- **LRT stations and stops:** the City's LRT Stations and Stops (dataset `fhxi-cnhe`).
+- **Named places:** about fifty well-known destinations from `config/places.json`.
+
+**How we access it.** `scripts/build_search_index.py` reads both datasets once, on a laptop, from the City open data API (`https://data.edmonton.ca/resource/<id>.json`, paged with `$limit`/`$offset`, sending `SOCRATA_APP_TOKEN` as `X-App-Token` when it is set). It writes `cloud/data/search.npz`, which is committed. The API loads that file at startup (`cloud/app/search.py`). No external geocoder is ever called, and nothing is downloaded at request time. `python scripts/build_search_index.py --fixtures` builds a small index offline from the recorded sample.
+
+**Licence and attribution.** City of Edmonton Open Data Terms of Use (the dataset metadata lists "See Terms of Use" and attribution "City of Edmonton"). Shown as "City of Edmonton Open Data" on `/sources` and with search results. The index stores public address points only: no owner names or other personal information.
+
+**Update cadence.** Rebuild weekly, or when a new address is missing. Run `python scripts/build_search_index.py --write-places` (20 seconds on November 8, almost all of it downloading), check the printed counts, and commit `cloud/data/search.npz` and `config/places.json`.
+
+**What the index holds.**
+
+- **Addresses:** one entry per (house number, street). The point is the mean of the address's parcel points. An address that exists only as suites (58,064 of them, including Edmonton City Centre and Stantec Tower) uses the mean of its suite points instead.
+- **Stations:** one entry per station or stop name, at the mean of its platform points.
+- **Places:** each place in `config/places.json` with its street address. Its coordinate source is recorded:
+  - `parcel_address`: the parcel point of the place's own address (48 places).
+  - `lrt_station`: the address is not in the dataset, so the point is the station beside the place (6 places). The entry's note says how far away the station is (about 100 to 370 m).
+- **Station aliases:** `config/places.json` also adds names people use, such as "Government Centre" for Government Station.
+
+**Measured on November 8, 2026** (live build at 15:51 UTC):
+
+| Measurement | Value |
+| --- | --- |
+| Rows read | 298,785 parcel rows and 264,967 distinct suite points (all 778,288 rows of the dataset) |
+| Addresses indexed / streets | 346,922 / 2,913 |
+| Stations / named places | 29 / 54 |
+| Coverage | The whole city: bbox -113.7134, 53.3384 to -113.2784, 53.7152, so no central-area limit is needed |
+| File size | 1.7 MB |
+| Load time / memory added | about 20 ms / about 10 MB |
+| Search time, 200 realistic queries in process (`python -m cloud.app.search --bench`) | p50 0.12 ms, p95 0.70 ms, max 0.75 ms |
+| Search time, the same 200 queries over HTTP to a local `uvicorn` | p50 0.69 ms, p95 1.87 ms, max 18.85 ms |
+
+The target is under 200 ms for the top 8 results. These measurements are from one laptop (Apple M4, macOS). Render's CPU is not measured yet; it will be slower, but these times leave a wide margin.
+
+**Recorded sample.** `cloud/tests/fixtures/parcel_addresses/` holds unmodified responses for a downtown box (latitude 53.539 to 53.548, longitude -113.500 to -113.485): 310 parcel rows and 515 suite points, recorded on November 8, 2026. `manifest.json` lists the queries and SHA-256 hashes. Tests and the `--fixtures` build use it with the recorded LRT stations; they never call the network.
+
+**Known limits.**
+- Unit numbers (`sub_address`, such as suite 71 or REAR) are merged into the base address, so units are not searchable.
+- A street with no house number ("jasper ave") finds no addresses, only places and stations whose names or addresses contain those words.
+- House numbers with a letter suffix ("1A Sir Winston Churchill Square") are not in the dataset's numeric `house_number`, so places at such addresses are left out (the Law Courts).
+- Some well-known sites have no matching parcel address: the Valley Zoo, Louise McKinney Park, Victoria Park and the Old Strathcona Farmers' Market. They are left out of `config/places.json` rather than given a guessed point. Whyte Avenue is a street, so its place uses one Whyte Avenue parcel near 104 Street.
+
+## ETS GTFS Schedule (OP-311)
+
+**What it is.** The Edmonton Transit Service timetable in GTFS form: routes, stops, trips, stop times, calendars, station pathways and transfers. OpenPath uses only the light-rail routes (`route_type` 0: Capital Line `021R`, Metro Line `022R`, Valley Line `023R`, all `agency_id` 1, Edmonton Transit Service) for walk and LRT trips. The feed also carries the regional agencies (St. Albert, Strathcona County and others); they are ignored.
+
+**How we access it.** One official download of `https://gtfs.edmonton.ca/TMGTFSRealTimeWebService/GTFS/GTFS.zip`, the City's GTFS server (the producer URL the feed lists), by `scripts/build_lrt_graph.py` (`make lrt`) on a laptop. The script reads the zip in a temporary folder, writes the compact `cloud/data/lrt.json` and deletes the zip. The zip is never committed, and the API never downloads or reads GTFS: it loads `lrt.json` at startup.
+
+**Licence and attribution.** The feed's own `attributions.txt` names Edmonton Transit Service as producer and links the [City of Edmonton Open Data Terms of Use](https://data.edmonton.ca/stories/s/City-of-Edmonton-Open-Data-Terms-of-Use/msh8-if28/). Shown as "Schedule: Edmonton Transit Service, City of Edmonton Open Data" on every walk and LRT trip (`lrt.attribution`) and, once the web app lists it, on `/sources`. The terms were checked only through the feed's `attributions.txt`; confirm the wording on that page before launch.
+
+**Update cadence.** The City republishes the feed several times a season; PLAN.md section 6 plans a weekly rebuild. Each walk and LRT trip warns when the date has passed the schedule's `feed_end_date`.
+
+**Measured on November 8, 2026** (`python scripts/build_lrt_graph.py --gtfs <zip>`):
+
+| Measurement | Value |
+| --- | --- |
+| Feed version / service dates | `261023_1059` / October 23 to December 12, 2026 |
+| Zip size | 17.7 MB (`stop_times.txt` alone is 166 MB unzipped) |
+| Light-rail trips with stop times | 7,350 (0 irregular) |
+| Passenger stations | 30: Capital 15, Metro 10, Valley 12 (shared stations counted once) |
+| Scheduled end-to-end ride | Capital 36 min, Metro 19 min, Valley 32 min |
+| Weekday headway at 08:00 | Capital 6 min, Metro 12 min, Valley 5 min |
+| City elevators tied to a station / at-grade stations | 32 of 32 / 16 |
+| `cloud/data/lrt.json` | 20.3 kB |
+| Build time from a downloaded zip | about 5 s |
+
+**What `lrt.json` holds.** Stations (GTFS parent station id, City name, location, access type, the City elevators and escalators by device id with a `platform` or `entrance` role, and any reviewed OP-106 entry nodes), lines (station order, median scheduled ride time between consecutive stations, headsigns, median headway per hour for a weekday, Saturday and Sunday) and transfer pairs between nearby stations of different lines. `docs/OP-311.md` explains each rule.
+
+**Known limits.**
+- Three platforms where no trip lets anyone board or alight (Heath Sciences Tail Track, DL Macdonald Platform and Kathleen Andrews Platform) are not passenger stations; ride times span them.
+- Holidays are not modelled: the busiest date of each day type stands for it.
+- A station with no City elevator and no GTFS elevator pathway is treated as reachable without stairs (`at_grade`). That is an inference from the two datasets, not a survey.
+- Live LRT status is the City outage feed (`snws-u3zx`, OP-105), never the GTFS feed. Waits are schedule estimates, never live arrivals.
+
+## Community Reports (OP-308)
+
+**What it is.** Reports of snow, ice or a blocked path that people send from the web app's Report button (`POST /api/reports`), each with an optional photo. A report becomes a `community_report` obstruction and expires per `config/reports.json`. Shown as "Community report".
+
+**The photo check (decided by Tatsat on November 8, 2026).** The ONNX road-condition model and Claude check each photo together, with the agree rule the camera worker uses. A report gets `medium` confidence only when both agree with the reported type; anything else is `low`, and the reported type is kept. The six road-condition classes cannot show a blocked path, so for a `blocked` report Claude is asked "Is the walking path in this photo blocked?" and the model only has to be able to read the photo: **confirmation of a blocked path rests on Claude alone.** The model was trained and tested on 511 road-camera frames, not on phone photos of sidewalks, so its accuracy on report photos is not measured.
+
+**Privacy.**
+- A report photo is held in memory for one request and never stored by OpenPath: not on disk, not in the database, not in a log. Only its size and the class a check saw are logged.
+- **Third-party processing.** For the Claude check, the API sends the photo to the Anthropic API (Claude, model `claude-haiku-5-5` by default), in memory, over HTTPS. Anthropic processes it under its API terms; OpenPath keeps no copy. Claude is not sent the reported type, the note, the location or the device's anonymous id. The model check runs on our own server.
+- Before sending, the web app re-encodes the photo as a JPEG at most 1600 px on its longest edge, which drops its metadata (such as GPS position). If the browser cannot decode the photo, it sends the original JPEG or PNG file instead, metadata included; Claude receives the photo as sent.
+- The `/sources` and privacy pages must say that report photos are checked by Claude through the Anthropic API when they are built, as for camera frames.

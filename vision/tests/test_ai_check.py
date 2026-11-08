@@ -2,18 +2,25 @@
 
 from __future__ import annotations
 
+import base64
 import io
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from PIL import Image
 
 from vision.ai_check import (
+    BLOCKED_QUESTION,
+    BLOCKED_SCHEMA,
     LABELS,
+    REPORT_LABEL_SCHEMA,
     AgreeingClassifier,
+    AiBlocked,
     AiLabel,
     ClaudeCheck,
+    _report_photo_prompt,
     _system_prompt,
 )
 from vision.inference import Prediction
@@ -280,3 +287,191 @@ def test_labels_come_from_the_label_tool() -> None:
     from vision.tools import label
 
     assert LABELS is label.LABELS
+
+
+# ------------------------------------------------- the camera worker is unchanged
+
+PROMPT_SNAPSHOT = Path(__file__).parent / "fixtures" / "camera_system_prompt.txt"
+
+
+def test_the_camera_system_prompt_is_unchanged() -> None:
+    """Snapshot taken from the code before report photos were added (OP-308).
+
+    If LABELS.md or NIGHT_RULES change on purpose, regenerate the fixture with
+    ``_system_prompt()`` and review the diff: it changes what the camera worker asks.
+    """
+    snapshot = PROMPT_SNAPSHOT.read_text(encoding="utf-8")
+    assert _system_prompt() == snapshot
+    assert ClaudeCheck("claude-haiku-5-5", client=SimpleNamespace()).system == [
+        {"type": "text", "text": snapshot, "cache_control": {"type": "ephemeral"}}
+    ]
+
+
+def test_the_camera_request_is_unchanged() -> None:
+    client, messages = fake_client(
+        response(json.dumps({"label": "dry", "reason": "Matte."}))
+    )
+    frame = jpeg()
+    check = ClaudeCheck("claude-haiku-5-5", client=client)
+    assert check.subject == "camera_frame"
+    assert check.label(frame).label == "dry"
+    (request,) = messages.requests
+    assert request == {
+        "model": "claude-haiku-5-5",
+        "max_tokens": 2048,
+        "system": [
+            {
+                "type": "text",
+                "text": PROMPT_SNAPSHOT.read_text(encoding="utf-8"),
+                "cache_control": {"type": "ephemeral"},
+            }
+        ],
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/jpeg",
+                            "data": base64.standard_b64encode(frame).decode("ascii"),
+                        },
+                    },
+                    {"type": "text", "text": "Label this frame."},
+                ],
+            }
+        ],
+        "output_config": {
+            "effort": "low",
+            "format": {
+                "type": "json_schema",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "label": {"type": "string", "enum": list(LABELS)},
+                        "reason": {
+                            "type": "string",
+                            "description": "One short sentence: what on the road shows this.",
+                        },
+                    },
+                    "required": ["label", "reason"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+    }
+
+
+def test_the_camera_check_never_asks_the_blocked_question() -> None:
+    client, messages = fake_client(response("{}"))
+    with pytest.raises(ValueError):
+        ClaudeCheck("claude-haiku-5-5", client=client).blocked(jpeg())
+    assert messages.requests == []
+
+
+def test_an_unknown_subject_is_rejected() -> None:
+    with pytest.raises(ValueError):
+        ClaudeCheck("claude-haiku-5-5", client=SimpleNamespace(), subject="drone")  # type: ignore[arg-type]
+
+
+# ------------------------------------------------------- report photos (OP-308)
+
+
+def report_check(answer, model: str = "claude-haiku-5-5"):
+    client, messages = fake_client(answer)
+    return ClaudeCheck(model, client=client, subject="report_photo"), messages
+
+
+def test_the_report_prompt_is_about_the_walking_surface() -> None:
+    prompt = _report_photo_prompt()
+    assert "walking surface" in prompt and "phone" in prompt
+    assert "does not show a walking surface" in prompt  # unusable
+    assert "fence" in prompt and "construction" in prompt and "snowbank" in prompt
+    assert "paved road surface the camera watches" not in prompt
+    for label in LABELS:
+        assert f"{label}:" in prompt  # every class is described
+    check, _ = report_check(response("{}"))
+    assert check.system == [
+        {"type": "text", "text": prompt, "cache_control": {"type": "ephemeral"}}
+    ]
+
+
+def test_a_report_photo_is_labelled_with_its_own_question_and_schema() -> None:
+    check, messages = report_check(
+        response(json.dumps({"label": "snow_partial", "reason": "Ruts in snow."}))
+    )
+    got = check.label(jpeg())
+    assert (
+        got is not None
+        and got.label == "snow_partial"
+        and got.model == "claude-haiku-5-5"
+    )
+    request = messages.requests[0]
+    assert request["messages"][0]["content"][1] == {
+        "type": "text",
+        "text": "Label this photo.",
+    }
+    assert request["output_config"] == {
+        "effort": "low",
+        "format": {"type": "json_schema", "schema": REPORT_LABEL_SCHEMA},
+    }
+    assert REPORT_LABEL_SCHEMA["properties"]["label"]["enum"] == list(LABELS)
+    assert "fallbacks" not in request  # Haiku 5.5 has no server-side fallback
+
+
+@pytest.mark.parametrize("answer", ["yes", "no", "unclear"])
+def test_the_blocked_question_is_structured_yes_no_unclear(answer: str) -> None:
+    check, messages = report_check(
+        response(json.dumps({"blocked": answer, "reason": "A fence crosses it."}))
+    )
+    got = check.blocked(jpeg())
+    assert isinstance(got, AiBlocked) and got.blocked == answer
+    assert got.cost_usd == pytest.approx(
+        (500 * 0.10 + 4000 * 0.01 + 60 * 0.50) / 1_000_000
+    )
+    request = messages.requests[0]
+    assert request["messages"][0]["content"][1]["text"] == BLOCKED_QUESTION
+    assert BLOCKED_QUESTION == "Is the walking path in this photo blocked?"
+    assert request["output_config"]["format"] == {
+        "type": "json_schema",
+        "schema": BLOCKED_SCHEMA,
+    }
+    assert BLOCKED_SCHEMA["properties"]["blocked"]["enum"] == ["yes", "no", "unclear"]
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        response(json.dumps({"blocked": "yes"}), stop="refusal"),
+        response("not json"),
+        response(json.dumps({"blocked": "maybe", "reason": "?"})),
+        response(json.dumps({"label": "ice", "reason": "wrong schema"})),
+    ],
+)
+def test_refusals_and_bad_blocked_answers_give_none(answer) -> None:
+    check, _ = report_check(answer)
+    assert check.blocked(jpeg()) is None
+
+
+def test_blocked_failures_share_the_pause() -> None:
+    clock = FakeClock()
+    client, messages = fake_client(connection_error())
+    check = ClaudeCheck(
+        "claude-haiku-5-5", client=client, clock=clock, subject="report_photo"
+    )
+    assert check.label(jpeg()) is None
+    assert check.blocked(jpeg()) is None
+    assert check.blocked(jpeg()) is None
+    assert len(messages.requests) == 3
+    assert check.label(jpeg()) is None  # paused for both questions
+    assert check.blocked(jpeg()) is None
+    assert len(messages.requests) == 3
+
+
+def test_opus_report_checks_still_opt_into_refusal_fallbacks() -> None:
+    check, messages = report_check(
+        response(json.dumps({"blocked": "no", "reason": "Open."})), "claude-opus-5-5"
+    )
+    assert check.blocked(jpeg()).blocked == "no"
+    assert messages.requests[0]["fallbacks"] == "default"

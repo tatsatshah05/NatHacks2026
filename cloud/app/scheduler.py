@@ -8,6 +8,12 @@ What it does
     row the source is marked stale, which ``GET /api/status`` shows and the web app
     can warn about. A second loop purges expired items every few seconds.
 
+Shutdown
+    ``stop()`` cancels the loops and then waits for the store call already running
+    in the worker thread. Only then may ``main.py`` close the database: in CI a
+    write still running on SQLite's one shared connection while the lifespan
+    closed it crashed the test process.
+
 Who uses it
     ``main.py`` builds the sources (``sources.py``), creates one ``Scheduler`` in the
     app lifespan and keeps it on ``app.state.scheduler``. ``status.py`` reads
@@ -33,6 +39,7 @@ from pydantic import BaseModel, ValidationError
 
 from .schemas import Obstruction
 from .store import ObstructionStore
+from .threads import WorkerThreads
 
 log = logging.getLogger("openpath.scheduler")
 
@@ -41,6 +48,10 @@ log = logging.getLogger("openpath.scheduler")
 # source that keeps its own state (the weather watch) and has no items to store.
 ItemLike = Obstruction | Mapping[str, Any]
 FetchFn = Callable[[datetime], Awaitable[Sequence[ItemLike] | None]]
+
+# How long ``stop()`` waits for a store call that is already running. A write takes
+# milliseconds; this bound only matters if the database hangs.
+STOP_TIMEOUT_S = 10.0
 
 
 def utcnow() -> datetime:
@@ -81,6 +92,11 @@ class SourceStatus(BaseModel):
     )
 
 
+# What ``Scheduler.add_listener`` callbacks receive after every run of a source: a copy
+# of its status and whether that run succeeded. Live updates (OP-303) broadcast these.
+RunListener = Callable[[SourceStatus, bool], None]
+
+
 @dataclass
 class _State:
     status: SourceStatus
@@ -115,11 +131,17 @@ class Scheduler:
             for source in self.sources
         }
         self._purge_task: asyncio.Task[None] | None = None
+        self._listeners: list[RunListener] = []
         self.running = False
         # Store calls run in worker threads. SQLite (local runs, tests) shares one
         # connection, which is not safe to use from two threads at once, so writes
         # and purges take turns. On Postgres this only serialises quick writes.
         self._store_lock = threading.Lock()
+        # The scheduler's own worker thread, so stop() can wait for a store call that
+        # has started (asyncio.to_thread would forget it). One thread is enough
+        # because the lock above lets only one call in at a time anyway; queued
+        # calls are dropped when their loop is cancelled.
+        self._store_threads = WorkerThreads("scheduler-store", max_workers=1)
 
     # -- lifecycle ------------------------------------------------------------
 
@@ -135,18 +157,38 @@ class Scheduler:
         self._purge_task = asyncio.create_task(self._purge_loop(), name="purge")
         log.info("SCHEDULER started sources=%d", len(self.sources))
 
-    async def stop(self) -> None:
-        """Cancel every loop and wait for them to finish."""
-        if not self.running:
-            return
-        self.running = False
-        tasks = [state.task for state in self._states.values() if state.task]
-        if self._purge_task:
-            tasks.append(self._purge_task)
-        for task in tasks:
-            task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-        log.info("SCHEDULER stopped")
+    async def stop(self, timeout_s: float = STOP_TIMEOUT_S) -> bool:
+        """Cancel every loop, then wait until no store call is running.
+
+        Cancelling a loop does not stop a store call that a worker thread has
+        already started, and the lifespan closes the database right after this
+        returns. So this waits (up to ``timeout_s``) for that call, then takes the
+        store lock once as a final barrier. Returns True when nothing in the
+        scheduler is using the store; False, logged, if the deadline passed first.
+        """
+        was_running = self.running
+        if was_running:
+            self.running = False
+            tasks = [state.task for state in self._states.values() if state.task]
+            if self._purge_task:
+                tasks.append(self._purge_task)
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+        idle = await self._store_threads.wait(timeout_s)
+        if idle:
+            # The barrier: once the lock is free, no _replace or _purge is running,
+            # even one called some other way. Free at once in normal operation.
+            idle = self._store_lock.acquire(timeout=timeout_s)
+            if idle:
+                self._store_lock.release()
+        if not idle:
+            log.warning(
+                "SCHEDULER a store call was still running after %g s", timeout_s
+            )
+        if was_running:
+            log.info("SCHEDULER stopped")
+        return idle
 
     # -- reporting ------------------------------------------------------------
 
@@ -164,10 +206,31 @@ class Scheduler:
     def status(self, name: str) -> SourceStatus:
         return self._states[name].status
 
+    def add_listener(self, callback: RunListener) -> None:
+        """Call ``callback(status, ok)`` after every run of any source.
+
+        Runs on the event loop, right after the run's status is recorded. A callback
+        that raises is logged and never affects fetching or the other callbacks.
+        """
+        self._listeners.append(callback)
+
+    def _notify(self, source: Source, ok: bool) -> None:
+        status = self._states[source.name].status
+        for callback in list(self._listeners):
+            try:
+                callback(status.model_copy(), ok)
+            except Exception:
+                log.exception("LISTENER failed after SOURCE %s", source.name)
+
     # -- the work --------------------------------------------------------------
 
     async def run_once(self, source: Source) -> bool:
         """Fetch one source, with retries, and store the result. Returns True on success."""
+        ok = await self._run_once(source)
+        self._notify(source, ok)
+        return ok
+
+    async def _run_once(self, source: Source) -> bool:
         state = self._states[source.name]
         async with state.lock:  # never two fetches of the same source at once
             now = self.clock()
@@ -237,7 +300,7 @@ class Scheduler:
                 items.append(item)
             # The store does blocking database work; keep it off the event loop, and
             # let only one thread touch the database at a time.
-            await asyncio.to_thread(self._replace, source.name, items, now)
+            await self._store_threads.run(self._replace, source.name, items, now)
             status.item_count = len(items)
         was_stale, had_failures = status.stale, status.consecutive_failures
         status.last_success = now
@@ -286,7 +349,7 @@ class Scheduler:
 
     async def purge_once(self) -> list[str]:
         """Delete expired items. Returns their ids."""
-        return await asyncio.to_thread(self._purge, self.clock())
+        return await self._store_threads.run(self._purge, self.clock())
 
     async def _purge_loop(self) -> None:
         while True:
