@@ -29,8 +29,8 @@ from .push import (
     PushSender,
     PushServices,
     PushSubscriptionStore,
+    alert_test_payload,
     route_url,
-    test_payload,
 )
 from .routing import HazardMap, Router, RoutingError
 from .routing_api import get_hazards, get_router
@@ -270,7 +270,7 @@ def send_test(
         raise HTTPException(
             404, "This client has no push subscription. Subscribe first."
         )
-    sent = sender.send_to_client(body.client_id, test_payload(body.client_id))
+    sent = sender.send_to_client(body.client_id, alert_test_payload(body.client_id))
     return TestOut(
         client_id=body.client_id,
         sent=sent,

@@ -426,7 +426,7 @@ def notice_payload(
     }
 
 
-def test_payload(client_id: str) -> dict[str, Any]:
+def alert_test_payload(client_id: str) -> dict[str, Any]:
     return {
         "title": "OpenPath alerts are on",
         "body": "You will hear from us when a saved route changes.",
