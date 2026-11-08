@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as maplibregl from "maplibre-gl";
-import { LngLatBounds, Map, Marker, NavigationControl } from "maplibre-gl";
+import type { Map, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { PriorityItem } from "@/lib/city";
 import { readingShort } from "@/lib/city";
+import maplibregl from "@/lib/maplibre";
 import { effectLabel } from "@/lib/report-format";
 import { effectShape, hazardShapeSvg } from "../ui/hazard-shapes";
 import { cameraGlyphSvg } from "./camera-glyph";
@@ -13,11 +13,6 @@ import type { CameraGroup } from "./cameras";
 import styles from "./city-dashboard.module.css";
 
 const EDMONTON: [number, number] = [-113.4938, 53.5461];
-
-// MapLibre 6 loads its tile worker from a file next to its own module, which the Next
-// bundle does not copy. Point it at the package's worker so the bundler emits it as an
-// asset; without this the base map never draws (only the DOM markers do).
-maplibregl.setWorkerUrl(new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).toString());
 
 type Props = {
   items: readonly PriorityItem[];
@@ -53,7 +48,7 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
       // Respect reduced motion in the library too, not only in CSS.
       fadeDuration: reduce ? 0 : 300
     });
-    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     mapRef.current = map;
     return () => {
       map.remove();
@@ -76,7 +71,7 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
       element.innerHTML = hazardShapeSvg(effectShape(item.effect), 24, `city-${index}`);
       element.addEventListener("click", () => onSelectRef.current(item.id));
       elements.set(item.id, element);
-      markers.push(new Marker({ element, anchor: "center" }).setLngLat([item.lng, item.lat]).addTo(map));
+      markers.push(new maplibregl.Marker({ element, anchor: "center" }).setLngLat([item.lng, item.lat]).addTo(map));
     });
     cameras.forEach((camera) => {
       const element = document.createElement("div");
@@ -89,12 +84,12 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
       element.appendChild(word);
       element.addEventListener("click", () => onSelectRef.current(camera.id));
       elements.set(camera.id, element);
-      markers.push(new Marker({ element, anchor: "center" }).setLngLat([camera.lng, camera.lat]).addTo(map));
+      markers.push(new maplibregl.Marker({ element, anchor: "center" }).setLngLat([camera.lng, camera.lat]).addTo(map));
     });
     markersRef.current = elements;
     if (!fittedRef.current && (items.length || cameras.length)) {
       // Once: frame everything we know about, without animation.
-      const bounds = new LngLatBounds();
+      const bounds = new maplibregl.LngLatBounds();
       for (const item of items) bounds.extend([item.lng, item.lat]);
       for (const camera of cameras) bounds.extend([camera.lng, camera.lat]);
       map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });
