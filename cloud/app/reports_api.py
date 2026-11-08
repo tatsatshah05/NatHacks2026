@@ -12,6 +12,7 @@ The photo stays in memory
 
 Responses
     201 the stored report (``reports.ReportResult``), with the photo outcome in words
+    and the checks that answered (``photo.checked_by``: "model", "claude")
     413 body or photo too large; 415 not JSON or multipart, or a photo that is not
     JPEG or PNG; 422 invalid fields; 429 rate limited (``Retry-After`` header).
 """
@@ -36,7 +37,7 @@ from . import reports
 from .obstructions_api import get_now, get_store
 from .reports import (
     MAX_PHOTO_BYTES,
-    PhotoChecker,
+    PhotoChecks,
     RateLimited,
     ReportCounter,
     ReportFields,
@@ -86,8 +87,9 @@ def get_report_counter(
     return counter
 
 
-def get_photo_checker(request: Request) -> PhotoChecker | None:
-    """``app.state.photo_checker``, set at startup; None means photos are not checked."""
+def get_photo_checker(request: Request) -> PhotoChecks | None:
+    """``app.state.photo_checker`` (``reports.PhotoChecks``), set at startup; None means
+    photos are not checked."""
     return getattr(request.app.state, "photo_checker", None)
 
 
@@ -271,13 +273,14 @@ async def post_report(
     now: Annotated[datetime, Depends(get_now)],
     config: Annotated[ReportsConfig, Depends(get_reports_config)],
     counter: Annotated[ReportCounter, Depends(get_report_counter)],
-    checker: Annotated[PhotoChecker | None, Depends(get_photo_checker)],
+    checker: Annotated[PhotoChecks | None, Depends(get_photo_checker)],
 ) -> ReportResult:
     """Report snow, ice or a blocked path at a point in Edmonton, with an optional photo.
 
     The report becomes a ``community_report`` obstruction straight away and expires
-    after the hours in ``config/reports.json``. A photo that a photo check confirms
-    gives medium confidence; anything else gives low. The photo is never stored.
+    after the hours in ``config/reports.json``. A photo that the road-condition model
+    and Claude both confirm gives medium confidence; anything else gives low, and
+    ``photo.checked_by`` names the checks that answered. The photo is never stored.
     """
     content_type = request.headers.get("content-type", "")
     media_type = content_type.split(";", 1)[0].strip().lower()
