@@ -21,9 +21,12 @@ Update this section whenever the status changes.
 
 - **OP-204 on this branch:** `vision/worker.py` and `vision/inference.py` prepare
   scheduled CPU inference, shared OP-112 rate limiting, in-memory frames,
-  two-observation stability and a proposed metadata-only ingest client. The
-  ONNX export (OP-202), verified direct image response and lead agreement on the
-  absent camera-ingest API remain pending. See [docs/OP-204.md](docs/OP-204.md).
+  two-observation stability and a metadata-only ingest client. OP-202's trained
+  export and the OP-213 receiving API merge/deployment remain pending. Official
+  metadata is recorded (392 cameras; approximate Edmonton bbox: 19 cameras/47
+  enabled views); one JPEG view was verified in memory. Tatsat accepted the
+  payload; a local exact-body POST/GET/wrong-key check passes against OP-213 at
+  `b7901e7`. See [docs/OP-204.md](docs/OP-204.md).
   Shared schemas, API routes and configuration are unchanged; no worker deploy
   is activated.
 
@@ -249,8 +252,10 @@ use `python -m vision.worker --live --model-labels /path/to/labels.json --model-
 It uses existing `ALBERTA_511_KEY` and `MODEL_URL`, with `--interval-s` defaulting
 to 300 seconds and an optional `--boundary` GeoJSON. `--once` runs one pass.
 `DATA_MODE=replay` prohibits live fetching. Posting additionally requires
-`--publish`, `CLOUD_URL` and `WORKER_KEY`, after the proposed ingest payload and
-endpoint are agreed with Tatsat. Replay data is never posted. See
+`--publish`, `CLOUD_URL` and `WORKER_KEY`, after OP-213's accepted endpoint is
+merged/deployed. `--once --publish` reports delivery counts and fails if nothing
+was delivered. A shared one-minute cooldown follows a 511 HTTP 429; live startup
+uses OP-112's on-disk metadata cache. Replay data is never posted. See
 [docs/OP-204.md](docs/OP-204.md) for OP-202's labels.json format, expiry and remaining work.
 
 ## Environment Variables

@@ -143,16 +143,18 @@ def image_tensor(frame: bytes, spec: ModelSpec) -> np.ndarray | None:
                     return None
                 image.load()
                 # Inspect a small copy so large frames do not create large float arrays.
-                rgb = image.convert("RGB")
+                # Common RGB camera JPEGs need no full-size conversion/copy.
+                # Palette/alpha/CMYK inputs still convert first to match training.
+                working = image if image.mode in {"RGB", "L"} else image.convert("RGB")
                 preview = np.asarray(
-                    rgb.resize((64, 64)).convert("L"), dtype=np.float32
+                    working.resize((64, 64)).convert("L"), dtype=np.float32
                 )
                 low, high = np.percentile(preview, [10, 90])
                 if float(preview.mean()) < 16 or high - low < 12:
                     return None
-                resized = rgb.resize(
+                resized = working.resize(
                     (spec.width, spec.height), Image.Resampling.BILINEAR
-                )
+                ).convert("RGB")
                 pixels = np.asarray(resized, dtype=np.float32) * spec.pixel_scale
     except (
         OSError,

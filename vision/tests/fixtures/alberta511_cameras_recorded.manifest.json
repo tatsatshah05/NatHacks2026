@@ -1,0 +1,20 @@
+{
+  "file": "alberta511_cameras_recorded.json",
+  "captured_at": "2026-11-08T04:19:13Z",
+  "source": "https://511.alberta.ca/api/v2/get/cameras",
+  "content": "Official camera metadata only; no request credentials or images.",
+  "sha256_lf": "9868c9f012d988eb35ac611b7cc971c5486af083b09d2e69b0d048e714d012e9",
+  "camera_count": 392,
+  "edmonton_bbox_camera_count": 19,
+  "edmonton_bbox_enabled_views": 47,
+  "city_selection": "approximate bounding box, not an exact city boundary",
+  "single_view_check": {
+    "camera_id": 56,
+    "view_id": 117,
+    "http_status": 200,
+    "content_type": "image/jpeg",
+    "width": 704,
+    "height": 518,
+    "images_saved": 0
+  }
+}

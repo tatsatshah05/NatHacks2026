@@ -3,7 +3,7 @@
 Share OP-112's limiter between metadata and image requests, run ONNX in memory,
 and require two agreeing observations before publishing a changed condition.
 The default command is a clearly labelled, network-free synthetic replay.
-The proposed ingest payload awaits lead agreement; no shared API is changed.
+The payload matches the lead's OP-213 receiver; no shared API is changed here.
 """
 
 from __future__ import annotations
@@ -16,8 +16,9 @@ import math
 import os
 import sys
 import time
+from collections import deque
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Literal, Protocol
@@ -27,15 +28,15 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from vision.cameras import (
-    EDMONTON_BBOX_APPROX,
+    DEFAULT_CACHE_PATH,
     Camera,
     CameraAdapter,
     CameraView,
     Polygon,
     RateLimiter,
-    in_bbox,
+    cameras_in_edmonton,
     load_boundary,
-    point_in_polygons,
+    view_enabled,
 )
 from vision.inference import (
     MAX_FRAME_BYTES,
@@ -52,10 +53,12 @@ DEFAULT_INTERVAL_S = 300.0
 CATALOG_INTERVAL_S = 86_400.0
 REPLAY_PATH = Path(__file__).parent / "tests/fixtures/worker_replay.json"
 Condition = Literal["dry", "wet", "snow_partial", "snow_covered", "ice", "unknown"]
+VALID_CONDITIONS = frozenset(LABELS) - {"unusable"} | {"unknown"}
+RECENT_FRAME_LIMIT = 32
 
 
 class Reading(BaseModel):
-    """Worker-local proposal, not an approved cloud schema (docs/OP-204.md)."""
+    """Worker serialization of the agreed OP-213 payload (docs/OP-204.md)."""
 
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False, frozen=True)
     source: Literal["camera_model"] = "camera_model"
@@ -87,6 +90,9 @@ class Vote:
     candidate: str | None = None
     count: int = 0
     sample: str | None = None
+    recent_frames: deque[str] = field(
+        default_factory=lambda: deque(maxlen=RECENT_FRAME_LIMIT)
+    )
 
 
 class StabilityFilter:
@@ -96,12 +102,18 @@ class StabilityFilter:
         self.states: dict[str, Vote] = {}
 
     def observe(self, ref: str, label: str, sample: str) -> bool:
-        if label not in {*LABELS[:-1], "unknown"}:
+        if label not in VALID_CONDITIONS:
             raise ValueError("Invalid camera condition")
         state = self.states.setdefault(ref, Vote())
-        if state.sample == sample:
+        if state.sample == sample or (
+            label != "unknown" and sample in state.recent_frames
+        ):
             return False
         state.sample = sample
+        if label != "unknown":
+            # Failed attempts must not evict good hashes: alternating cached
+            # images remain old evidence even after an extended camera outage.
+            state.recent_frames.append(sample)
         if label == state.candidate:
             state.count += 1
         else:
@@ -125,13 +137,17 @@ class FrameFetcher:
         self.client, self.limiter = client, limiter
 
     def fetch(self, view: CameraView) -> bytes:
-        url = urlsplit(view.url)
+        try:
+            url = urlsplit(view.url)
+            port = url.port
+        except ValueError:
+            raise FrameUnavailable("camera_unavailable") from None
         if (
             url.scheme != "https"
             or url.hostname != "511.alberta.ca"
             or url.username
             or url.password
-            or url.port not in (None, 443)
+            or port not in (None, 443)
         ):
             raise FrameUnavailable("unapproved_image_url")
         self.limiter.acquire()
@@ -141,6 +157,8 @@ class FrameFetcher:
             with self.client.stream(
                 "GET", view.url, timeout=20, follow_redirects=False
             ) as response:
+                if response.status_code == 429:
+                    self.limiter.cool_down()
                 if response.status_code != 200:
                     raise FrameUnavailable("camera_http_error")
                 content_type = (
@@ -171,7 +189,7 @@ class Publisher(Protocol):
 
 
 class HttpPublisher:
-    """Send only reading metadata; API agreement/integration is still pending."""
+    """Send only reading metadata; OP-213 deployment is a separate dependency."""
 
     def __init__(self, client: httpx.Client, cloud_url: str, worker_key: str) -> None:
         url = urlsplit(cloud_url)
@@ -237,14 +255,27 @@ class CameraWorker:
         self._attempt = 0
         self._publish_failed: set[str] = set()
         self._pending_posts: dict[str, Reading] = {}
+        self.publish_attempted = 0
+        self.publish_succeeded = 0
+        self.publish_failed = 0
 
     def _deliver(self, reading: Reading) -> None:
         """Retry metadata on a later pass without renewing its original timestamps."""
         ref = reading.source_ref
         if reading.expires_at <= self.now():
-            self._pending_posts.pop(ref, None)
+            if self._pending_posts.pop(ref, None) is not None:
+                log.warning("CHANGE camera_model:%s expired undelivered", ref)
+                self._publish_failed.discard(ref)
             return
-        if self.publisher is None or self.publisher.publish(reading):
+        delivered = True
+        if self.publisher is not None:
+            self.publish_attempted += 1
+            delivered = self.publisher.publish(reading)
+            if delivered:
+                self.publish_succeeded += 1
+            else:
+                self.publish_failed += 1
+        if delivered:
             self.last_good[ref] = reading
             self._pending_posts.pop(ref, None)
             if ref in self._publish_failed:
@@ -260,6 +291,7 @@ class CameraWorker:
 
     def cycle(self) -> list[Reading]:
         """One scheduled pass; a failed camera cannot interrupt its neighbours."""
+        self.publish_attempted = self.publish_succeeded = self.publish_failed = 0
         if self.clock() >= self._refresh_at:
             snapshot = self.adapter.refresh()
             self._cameras = snapshot.cameras
@@ -268,14 +300,7 @@ class CameraWorker:
             )
         readings: list[Reading] = []
         active_refs: set[str] = set()
-        for camera in self._cameras:
-            inside = (
-                point_in_polygons(camera.latitude, camera.longitude, self.boundary)
-                if self.boundary is not None
-                else in_bbox(camera.latitude, camera.longitude, EDMONTON_BBOX_APPROX)
-            )
-            if not inside:
-                continue
+        for camera in cameras_in_edmonton(self._cameras, self.boundary):
             for view in camera.views:
                 ref = f"511:{camera.id}:{view.id}"
                 if ref in active_refs:
@@ -284,20 +309,23 @@ class CameraWorker:
                 self._attempt += 1
                 sample = f"unavailable:{self._attempt}"
                 try:
-                    if view.status.strip().lower() != "enabled":
+                    if not view_enabled(view):
                         raise FrameUnavailable("camera_disabled")
                     frame = self.frames.fetch(view)
+                except FrameUnavailable as exc:
+                    prediction = Prediction("unknown", reason=str(exc))
+                except Exception:  # noqa: BLE001 - Isolate unexpected source/transport failures.
+                    prediction = Prediction("unknown", reason="camera_unavailable")
+                else:
                     sample = hashlib.sha256(frame).hexdigest()
                     try:
                         prediction = self.classifier.predict(frame)
+                    except Exception:  # noqa: BLE001 - Isolate third-party inference errors.
+                        prediction = Prediction("unknown", reason="model_error")
                     finally:
                         del frame
-                except FrameUnavailable as exc:
-                    prediction = Prediction("unknown", reason=str(exc))
-                except Exception:  # noqa: BLE001 - One third-party classifier cannot stop other cameras.
-                    prediction = Prediction("unknown", reason="model_error")
                 # Defend against a malformed prediction from an injected/exported model.
-                if prediction.label not in {*LABELS[:-1], "unknown"} or (
+                if prediction.label not in VALID_CONDITIONS or (
                     prediction.score is not None
                     and (
                         not math.isfinite(prediction.score)
@@ -349,7 +377,7 @@ class CameraWorker:
 def replay(path: Path) -> dict[str, object]:
     """Exercise voting from synthetic predictions; never fetch, infer or post."""
     data = json.loads(path.read_text("utf-8"))
-    if data.get("mode") != "replay":
+    if not isinstance(data, dict) or data.get("mode") != "replay":
         raise ValueError("Worker replay must be explicitly marked mode=replay")
     stability = StabilityFilter()
     readings = []
@@ -406,7 +434,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             print(json.dumps(replay(args.replay or REPLAY_PATH), indent=2))
             return 0
-        except (OSError, ValueError, KeyError, ValidationError):
+        except (OSError, ValueError, KeyError, TypeError, ValidationError):
             parser.error("Invalid worker replay; use the documented replay fixture")
     if os.environ.get("DATA_MODE") == "replay":
         parser.error("--live is disabled when DATA_MODE=replay")
@@ -433,7 +461,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             limiter = RateLimiter()
             adapter = CameraAdapter(
-                os.environ["ALBERTA_511_KEY"], client=client, limiter=limiter
+                os.environ["ALBERTA_511_KEY"],
+                client=client,
+                limiter=limiter,
+                cache_path=DEFAULT_CACHE_PATH,
             )
             publisher = (
                 HttpPublisher(
@@ -453,24 +484,29 @@ def main(argv: Sequence[str] | None = None) -> int:
                 boundary=boundary,
             )
             if args.once:
+                readings = worker.cycle()
                 print(
                     json.dumps(
                         {
                             "mode": "live",
-                            "published": args.publish,
-                            "readings": [
-                                r.model_dump(mode="json") for r in worker.cycle()
-                            ],
+                            "publish_requested": args.publish,
+                            "published": worker.publish_succeeded > 0,
+                            "publish_attempted": worker.publish_attempted,
+                            "publish_succeeded": worker.publish_succeeded,
+                            "publish_failed": worker.publish_failed,
+                            "readings": [r.model_dump(mode="json") for r in readings],
                         },
                         indent=2,
                     )
                 )
+                if args.publish and worker.publish_succeeded == 0:
+                    return 1
             else:
                 worker.run()
         return 0
     except KeyboardInterrupt:
         return 0
-    except (OSError, ValueError, TypeError, ImportError, httpx.HTTPError):
+    except (OSError, ValueError, TypeError, KeyError, ImportError, httpx.HTTPError):
         # HTTP/ONNX errors may contain credentials or release URLs: print only guidance.
         print(
             "Worker startup failed; check model manifest, credentials and service availability. No frame was stored.",

@@ -1,0 +1,16 @@
+{
+  "source": "camera_model",
+  "source_ref": "511:9001:1",
+  "camera_id": 9001,
+  "view_id": 1,
+  "latitude": 53.4815,
+  "longitude": -113.6302,
+  "label": "unknown",
+  "score": null,
+  "reason": "synthetic_example_only",
+  "observed_at": "2026-11-08T04:00:00Z",
+  "expires_at": "2026-11-08T04:15:00Z",
+  "model_version": "0000000000000000000000000000000000000000000000000000000000000000",
+  "mode": "live",
+  "attribution": "Road camera data: 511 Alberta, Government of Alberta"
+}

@@ -49,7 +49,7 @@ One section per source. Each adapter's owner keeps their section current: what t
 
 **Reliability.** 20-second timeout. A failed fetch or a changed schema keeps the last good list and marks it stale, with one log line when it goes stale and one when it recovers. A single malformed camera is skipped with a log line rather than failing the whole list. The last good list is cached in `vision/.cache/` (ignored by git); if that disk is read-only, fetching carries on without the cache.
 
-**Measured.** Not yet: the Edmonton camera count is recorded here once the key arrives (`python -m vision.cameras --record vision/tests/fixtures/alberta511_cameras_recorded.json`). Until a City boundary file is passed with `--boundary`, the count uses a bounding box, over-counts neighbouring municipalities, and is labelled approximate. The test fixture is hand-written from the documented fields, not a recorded response.
+**Measured.** Official metadata recorded on November 8 at 04:19:13 UTC contains 392 cameras, with 19 inside the approximate Edmonton bbox and 47 enabled views there. The count includes neighbouring municipalities until an exact boundary is supplied. `vision/tests/fixtures/alberta511_cameras_recorded.json` and its manifest contain public metadata/provenance, with no query credentials or images. A one-request check of camera 56/view 117 returned a valid 704x518 JPEG; it was processed in memory and discarded. This verifies one direct image response, not all view availability or trained-model accuracy. The hand-written sample remains for small tests.
 
 ## City of Edmonton Traffic Cameras (OP-112, Ipsa)
 
