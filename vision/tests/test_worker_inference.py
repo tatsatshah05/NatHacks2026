@@ -7,7 +7,9 @@ worker plumbing, not the accuracy or speed of Ipsa's future trained model.
 from __future__ import annotations
 
 import hashlib
+import json
 from io import BytesIO
+from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -17,8 +19,10 @@ import pytest
 from PIL import Image
 from pydantic import ValidationError
 
-from vision import inference
+from vision import inference, model_contract
+from vision.evaluate import preprocess
 from vision.inference import ModelSpec, OnnxClassifier, download_model, image_tensor
+from vision.model_contract import labels_manifest
 from vision.tools.label import LABELS
 
 
@@ -243,7 +247,9 @@ def test_model_download_and_size_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def training_labels() -> dict[str, object]:
-    # The actual labels.json shape written by OP-202 at f8879bf; no torch import.
+    # A frozen copy of the labels.json wording from OP-202 (#139). If
+    # vision/model_contract.py changes it, this test fails, so image_tensor()
+    # is reviewed together with the new wording.
     return {
         "classes": list(LABELS),
         "input": {
@@ -287,3 +293,77 @@ def test_invalid_native_model_load_is_sanitised() -> None:
     model = b"invalid ONNX graph"
     with pytest.raises(ValueError, match="initialise"):
         OnnxClassifier.load(model, spec_for(sha256=hashlib.sha256(model).hexdigest()))
+
+
+def contract_labels(size_px: int, model: bytes) -> dict[str, object]:
+    # Through JSON, exactly as the worker reads the file train.py writes.
+    manifest = labels_manifest(size_px, hashlib.sha256(model).hexdigest())
+    return json.loads(json.dumps(manifest))
+
+
+def test_model_contract_labels_json_round_trips_through_model_spec() -> None:
+    model = b"stand-in model bytes"
+    metadata = contract_labels(224, model)
+    spec = ModelSpec.from_training_labels(
+        metadata, sha256=metadata["sha256"], min_score=0.7
+    )
+    assert spec.sha256 == hashlib.sha256(model).hexdigest()
+    assert spec.labels == LABELS
+    assert spec.input_name == model_contract.INPUT_NAME
+    assert spec.output_name == model_contract.OUTPUT_NAME
+    assert spec.width == spec.height == 224
+    assert spec.mean == model_contract.IMAGENET_MEAN
+    assert spec.std == model_contract.IMAGENET_STD
+    assert spec.pixel_scale == 1 / 255 and spec.output == "logits"
+    assert spec.min_score == 0.7
+
+
+def test_worker_preprocessing_matches_evaluate_for_a_contract_spec(
+    tmp_path: Path,
+) -> None:
+    # evaluate.preprocess() is checked against train.py where PyTorch is installed
+    # (test_preprocessing_matches_train_py_exactly); the worker must match it too.
+    metadata = contract_labels(64, b"model")
+    spec = ModelSpec.from_training_labels(
+        metadata, sha256=metadata["sha256"], min_score=0.5
+    )
+    frame = png(seed=7)
+    path = tmp_path / "synthetic.png"  # random pixels, not a camera image
+    path.write_bytes(frame)
+    ours = image_tensor(frame, spec)
+    reference = preprocess(path, metadata["input"])
+    assert ours is not None and ours.shape == reference.shape == (1, 3, 64, 64)
+    assert np.abs(ours - reference).max() < 1e-5
+
+
+def test_tiny_onnx_model_loads_from_a_contract_labels_json() -> None:
+    logits = onnx.helper.make_tensor(
+        "values", onnx.TensorProto.FLOAT, [1, 6], [0, 0, 0, 0, 20, 0]
+    )
+    graph = onnx.helper.make_graph(
+        [
+            onnx.helper.make_node(
+                "Constant", [], [model_contract.OUTPUT_NAME], value=logits
+            )
+        ],
+        "contract-smoke",
+        [
+            onnx.helper.make_tensor_value_info(
+                model_contract.INPUT_NAME, onnx.TensorProto.FLOAT, [1, 3, 32, 32]
+            )
+        ],
+        [
+            onnx.helper.make_tensor_value_info(
+                model_contract.OUTPUT_NAME, onnx.TensorProto.FLOAT, [1, 6]
+            )
+        ],
+    )
+    model = onnx.helper.make_model(
+        graph, opset_imports=[onnx.helper.make_opsetid("", 17)], ir_version=9
+    ).SerializeToString()
+    metadata = contract_labels(32, model)
+    spec = ModelSpec.from_training_labels(
+        metadata, sha256=metadata["sha256"], min_score=0.6
+    )
+    prediction = OnnxClassifier.load(model, spec).predict(png())
+    assert prediction.label == LABELS[4] == "ice"

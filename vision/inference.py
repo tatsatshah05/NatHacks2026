@@ -1,6 +1,7 @@
 """OP-204: classify camera frames in memory with an explicitly described ONNX model.
 
-The training export supplies class order and preprocessing in a sidecar JSON.
+The training export supplies class order and preprocessing in a sidecar JSON
+(labels.json), whose wording comes from vision/model_contract.py.
 Reject unusable images and invalid predictions rather than guessing dry roads.
 No camera image or image-derived array is saved to disk.
 """
@@ -19,6 +20,7 @@ import numpy as np
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from vision.model_contract import COLOR, LAYOUT, RESIZE, SCALE, SOFTMAX
 from vision.tools.label import LABELS
 
 MAX_FRAME_BYTES = 8 * 1024 * 1024
@@ -62,10 +64,15 @@ class ModelSpec(BaseModel):
     def from_training_labels(
         cls, metadata: object, *, sha256: str, min_score: float
     ) -> ModelSpec:
-        """Consume the actual OP-202 export format without importing PyTorch.
+        """Consume OP-202's labels.json without importing PyTorch.
 
-        Matches vision/train.py at f8879bf. Checksum and score policy are worker
-        settings because that training export does not currently contain them.
+        The accepted wording is imported from vision/model_contract.py, the
+        module train.py writes labels.json with, so both sides use one
+        definition. image_tensor() implements exactly those transforms; a frozen
+        copy of the wording in the tests flags any change for review. The
+        checksum and score threshold stay explicit worker settings: the
+        downloaded model is verified against ``sha256``, and labels.json has no
+        validated threshold.
         """
         if not isinstance(metadata, dict):
             raise TypeError("Expected OP-202 labels.json object")
@@ -74,16 +81,16 @@ class ModelSpec(BaseModel):
             if not isinstance(inputs, dict) or not isinstance(outputs, dict):
                 raise TypeError("Invalid model input/output metadata")
             required = {
-                "layout": "NCHW",
-                "resize": "stretch to size_px x size_px",
-                "color": "RGB",
-                "scale": "pixel / 255",
+                "layout": LAYOUT,
+                "resize": RESIZE,
+                "color": COLOR,
+                "scale": SCALE,
             }
             if any(inputs.get(key) != value for key, value in required.items()):
                 raise ValueError(
                     "Unsupported training preprocessing; agree it with Ipsa"
                 )
-            if outputs.get("softmax") != "apply in the worker":
+            if outputs.get("softmax") != SOFTMAX:
                 raise ValueError("Unsupported training output")
             return cls(
                 sha256=sha256,
