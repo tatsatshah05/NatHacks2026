@@ -23,8 +23,6 @@
   --snow-hazard: #5b4fcf; /* 5.7:1 on snow */
   --caution: #8a5300; /* 5.9:1 on snow */
   --clear: #1e6b3a; /* 6.1:1 on snow */
-  --chosen: #0d1f2d; /* a chosen segment: ink fill */
-  --on-chosen: #f5f8fa; /* 15.7:1 on chosen */
   color-scheme: light;
 }
 
@@ -44,8 +42,6 @@
     --snow-hazard: #c2b8ff; /* 9.3:1 on snow */
     --caution: #f4b860; /* 9.5:1 on snow */
     --clear: #7fd39a; /* 9.3:1 on snow */
-    --chosen: #8db8ff; /* a chosen segment: action fill */
-    --on-chosen: #0d1f2d; /* 8.3:1 on chosen */
     color-scheme: dark;
   }
 }
@@ -63,8 +59,6 @@
   --snow-hazard: #c2b8ff;
   --caution: #f4b860;
   --clear: #7fd39a;
-  --chosen: #8db8ff;
-  --on-chosen: #0d1f2d;
   color-scheme: dark;
 }
 
@@ -470,9 +464,11 @@ main > .page-title,
 .segmented-grid .segment:nth-child(4) {
   border-bottom-right-radius: 4px;
 }
+/* Chosen: filled ink with snow text in both themes (15.7:1 light, 15.5:1 dark).
+   Action blue is kept for actions, so a chosen segment never looks like a button. */
 .segment:has(input:checked) {
-  background: var(--chosen);
-  color: var(--on-chosen);
+  background: var(--ink);
+  color: var(--snow);
 }
 .segment:has(input:focus-visible) {
   box-shadow: 0 0 0 2px var(--card);
@@ -504,12 +500,12 @@ main > .page-title,
   border-radius: 6px;
 }
 .segmented-stack .segment:has(input:checked) {
-  background: var(--chosen);
-  border-color: var(--chosen);
-  color: var(--on-chosen);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--snow);
 }
 .segmented-stack .segment:has(input:checked) .segment-desc {
-  color: var(--on-chosen);
+  color: var(--snow);
 }
 .segmented-stack .segment-desc {
   color: var(--muted);
@@ -679,6 +675,35 @@ main > .page-title,
 }
 .route-note {
   margin: 8px 0 0;
+}
+.route-tally {
+  margin-bottom: 12px;
+}
+.route-tally + .route-line {
+  margin-top: 8px;
+}
+.route [id$="-details"] .route-line {
+  margin-top: 20px;
+}
+/* City-wide conditions: shown once above the routes, not as stops on each line. */
+.city-wide {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+.city-wide li {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+.city-wide .hazard-shape {
+  flex: 0 0 24px;
+  margin-top: 0;
+}
+.city-wide p {
+  margin: 0;
 }
 
 /* Planner */

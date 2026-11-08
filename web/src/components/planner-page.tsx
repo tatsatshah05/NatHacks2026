@@ -4,9 +4,11 @@ import { useState } from "react";
 import PlaceInput, { placeInputId } from "./place-input";
 import PlannerMapPreview from "./planner-map-preview";
 import ProfileIcon from "./profile-icons";
-import Button, { ButtonLink } from "./ui/button";
+import RouteResult from "./route-result";
+import Button from "./ui/button";
+import CityWideConditions from "./ui/city-wide-conditions";
 import Panel from "./ui/panel";
-import RouteLine from "./ui/route-line";
+import { cityWideItems } from "./ui/route-line";
 import SegmentedChoice from "./ui/segmented-choice";
 import SiteFooter from "./ui/site-footer";
 import SiteHeader from "./ui/site-header";
@@ -21,7 +23,6 @@ import {
   profilePhrase,
   travelProfiles
 } from "@/lib/planner-types";
-import { reportHref } from "@/lib/route-link";
 
 type ByField<T> = Record<PlaceField, T>;
 
@@ -110,6 +111,7 @@ export default function PlannerPage() {
   }
 
   const routes = result?.response.routes ?? [];
+  const everywhere = cityWideItems(routes);
   const status = result
     ? `${routes.length} demo ${routes.length === 1 ? "route" : "routes"} ${profilePhrase(result.query.profile)}, best first.`
     : "";
@@ -182,32 +184,18 @@ export default function PlannerPage() {
 
           <section className="results" aria-label="Routes">
             <StatusLine>{status}</StatusLine>
+            {result && <CityWideConditions items={everywhere} now={result.now} />}
             {result && routes.length > 0 && (
               <ol className="routes" role="list">
                 {routes.map((route) => (
                   <Panel as="li" key={`${result.now.getTime()}-${route.rank}`} aria-labelledby={`route-${route.rank}-heading`}>
-                    <RouteLine
+                    <RouteResult
                       route={route}
                       routeCount={routes.length}
-                      from={result.query.from.name}
-                      to={result.query.to.name}
-                      profile={result.query.profile}
+                      query={result.query}
                       now={result.now}
-                      headingId={`route-${route.rank}-heading`}
-                      reveal
+                      appleMapsNote={result.response.apple_maps_note}
                     />
-                    <div className="route-actions">
-                      <ButtonLink variant="secondary" href={reportHref(result.query, route.rank)}>
-                        View route report<span className="sr-only"> for route {route.rank}</span>
-                      </ButtonLink>
-                      <ButtonLink variant="secondary" href={route.google_maps_url}>
-                        Open in Google Maps<span className="sr-only">, route {route.rank}</span>
-                      </ButtonLink>
-                      <ButtonLink variant="secondary" href={route.apple_maps_url}>
-                        Open in Apple Maps<span className="sr-only">, route {route.rank}</span>
-                      </ButtonLink>
-                    </div>
-                    <p className="route-note note">{result.response.apple_maps_note}</p>
                   </Panel>
                 ))}
               </ol>

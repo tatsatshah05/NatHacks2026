@@ -12,7 +12,7 @@ Every Phase 3 screen is built from this page. The code is in `web/src/app/global
 
 **Type.** One family: Atkinson Hyperlegible 400 and 700, drawn by the Braille Institute for low-vision readers. Its slashed zero and distinct letterforms are the app's only typographic voice.
 
-**Layout.** Mobile first: one left-aligned column with 16 px gutters. From 900 px wide, the plan and the route line sit on the left (at most 44ch) and the map sits on the right, sticky and visually secondary. Nothing is centred.
+**Layout.** Mobile first: one left-aligned column with 16 px gutters. From 900 px wide, the plan and the route line sit on the left (at most 44ch) and the map sits on the right, sticky (16 px from the top) and visually secondary. Nothing is centred. Results show the recommended route with its whole line; alternates are comparison rows that open in place. Conditions that cover the whole city are shown once, above the routes.
 
 ```
 Phone (390 px)                     Desktop (from 900 px)
@@ -34,6 +34,8 @@ Phone (390 px)                     Desktop (from 900 px)
 |  (    [/] Avoided      |         |  |                   |                         |
 |  o  Royal Alexandra    |         |  o  Royal Alexandra  |                         |
 | [View route report   ] |         | [View route report ] |                         |
+| 37 min, 2.2 km, ...    |         | 37 min, 2.2 km, ...  |                         |
+| [Show route 2        ] |         | [Show route 2]       |                         |
 | map (after results)    |         +----------------------+-------------------------+
 +------------------------+
 ```
@@ -43,7 +45,7 @@ Phone (390 px)                     Desktop (from 900 px)
 1. The line is the hero. If a screen has a route, the route line is the most visible thing on it.
 2. Shape before colour. Every condition has a shape, a fill pattern and words, so it reads in greyscale, in glare and in a screen reader.
 3. Quiet chrome. Panels are flat cards with one ink rule on top. No shadows, gradients, badges or decoration.
-4. One reveal. The line draws itself once when routes arrive (600 ms, top to bottom). Nothing else moves.
+4. One reveal. The line draws itself once when routes arrive, or when someone opens an alternate (600 ms, top to bottom). Nothing else moves.
 5. Plain words. Sentence case, verbs on buttons, errors that say what to do.
 
 ## 2. Review against generic tells
@@ -71,6 +73,7 @@ Changes made after reviewing the first screenshots ("remove one accessory"):
 - The chosen places on the demo map were solid ink boxes, louder than the route line. They are now outlined, and the drawn roads are thinner.
 - The city list used bordered cards and repeated the kind ("Escalator out") above the title ("Escalator out of service"). It now uses plain rows, with the title as the hazard label.
 - A kind sentence that repeated the title was dropped from each report condition.
+- Lead review: three fully drawn routes made a 5,000 px phone page that was hard to compare. Alternates are now rows with a count and a "Show route 2" disclosure. The ice-risk watch, which sat on every line, is shown once above the routes. Effect codes on stops ("caution") became plain words ("take care"). In dark mode the chosen profile was the same blue as "Find routes"; it now fills with ink, as in light mode.
 
 ## 3. Tokens
 
@@ -86,7 +89,6 @@ Contrast is the WCAG relative-luminance ratio, measured with a script against th
 | `--action` | Buttons, links, the route line | `#1450A3` | 7.3 / 7.8 | `#8DB8FF` | 8.3 / 7.4 |
 | `--on-action` | Text on action | `#FFFFFF` | 7.8 on action | `#0D1F2D` | 8.3 on action |
 | `--focus` | Focus ring | `#E06F00` | 3.1 / 3.3 | `#FFB454` | 9.5 / 8.4 |
-| `--chosen` / `--on-chosen` | Chosen segment | ink / snow | 15.7 | action / ink | 8.3 |
 | `--blocked` | Blocked shape and label | `#B3261E` | 6.1 / 6.5 | `#FF9A8F` | 8.2 / 7.3 |
 | `--ice` | Ice-risk shape and label | `#0B6F80` | 5.5 / 5.8 | `#5FD4E8` | 9.7 / 8.6 |
 | `--snow-hazard` | Snow shape and label | `#5B4FCF` | 5.7 / 6.1 | `#C2B8FF` | 9.3 / 8.2 |
@@ -96,6 +98,7 @@ Contrast is the WCAG relative-luminance ratio, measured with a script against th
 - **Theme switching.** Dark follows `prefers-color-scheme`. It is guarded by `:root:not([data-theme="light"])` and repeated under `:root[data-theme="dark"]`, so OP-307 can force either theme by setting `data-theme` on `<html>`.
 - **Focus ring.** The focus ring is 3 px with a 2 px card-coloured gap, so it always sits next to card or snow, never next to the control's own fill. In light mode the focus colour on action is only 2.4:1, which is why the gap exists.
 - **Line colour.** `--line` is 1.6:1, so it is never a control border. Controls use `--muted`.
+- **Chosen state.** A chosen segment fills with `--ink` and uses `--snow` text in both themes (15.7:1 light, 15.5:1 dark). Action blue is only for actions, so a chosen option never looks like a second primary button.
 - **New colours.** If you add a colour, measure it and put the ratio in a comment beside it.
 
 ## 4. Type
@@ -126,7 +129,11 @@ Headings use letter-spacing 0. Lines never run past 70ch. Use sentence case ever
 | `StatusLine` | Results counts, loading, confirmations | `role="status"`. Keep it in the DOM even when empty so changes are announced. |
 | `TimeAgo` | Any time a reading was taken | "Checked 4 min ago" for source readings, "Updated just now" for the page. The exact time is in the `title` and `datetime`. |
 | `HazardMark` | Any condition in a list, legend or report | Shape plus visible label. `HazardShapeIcon` is the shape alone, only when the words sit right next to it. |
-| `RouteLine` | Any screen that shows a route | Heading sentence, reason, then an ordered list: start, each condition, end. `reveal` draws it once; `compact` drops detail and check times when the full report follows. |
+| `RouteLine` | Any screen that shows a route | Heading sentence, reason, then an ordered list: start, each condition, end. `reveal` draws it once; `compact` drops detail and check times when the full report follows. Its parts are exported: `RouteHeading` (sentence and reason), `RouteStops` (the line) and `routeTally` ("1 condition on this route, 1 within 50 m, 1 avoided."). |
+| Route results (`route-result.tsx`) | A list of 2 or 3 routes | The recommended route shows its whole line and buttons. Alternates show heading, reason and count, plus a "Show route 2" button (`aria-expanded`, `aria-controls`) that opens the line and the buttons in place. |
+| `CityWideConditions` | Conditions that cover the whole city | One line each, shown once above the routes: "Ice-risk watch is on for the whole city." They are never stops on a line. The route report still lists them under Weather and ice. |
+
+**City-wide items.** The API marks an item that covers the whole city only through its note (`cloud/app/report.py` `NOTES["citywide"]`), so `isCityWide()` in `lib/report-format.ts` tests that note. If `ReportItemOut` gains an `everywhere` flag, test that instead.
 
 **Stop order.** The API does not yet say where along the route each condition lies. Stops therefore follow the report's group order (indoor, sidewalks and paths, roads and crossings, weather and ice), and within each group the report's own order. When `GET /api/route` adds a position, sort by it.
 
@@ -139,13 +146,13 @@ The effect sets the shape. The kind supplies the words ("Elevator out"). Each sh
 | Meaning | Shape | Fill | Colour token | Label |
 | --- | --- | --- | --- | --- |
 | Start, end | Circle | Solid | `--ink` | "Start", "End" and the place name |
-| `blocked` | Square | Diagonal stripes | `--blocked` | "Blocked" |
+| `blocked` | Square | Diagonal stripes | `--blocked` | "Path closed" |
 | `ice_risk` | Diamond | Dots | `--ice` | "Ice risk" (never "black ice detected") |
-| `snow` | Hexagon | Dashes | `--snow-hazard` | "Snow" |
-| `caution` | Triangle | Solid | `--caution` | "Caution" |
+| `snow` | Hexagon | Dashes | `--snow-hazard` | "Snow on the path" |
+| `caution` | Triangle | Solid | `--caution` | "Take care" |
 | Clear | Circle with a check | Outline | `--clear` | "No known obstructions" |
 
-On the route line, an avoided condition is offset to the right, and the line kinks away from it. It is labelled "Avoided".
+On the route line, an avoided condition is offset to the right, and the line kinks away from it. Each stop reads status, then the effect in words: "Avoided: path closed", "On this route: take care", "12 m from this route: take care".
 
 ## 7. Copy
 
@@ -154,6 +161,14 @@ On the route line, an avoided condition is offset to the right, and the line kin
 - **Empty states.** Invite an action: "No current obstructions are reported. Plan a route to see conditions along it."
 - **Data honesty.** Label demo and replayed data on the screen itself, in words.
 - **Time.** Use "Checked" for when we last confirmed a reading, not "Updated".
+- **Effects.** Never show an effect code. Use these words everywhere, from `effectLabel()` in `lib/report-format.ts`:
+
+  | Effect code | Words |
+  | --- | --- |
+  | `blocked` | Path closed |
+  | `snow` | Snow on the path |
+  | `ice_risk` | Ice risk |
+  | `caution` | Take care |
 - **Tone.** Use sentence case. Write no filler, no exclamation marks and no apologies.
 
 ## 8. Do not

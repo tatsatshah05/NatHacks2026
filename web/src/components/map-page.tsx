@@ -6,15 +6,16 @@ import { Obstruction } from "@/lib/types";
 import MapView from "./map-view";
 import { getKindMeta } from "./obstruction-meta";
 import Button from "./ui/button";
-import HazardMark, { HAZARD_SHAPES, effectShape, effectText } from "./ui/hazard-mark";
+import HazardMark, { HAZARD_SHAPES, SHAPE_TEXT, effectShape, effectText } from "./ui/hazard-mark";
 import SiteFooter from "./ui/site-footer";
 import SiteHeader from "./ui/site-header";
 import StatusLine from "./ui/status-line";
 import TimeAgo from "./ui/time-ago";
 
 // The four shapes a city obstruction can take, for the legend under the map.
-const LEGEND = HAZARD_SHAPES.filter((shape) => shape !== "start" && shape !== "clear");
-const LEGEND_TEXT: Record<string, string> = { blocked: "Blocked", ice: "Ice risk", snow: "Snow", caution: "Caution" };
+const LEGEND = HAZARD_SHAPES.filter(
+  (shape): shape is "blocked" | "ice" | "snow" | "caution" => shape !== "start" && shape !== "clear"
+);
 
 export default function MapPage() {
   const [obstructions, setObstructions] = useState<Obstruction[]>([]);
@@ -137,7 +138,7 @@ export default function MapPage() {
           <ul className="legend" aria-label="Map shapes">
             {LEGEND.map((shape) => (
               <li key={shape}>
-                <HazardMark shape={shape} label={LEGEND_TEXT[shape]} size={18} />
+                <HazardMark shape={shape} label={SHAPE_TEXT[shape]} size={18} />
               </li>
             ))}
           </ul>

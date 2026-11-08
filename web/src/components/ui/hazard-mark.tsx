@@ -2,7 +2,7 @@ import { createElement, useId } from "react";
 import { HazardShape, SHAPE_SPECS } from "./hazard-shapes";
 
 export type { HazardShape } from "./hazard-shapes";
-export { effectShape, effectText, hazardShapeSvg, HAZARD_SHAPES } from "./hazard-shapes";
+export { effectShape, effectText, hazardShapeSvg, HAZARD_SHAPES, SHAPE_TEXT } from "./hazard-shapes";
 
 type ShapeProps = { shape: HazardShape; size?: number; className?: string };
 

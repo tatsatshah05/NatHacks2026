@@ -1,3 +1,5 @@
+import { effectLabel } from "@/lib/report-format";
+
 /**
  * The shape vocabulary, shared by the React HazardShape and the string builder the
  * MapLibre markers use. Every shape differs in outline and in fill pattern, so it
@@ -91,20 +93,19 @@ export function effectShape(effect: string): HazardShape {
   }
 }
 
+/** The effect in plain words; one mapping for the whole app (lib/report-format.ts). */
 export function effectText(effect: string): string {
-  switch (effect) {
-    case "blocked":
-      return "Blocked";
-    case "ice_risk":
-      return "Ice risk";
-    case "snow":
-      return "Snow";
-    case "caution":
-      return "Caution";
-    default:
-      return "Obstruction";
-  }
+  return effectLabel(effect);
 }
+
+/** The words for a shape, for legends. */
+export const SHAPE_TEXT: Record<Exclude<HazardShape, "start">, string> = {
+  blocked: effectLabel("blocked"),
+  ice: effectLabel("ice_risk"),
+  snow: effectLabel("snow"),
+  caution: effectLabel("caution"),
+  clear: "No known obstructions"
+};
 
 /** The shape as an SVG string, for DOM built outside React (the map markers). */
 export function hazardShapeSvg(shape: HazardShape, size: number, id: string): string {

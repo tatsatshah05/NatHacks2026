@@ -12,12 +12,31 @@ const SOURCE_LABELS: Record<string, string> = {
   camera_model: "Road cameras"
 };
 
+// What each effect means for someone on the path, in plain words (docs/design/DESIGN.md).
 const EFFECT_LABELS: Record<ReportItem["effect"], string> = {
-  blocked: "Blocked",
-  snow: "Snow",
+  blocked: "Path closed",
+  snow: "Snow on the path",
   ice_risk: "Ice risk",
-  caution: "Caution"
+  caution: "Take care"
 };
+
+/**
+ * The note GET /api/route gives an item that covers the whole city (cloud/app/report.py
+ * NOTES["citywide"]). The API marks city-wide items only through this note today; if
+ * ReportItemOut gains an `everywhere` flag, test that instead.
+ */
+export const CITYWIDE_NOTE = "Covers the whole city, so it applies to every route and changes none.";
+
+/** True for an item that applies everywhere (the ice-risk watch), not at a place on the route. */
+export function isCityWide(item: Pick<ReportItem, "note">): boolean {
+  return item.note === CITYWIDE_NOTE;
+}
+
+/** One sentence for a city-wide item: "Ice-risk watch is on for the whole city." */
+export function cityWideSentence(item: Pick<ReportItem, "source" | "title">): string {
+  if (item.source === "weather_watch") return "Ice-risk watch is on for the whole city.";
+  return /[.!?]$/.test(item.title) ? item.title : `${item.title}.`;
+}
 
 const CONFIDENCE_LABELS: Record<ReportItem["confidence"], string> = {
   high: "High confidence",
@@ -31,8 +50,9 @@ export function sourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source.replace(/_/g, " ");
 }
 
-export function effectLabel(effect: ReportItem["effect"]): string {
-  return EFFECT_LABELS[effect];
+/** "Path closed", "Snow on the path", "Ice risk", "Take care"; never the raw effect code. */
+export function effectLabel(effect: string): string {
+  return EFFECT_LABELS[effect as ReportItem["effect"]] ?? "Take care";
 }
 
 export function confidenceLabel(confidence: ReportItem["confidence"]): string {
