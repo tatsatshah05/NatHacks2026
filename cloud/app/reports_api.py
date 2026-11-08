@@ -137,9 +137,10 @@ def parse_multipart(body: bytes, content_type: str) -> list[FormPart]:
                 disposition = value.decode("utf-8", "replace").strip()
         if not disposition.lower().startswith("form-data"):
             raise ValueError("a multipart part is not form-data")
+        # finditer, not findall: an unmatched group is None here, "" with findall.
         params = {
-            key.lower(): quoted if quoted is not None else bare
-            for key, quoted, bare in _PARAM.findall(disposition)
+            m.group(1).lower(): m.group(2) if m.group(2) is not None else m.group(3)
+            for m in _PARAM.finditer(disposition)
         }
         if not params.get("name"):
             raise ValueError("a multipart part has no name")
