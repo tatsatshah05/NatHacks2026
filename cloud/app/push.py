@@ -377,7 +377,8 @@ def route_url(row: SavedRouteRow) -> str:
             "to": f"{row.to_lat:.6f},{row.to_lng:.6f}",
             "profile": row.profile,
             "saved": row.id,
-        }
+        },
+        safe=",",  # lat,lng as /api/route takes it
     )
     return f"/?{query}"
 

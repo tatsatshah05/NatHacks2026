@@ -13,7 +13,8 @@ Secrets live only in the Render, Vercel and GitHub settings, never in the reposi
 3. When Render asks for the `sync: false` variables, fill them in:
    - `SOCRATA_APP_TOKEN`: from the City of Edmonton open data portal
    - `CORS_ORIGINS`: leave it empty for now and set it after step 2 below
-   - The others (`VAPID_*`, `WEATHER_*`) can stay empty until the stories that use them (OP-109, OP-304)
+   - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`: generate them as in section 5. Left empty, the API runs and saves routes, but sends no push alerts
+   - `WEATHER_*` can stay empty until OP-109 uses them
 4. Render generates `ADMIN_KEY` and `WORKER_KEY` itself. Share them with the team privately, never in Git.
 5. Open the `openpath-api` service, go to **Settings → Deploy Hook**, and copy the URL.
 6. Check that `https://<service>.onrender.com/health` returns `{"status": "ok", "version": "<commit>", "mode": "live"}`.
@@ -28,7 +29,7 @@ The free plan sleeps after a period without traffic. Decision D-2 (PLAN.md secti
    - `NEXT_PUBLIC_API_URL`: the Render API URL, for example `https://openpath-api.onrender.com`
    - `NEXT_PUBLIC_API_BASE_URL`: the same URL. The OP-113 web app (#94) reads this name, while AGENTS.md names `NEXT_PUBLIC_API_URL`; set both until the two agree.
    - `NEXT_PUBLIC_WS_URL`: the same host with `wss://` and `/ws`
-   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: empty until OP-304
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: the same value as `VAPID_PUBLIC_KEY` (section 5). Optional: the web app can read it from `GET /api/push/public-key` instead
 4. Deploy, and note the production URL (the project's **Domains** page) and your team slug (the `<team-slug>` at the end of every preview URL).
 5. On Render, set `CORS_ORIGINS` on `openpath-api` to the production URL plus the preview pattern, for example `https://openpath.vercel.app,https://openpath-*-<team-slug>.vercel.app`. Vercel preview URLs look like `openpath-<hash>-<team-slug>.vercel.app` and `openpath-git-<branch>-<team-slug>.vercel.app`, and a `*` matches part of one host-name label.
 6. Open the site. If the browser console shows a CORS error, check `CORS_ORIGINS` on Render.
@@ -77,6 +78,18 @@ Render's free plan has no background workers, so the camera worker (OP-204) runs
 5. **Check** that `https://openpath-api-w6ql.onrender.com/api/cameras` lists readings with `age_s` under 600 within about 10 minutes.
 
 If the worker stops, its readings expire after 15 minutes and the weather watch keeps running (OP-412 adds the fallback notice in the UI). Its posts every 5 minutes also keep the free API awake, so start it at least 10 minutes before judging.
+
+## 5. Web Push keys (OP-304)
+
+Push alerts for saved routes are signed with a VAPID key pair. Generate one once, on a laptop, from the repository root after `make setup`:
+
+```bash
+.venv/bin/python -m cloud.app.push --generate-keys --subject mailto:<team address>
+```
+
+It prints four lines. Put `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` on the `openpath-api` service in Render, and `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (the same public key) in Vercel for Production and Preview. Share the private key only through the dashboards, never in Git or chat. Both keys are base64url strings: the public key is the browser's `applicationServerKey`, and the private key is its raw 32 bytes, which pywebpush reads directly.
+
+Check that `https://<service>.onrender.com/api/push/public-key` returns `"push_enabled": true`. If it says `false`, the API log has one `PUSH disabled` line with the reason (a key missing, no subject, or a public key that does not belong to the private key). Changing the keys invalidates every existing browser subscription, so generate them once and keep them.
 
 ## Current deployment (November 8, 2026)
 

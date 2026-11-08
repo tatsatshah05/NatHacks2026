@@ -418,7 +418,7 @@ def test_notice_payloads() -> None:
     )
     assert changed["tag"] == "route-7" and changed["saved_route_id"] == 7
     assert changed["url"] == (
-        "/?from=53.544400%2C-113.490900&to=53.546100%2C-113.493800"
+        "/?from=53.544400,-113.490900&to=53.546100,-113.493800"
         "&profile=wheelchair&saved=7"
     )
     impossible = notice_payload(
