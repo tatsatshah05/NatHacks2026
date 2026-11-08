@@ -105,12 +105,13 @@ def test_daily_lookup_failure_uses_cache_and_still_refreshes_outages(
     assert adapter.last_error is None
 
 
-@pytest.mark.parametrize("dataset", [lrt.DEVICES, lrt.STATIONS])
-def test_lookup_failure_without_cache_fails_without_publishing_empty_data(
-    feeds: Feeds, dataset: str
+def test_station_lookup_failure_without_cache_fails_without_publishing_empty_data(
+    feeds: Feeds,
 ) -> None:
+    # OP-313: a device list failure without a cache still posts the outages, with
+    # plain details (test_lrt_station_devices); the station table stays required.
     reader = FakeReader(feeds)
-    reader.fail.add(dataset)
+    reader.fail.add(lrt.STATIONS)
     adapter = lrt.LrtDevicesAdapter(reader, source_timezone=EDMONTON)
     with pytest.raises(lrt.FeedError):
         adapter.fetch(NOW)
@@ -182,7 +183,13 @@ def test_missing_city_poll_timestamp_does_not_affect_freshness(feeds: Feeds) -> 
 def test_detail_remains_human_while_start_time_is_structured(feeds: Feeds) -> None:
     adapter = lrt.LrtDevicesAdapter(FakeReader(feeds), source_timezone=EDMONTON)
     government = next(item for item in adapter.fetch(NOW) if item["source_ref"] == "43")
-    assert government["detail"] == "Government Centre, South Entrance"
+    # OP-313 adds the station's in-service devices after "<station>, <location>".
+    assert government["detail"] == (
+        "Government Centre, South Entrance. Use the South Entrance elevator instead. "
+        "Also in service at Government Centre: elevators at South Platform, North "
+        "Platform and North Entrance; escalators at South Platform Up, North Platform "
+        "and South Platform Down."
+    )
     assert government["starts_at"].endswith("Z")
 
 
