@@ -208,6 +208,53 @@ nav a[aria-current="page"] { color: var(--brand-dark); text-decoration: underlin
 .avoided-list strong { font-size: .72rem; text-transform: uppercase; }
 .avoided-list ul { list-style: none; margin: 4px 0 0; padding: 0; }
 .avoided-list li, .avoided-list p { color: var(--muted); margin: 3px 0 0; }
+.route-button { margin-top: 16px; }
+.report-shell { padding-bottom: 36px; }
+.active-nav { color: var(--brand-dark); text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+.report-back { align-items: center; display: inline-flex; text-decoration: none; }
+.report-hero { border-top: 1px solid var(--line); padding: 58px 0 28px; }
+.report-hero h1 { font-size: clamp(2.2rem, 5vw, 4.5rem); max-width: 900px; }
+.report-hero .hero-copy { margin-bottom: 0; }
+.report-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.report-save { width: auto; }
+.report-summary { align-items: center; background: color-mix(in srgb, var(--brand) 9%, transparent); border: 1px solid var(--brand); border-radius: 12px; display: flex; gap: 20px; justify-content: space-between; margin-bottom: 20px; padding: 20px 24px; }
+.report-summary h2 { font-size: 1.25rem; }
+.report-summary p { color: var(--muted); margin: 0; max-width: 430px; }
+.report-content { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr) minmax(280px, .7fr); }
+.report-list, .report-map, .steps-section { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 24px; }
+.section-heading { align-items: flex-start; display: flex; justify-content: space-between; margin-bottom: 20px; }
+.freshness { color: var(--muted); font-size: .78rem; }
+.report-group { border-top: 1px solid var(--line); padding: 18px 0 4px; }
+.report-group h3 { font-size: 1rem; margin: 0 0 12px; }
+.report-item { align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; display: flex; gap: 12px; margin-bottom: 10px; padding: 14px; }
+.report-icon { align-items: center; border: 1px solid var(--ink); border-radius: 7px; display: inline-flex; flex: 0 0 42px; font-size: 1.25rem; height: 42px; justify-content: center; }
+.report-item-content { min-width: 0; }
+.report-item h4 { font-size: .98rem; margin: 0 0 4px; }
+.report-item p { color: var(--muted); font-size: .86rem; margin: 0 0 9px; }
+.report-meta { align-items: center; color: var(--muted); display: flex; flex-wrap: wrap; font-size: .75rem; gap: 5px 12px; }
+.report-meta span + span { border-left: 1px solid var(--line); padding-left: 12px; }
+.report-meta a { color: var(--brand-dark); font-weight: 800; }
+.group-empty { color: var(--muted); font-size: .85rem; margin: 0 0 10px; }
+.report-map { min-height: 390px; padding: 0; }
+.report-map-placeholder { background: #d7eadf; border-radius: 15px; height: 100%; min-height: 390px; overflow: hidden; position: relative; }
+.report-map-placeholder::before, .report-map-placeholder::after { background: #fffaf0; border: 4px solid #b2c8bc; content: ""; height: 24px; position: absolute; transform: rotate(-35deg); width: 130%; }
+.report-map-placeholder::before { left: -30px; top: 35%; }
+.report-map-placeholder::after { left: -20px; top: 65%; transform: rotate(20deg); }
+.route-line { border-left: 6px dashed var(--brand-dark); height: 68%; left: 48%; position: absolute; top: 16%; transform: rotate(30deg); }
+.route-pin { align-items: center; background: var(--brand-dark); border: 3px solid var(--surface); border-radius: 50%; color: var(--paper); display: flex; font-weight: 800; height: 34px; justify-content: center; position: absolute; width: 34px; z-index: 1; }
+.pin-start { left: 25%; top: 25%; }
+.pin-end { bottom: 21%; right: 22%; }
+.report-map-placeholder p { background: var(--surface); bottom: 12px; color: var(--muted); font-size: .78rem; left: 12px; margin: 0; padding: 8px; position: absolute; right: 12px; z-index: 1; }
+.steps-section { margin-top: 20px; }
+.route-steps { list-style: none; margin: 0; padding: 0; }
+.route-steps li { align-items: flex-start; border-top: 1px solid var(--line); display: flex; gap: 14px; padding: 15px 0; }
+.step-number { align-items: center; background: var(--brand-dark); border-radius: 50%; color: var(--paper); display: inline-flex; flex: 0 0 32px; font-weight: 800; height: 32px; justify-content: center; width: 32px; }
+.route-steps strong { display: block; margin-bottom: 4px; }
+.route-steps p { color: var(--muted); font-size: .85rem; margin: 0; }
+.empty-report { border: 1px dashed var(--brand); border-radius: 10px; padding: 28px; text-align: center; }
+.empty-check { align-items: center; background: var(--brand-dark); border-radius: 50%; color: var(--paper); display: inline-flex; font-size: 1.4rem; height: 44px; justify-content: center; width: 44px; }
+.empty-report h3 { margin: 12px 0 5px; }
+.empty-report p { color: var(--muted); margin: 4px auto; max-width: 520px; }
 
 @media (max-width: 800px) {
   .app-shell { padding: 0 16px; }
@@ -228,6 +275,11 @@ nav a[aria-current="page"] { color: var(--brand-dark); text-decoration: underlin
   .map-place { top: 8%; }
   .map-place.place-two { top: 42%; }
   .route-card-grid { grid-template-columns: minmax(0, 1fr); }
+  .report-hero { padding: 44px 0 26px; }
+  .report-content { grid-template-columns: 1fr; }
+  .report-summary { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .report-map, .report-map-placeholder { min-height: 280px; }
+  .section-heading { flex-direction: column; gap: 5px; }
   footer { flex-direction: column; gap: 6px; }
 }
 
