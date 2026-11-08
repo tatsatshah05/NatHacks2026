@@ -22,7 +22,7 @@ python -m vision.train --images vision/data/raw --labels vision/data/labels_*.cs
 - `--labels`: one or more OP-115 CSVs. An image labelled twice is kept when both labels agree and dropped when they disagree. Images from camera `unknown` are dropped, because the split could not keep them out of the test cameras.
 - `--rscd`: optional RSCD folder with one subfolder per RSCD class. The friction state in each folder name maps to our classes (`dry`, `wet`/`water` → `wet`, `fresh_snow` → `snow_covered`, `melted_snow` → `snow_partial`, `ice`). This mapping is provisional until the dataset is downloaded and checked; unmapped folders are listed in the log and in `metrics.json`. RSCD is sampled to `--rscd-per-class` images per class (default 1000) and only ever goes into training. RSCD has no `unusable` class, so that class comes only from 511 images.
 - `--test-cameras`: fix the test cameras by ID. Without it, a seeded 20% of cameras are held out for testing and 10% for validation. Whole cameras are assigned, never single images.
-- `--arch`: `mobilenet_v3_small` (default) or `efficientnet_b0`. `--epochs`, `--batch-size`, `--lr` and `--seed` (default 202) are the other knobs.
+- `--arch`: `mobilenet_v3_small` (default) or `efficientnet_b0`. `--epochs`, `--batch-size`, `--lr`, `--label-smoothing`, `--workers`, `--latency-runs` and `--seed` (default 202) are the other knobs. Out-of-range values (for example `--epochs 0`) are rejected before anything runs.
 
 One run writes to `--out`:
 

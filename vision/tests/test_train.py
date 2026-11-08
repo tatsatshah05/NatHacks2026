@@ -296,3 +296,73 @@ def test_same_seed_gives_the_same_model(tmp_path: Path):
 
     first, second = weights_after_seed(), weights_after_seed()
     assert all(torch.equal(a, b) for a, b in zip(first, second, strict=True))
+
+
+# -- input validation (review on #110) -----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("flag", "value", "message"),
+    [
+        ("--epochs", "0", "must be at least 1"),
+        ("--batch-size", "0", "must be at least 1"),
+        ("--latency-runs", "0", "must be at least 1"),
+        ("--rscd-per-class", "0", "must be at least 1"),
+        ("--workers", "-1", "must be at least 0"),
+        ("--lr", "0", "must be greater than 0"),
+        ("--lr", "nan", "must be greater than 0"),
+        ("--label-smoothing", "1.5", "must be between 0 and 1"),
+        ("--epochs", "ten", "not a valid int"),
+    ],
+)
+def test_cli_rejects_invalid_numbers_before_training(flag, value, message, capsys):
+    from vision.train import main
+
+    with pytest.raises(SystemExit) as exit_info:
+        main(["--out", "unused", "--labels", "unused.csv", flag, value])
+    assert exit_info.value.code == 2  # argparse usage error, nothing was trained
+    assert message in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "settings",
+    [
+        {"epochs": 0},
+        {"batch_size": 0},
+        {"num_workers": -1},
+        {"latency_runs": 0},
+        {"lr": 0.0},
+        {"lr": float("inf")},
+        {"label_smoothing": -0.1},
+        {"input_size_px": 8},
+        {"arch": "resnet50"},
+    ],
+)
+def test_train_config_rejects_invalid_settings(settings):
+    from vision.train import TrainConfig
+
+    with pytest.raises(ValueError, match="Invalid training settings"):
+        TrainConfig(**settings)
+
+
+def test_train_config_accepts_the_edges_of_valid_ranges():
+    from vision.train import TrainConfig
+
+    TrainConfig(
+        epochs=1, batch_size=1, num_workers=0, latency_runs=1, label_smoothing=0.0
+    )
+    TrainConfig(label_smoothing=1.0, weight_decay=0.0)
+
+
+def test_run_rejects_rscd_per_class_below_one(tmp_path: Path):
+    from vision.train import TrainConfig, run
+
+    with pytest.raises(ValueError, match="rscd_per_class"):
+        run(
+            images_dir=tmp_path,
+            label_csvs=[],
+            out_dir=tmp_path / "out",
+            config=TrainConfig(),
+            rscd_dir=tmp_path,
+            rscd_per_class=0,
+        )

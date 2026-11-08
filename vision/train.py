@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import platform
 import random
 import statistics
@@ -264,6 +265,30 @@ class TrainConfig:
     num_workers: int = 2
     input_size_px: int = INPUT_SIZE_PX
     latency_runs: int = 50
+
+    def __post_init__(self) -> None:
+        """Refuse impossible settings now, not after minutes of training."""
+        problems = []
+        if self.arch not in ARCHITECTURES:
+            problems.append(f"arch must be one of {', '.join(ARCHITECTURES)}")
+        if self.epochs < 1:
+            problems.append("epochs must be at least 1")
+        if self.batch_size < 1:
+            problems.append("batch_size must be at least 1")
+        if self.num_workers < 0:
+            problems.append("num_workers must be 0 or more")
+        if self.latency_runs < 1:
+            problems.append("latency_runs must be at least 1")
+        if self.input_size_px < 32:
+            problems.append("input_size_px must be at least 32")
+        if not (math.isfinite(self.lr) and self.lr > 0):
+            problems.append("lr must be a positive number")
+        if not (math.isfinite(self.weight_decay) and self.weight_decay >= 0):
+            problems.append("weight_decay must be 0 or more")
+        if not (0 <= self.label_smoothing <= 1):
+            problems.append("label_smoothing must be between 0 and 1")
+        if problems:
+            raise ValueError("Invalid training settings: " + "; ".join(problems))
 
 
 def seed_everything(seed: int) -> None:
@@ -544,6 +569,8 @@ def run(
     test_cameras: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """The whole pipeline. Writes split.json, labels.json, model.onnx and metrics.json."""
+    if rscd_per_class < 1:  # checked before importing PyTorch
+        raise ValueError("rscd_per_class must be at least 1")
     import torch
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -632,6 +659,39 @@ def run(
 # ---------------------------------------------------------------------------
 
 
+def _number(
+    kind: type, *, minimum: float, inclusive: bool = True, maximum: float | None = None
+):
+    """An argparse type that rejects out-of-range values with a clear message."""
+
+    def parse(text: str):
+        try:
+            value = kind(text)
+        except ValueError:
+            raise argparse.ArgumentTypeError(
+                f"{text!r} is not a valid {kind.__name__}"
+            ) from None
+        too_low = value < minimum if inclusive else value <= minimum
+        if (
+            not math.isfinite(value)
+            or too_low
+            or (maximum is not None and value > maximum)
+        ):
+            bound = f"at least {minimum}" if inclusive else f"greater than {minimum}"
+            if maximum is not None:
+                bound = f"between {minimum} and {maximum}"
+            raise argparse.ArgumentTypeError(f"must be {bound}, got {text}")
+        return value
+
+    return parse
+
+
+positive_int = _number(int, minimum=1)
+non_negative_int = _number(int, minimum=0)
+positive_float = _number(float, minimum=0, inclusive=False)
+unit_interval = _number(float, minimum=0, maximum=1)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Train the OpenPath road-condition model."
@@ -647,7 +707,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--rscd", type=Path, help="RSCD root folder (one folder per class)."
     )
-    parser.add_argument("--rscd-per-class", type=int, default=1000)
+    parser.add_argument("--rscd-per-class", type=positive_int, default=1000)
     parser.add_argument(
         "--test-cameras",
         nargs="*",
@@ -655,11 +715,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--arch", choices=ARCHITECTURES, default=TrainConfig.arch)
-    parser.add_argument("--epochs", type=int, default=TrainConfig.epochs)
-    parser.add_argument("--batch-size", type=int, default=TrainConfig.batch_size)
-    parser.add_argument("--lr", type=float, default=TrainConfig.lr)
+    parser.add_argument("--epochs", type=positive_int, default=TrainConfig.epochs)
+    parser.add_argument(
+        "--batch-size", type=positive_int, default=TrainConfig.batch_size
+    )
+    parser.add_argument("--lr", type=positive_float, default=TrainConfig.lr)
     parser.add_argument("--seed", type=int, default=TrainConfig.seed)
-    parser.add_argument("--workers", type=int, default=TrainConfig.num_workers)
+    parser.add_argument(
+        "--workers", type=non_negative_int, default=TrainConfig.num_workers
+    )
+    parser.add_argument(
+        "--latency-runs",
+        type=positive_int,
+        default=TrainConfig.latency_runs,
+        help="Timed ONNX runs for the CPU latency measurement.",
+    )
+    parser.add_argument(
+        "--label-smoothing", type=unit_interval, default=TrainConfig.label_smoothing
+    )
     parser.add_argument(
         "--no-pretrained",
         action="store_true",
@@ -687,6 +760,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         lr=args.lr,
         seed=args.seed,
         num_workers=args.workers,
+        latency_runs=args.latency_runs,
+        label_smoothing=args.label_smoothing,
     )
     run(
         images_dir=args.images,
