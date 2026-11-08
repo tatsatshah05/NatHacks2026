@@ -20,6 +20,7 @@ TEAM_ORIGINS = "https://openpath.vercel.app,https://openpath-*-myteam.vercel.app
 def local_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Every test starts from a plain local environment and an in-memory database."""
     monkeypatch.setenv("DATABASE_URL", "sqlite://")
+    monkeypatch.setenv("SCHEDULER", "off")  # OP-103: never fetch real sources in tests
     for name in ("RENDER_GIT_COMMIT", "DATA_MODE", "CORS_ORIGINS"):
         monkeypatch.delenv(name, raising=False)
 
