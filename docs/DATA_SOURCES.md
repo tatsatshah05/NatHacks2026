@@ -35,6 +35,36 @@ One section per source. Each adapter's owner keeps their section current: what t
 - Coordinates in edge polylines are stored as 32-bit floats (about 0.4 m precision at Edmonton's latitude). Snapping uses the 64-bit node coordinates.
 - OpenStreetMap coverage of sidewalks varies by neighbourhood. Where sidewalks are not mapped separately, routing follows the street.
 
+## 511 Alberta Cameras (OP-112, Ipsa)
+
+**What it is.** Government of Alberta road cameras across the province, published through the 511 Alberta developer API. OpenPath uses the cameras inside Edmonton to read road conditions (OP-202, OP-204). Only camera metadata is fetched for now: location, roadway and views.
+
+**How we access it.** `GET https://511.alberta.ca/api/v2/get/cameras?key=…&format=json` with our free developer key (register, log in, request a key on the [API documentation page](https://511.alberta.ca/developers/doc)). The key is `ALBERTA_511_KEY` and is never committed. It travels in the query string, so `vision/cameras.py` redacts `key=` from the httpx and httpcore loggers and keeps them at WARNING. Each camera has `Id`, `Source`, `SourceId`, `Roadway`, `Direction`, `Latitude`, `Longitude`, `Location`, `SortOrder` and `Views` (`Id`, `Url`, `Status`, `Description`) ([GET Cameras](https://511.alberta.ca/help/endpoint/cameras)).
+
+**Licence and attribution.** 511 Alberta information may be reproduced for non-commercial or educational purposes without charge or further permission; commercial reproduction needs written permission from the Government of Alberta, and information is provided as is ([About 511 Alberta](https://511.alberta.ca/about/about)). Shown as "Road camera data: 511 Alberta, Government of Alberta" on `/sources` and beside each camera reading.
+
+**Camera images (open).** The terms do not mention camera images specifically. On November 7 we asked 511 Alberta to confirm in writing that keeping labelled frames for non-commercial training is allowed. Until then, live frames are processed in memory only, and the app links to the official 511 viewer instead of re-hosting images.
+
+**Update cadence and limits.** The camera list is meant to refresh daily; the scheduling arrives with the worker (OP-204). 511 Alberta allows 10 calls every 60 seconds; one shared `RateLimiter` enforces that for every request, including the image requests OP-204 will add.
+
+**Reliability.** 20-second timeout. A failed fetch or a changed schema keeps the last good list and marks it stale, with one log line when it goes stale and one when it recovers. A single malformed camera is skipped with a log line rather than failing the whole list. The last good list is cached in `vision/.cache/` (ignored by git); if that disk is read-only, fetching carries on without the cache.
+
+**Measured.** Not yet: the Edmonton camera count is recorded here once the key arrives (`python -m vision.cameras --record vision/tests/fixtures/alberta511_cameras_recorded.json`). Until a City boundary file is passed with `--boundary`, the count uses a bounding box, over-counts neighbouring municipalities, and is labelled approximate. The test fixture is hand-written from the documented fields, not a recorded response.
+
+## City of Edmonton Traffic Cameras (OP-112, Ipsa)
+
+**Status (open).** Not used. On November 7 we sent the City a written request to use its traffic camera streams; the reply is tracked in issue #40. Until the City gives written permission, the app only links to the City's own viewer ([edmontontrafficcam.com](https://edmontontrafficcam.com/)).
+
+## RSCD Road Surface Dataset (OP-112, Ipsa)
+
+**What it is.** The Road Surface Classification Dataset: 240 × 360 pixel road-surface patches cropped from a vehicle-mounted camera in China, labelled in 27 categories of friction, material and unevenness. The IEEE DataPort page describes about 1 million images; the Mendeley Data release (version 3) lists 370,151.
+
+**How we use it.** Pre-training only (OP-202). Its close-up, forward-facing view differs from our roadside cameras, so it does not replace labelled 511 images. **Open:** confirm which categories map to `snow_partial`, `snow_covered` and `ice` before training. IEEE DataPort needs a subscription, so download from Mendeley Data.
+
+**Licence and attribution.** CC BY 4.0 ([IEEE DataPort](https://ieee-dataport.org/documents/rscd-road-surface-classification-dataset-detailed-annotations-driving-assistance), [Mendeley Data](https://data.mendeley.com/datasets/w86hvkrzc5)). Credit: Tong Zhao, "RSCD: Road Surface Classification Dataset with Detailed Annotations for Driving Assistance", IEEE DataPort, 2022, doi:10.21227/446p-xr65, in `vision/MODEL_CARD.md` and on `/sources`.
+
+**Decision D-3 (proposed; the lead records the final decision in PLAN.md section 16).** Pre-train on RSCD with attribution. Keep labelled 511 frames privately for non-commercial training, outside the repo and never redistributed, once 511 Alberta confirms; if it says no, delete them and train on RSCD and community photos only. Never keep an image in which a person can be identified, and never commit images.
+
 ## Environment and Climate Change Canada
 
 - Official API: https://api.weather.gc.ca/collections/swob-realtime/items
