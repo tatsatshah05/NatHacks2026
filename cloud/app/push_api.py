@@ -32,6 +32,7 @@ from .push import (
     alert_test_payload,
     route_url,
 )
+from .rate_limit import public_write_limit
 from .routing import HazardMap, Router, RoutingError
 from .routing_api import get_hazards, get_router
 from .saved_routes import SavedRouteRow, SavedRouteStore
@@ -228,7 +229,12 @@ def public_key(sender: Annotated[PushSender, Depends(get_sender)]) -> PublicKeyO
     return PublicKeyOut(public_key=sender.public_key, push_enabled=sender.enabled)
 
 
-@router.post("/push/subscribe", response_model=SubscribeOut)
+# OP-401: every write below is open to anyone, so each is limited per connection and
+# minute (rate_limit.py) on top of its per-client_id cap.
+WRITE_LIMIT = [Depends(public_write_limit)]
+
+
+@router.post("/push/subscribe", response_model=SubscribeOut, dependencies=WRITE_LIMIT)
 def subscribe(
     body: SubscribeIn,
     subscriptions: Annotated[PushSubscriptionStore, Depends(get_subscriptions)],
@@ -254,7 +260,7 @@ def subscribe(
     )
 
 
-@router.post("/push/test", response_model=TestOut)
+@router.post("/push/test", response_model=TestOut, dependencies=WRITE_LIMIT)
 def send_test(
     body: TestIn,
     subscriptions: Annotated[PushSubscriptionStore, Depends(get_subscriptions)],
@@ -282,7 +288,12 @@ def send_test(
 # ---------------------------------------------------------- saved routes
 
 
-@router.post("/saved-routes", response_model=SavedRouteOut, status_code=201)
+@router.post(
+    "/saved-routes",
+    response_model=SavedRouteOut,
+    status_code=201,
+    dependencies=WRITE_LIMIT,
+)
 def save_route(
     body: SavedRouteIn,
     push: Annotated[PushServices, Depends(get_push)],
@@ -336,7 +347,12 @@ def list_routes(
     )
 
 
-@router.delete("/saved-routes/{route_id}", status_code=204, response_class=Response)
+@router.delete(
+    "/saved-routes/{route_id}",
+    status_code=204,
+    response_class=Response,
+    dependencies=WRITE_LIMIT,
+)
 def delete_route(
     route_id: int,
     client_id: ClientIdQuery,

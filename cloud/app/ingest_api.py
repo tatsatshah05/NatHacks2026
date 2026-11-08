@@ -25,6 +25,7 @@ from .camera_readings import (
 )
 from .camera_status import camera_status
 from .obstructions_api import get_now
+from .rate_limit import keyed_write_limit
 
 router = APIRouter(prefix="/api", tags=["cameras"])
 
@@ -59,7 +60,8 @@ class IngestResult(BaseModel):
 @router.post(
     "/ingest/camera",
     response_model=IngestResult,
-    dependencies=[Depends(require_worker_key)],
+    # The key first (OP-401): a request without it never counts against the worker.
+    dependencies=[Depends(require_worker_key), Depends(keyed_write_limit)],
 )
 def ingest_camera(
     reading: CameraReadingIn,

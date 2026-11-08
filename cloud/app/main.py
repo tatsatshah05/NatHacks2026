@@ -17,6 +17,8 @@
 - ``SOCRATA_APP_TOKEN``: raises the City open data rate limit. Optional.
 - ``LRT_TRIPS``: ``true`` adds walk and LRT trips to ``/api/route?mode=walk_lrt``
   (OP-311). Off by default; then every route is walking only.
+- ``RATE_LIMIT_PER_MIN``: writes one client may send per minute on the public POST
+  and DELETE routes (OP-401, ``rate_limit.py``; default 30, ``0`` turns it off).
 """
 
 from __future__ import annotations
@@ -58,8 +60,10 @@ from cloud.app.matching import HazardProvider
 from cloud.app.network import DEFAULT_NETWORK_PATH, WalkNetwork
 from cloud.app.profiles import load_routing_config
 from cloud.app.quality import DailyCounts
+from cloud.app.rate_limit import RateLimits
 from cloud.app.routing import Router
 from cloud.app.scheduler import Scheduler, utcnow
+from cloud.app.security import SecurityHeadersMiddleware
 from cloud.app.store import ObstructionStore
 
 log = logging.getLogger(__name__)
@@ -306,6 +310,8 @@ def create_app() -> FastAPI:
     app = FastAPI(title="OpenPath API", version="0.1.0", lifespan=lifespan)
     app.state.mode = mode  # read by the lifespan and by /api/status
     app.state.version = version
+    # OP-401: the per-client limits the public write routes check (rate_limit.py).
+    app.state.rate_limits = RateLimits.from_env(os.environ.get("RATE_LIMIT_PER_MIN"))
 
     origins, origin_regex = cors_settings(os.environ.get("CORS_ORIGINS"))
     app.add_middleware(
@@ -315,6 +321,8 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
     )
+    # Added last, so it is outermost and decorates CORS preflight answers too (OP-401).
+    app.add_middleware(SecurityHeadersMiddleware)
 
     app.include_router(obstructions_api.router)
     app.include_router(status.router)
