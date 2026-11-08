@@ -8,11 +8,13 @@ export const metadata: Metadata = { title: "Privacy | OpenPath" };
 
 // Every statement here comes from the code: lib/client-id.ts and lib/settings.ts (the
 // device), cloud/app/saved_routes.py, push.py and push_api.py (alerts), reports.py and
-// reports_api.py (reports, config/reports.json for expiry), ws.py (live updates),
+// reports_api.py (reports, config/reports.json for expiry), camera_readings.py (camera
+// readings), rate_limit.py (the per-connection counters), ws.py (live updates),
 // vision/ai_check.py and docs/DATA_SOURCES.md (Anthropic, camera images), and the
 // lead's decision of November 8, 2026 that report photos are checked by both the
-// road-condition model and Claude. When one of them changes what is stored, change
-// this page in the same pull request.
+// road-condition model and Claude. cloud/tests/test_privacy_inventory.py pins the
+// database tables and columns this page describes. When one of them changes what is
+// stored, change this page in the same pull request.
 
 const REPO = "https://github.com/tatsatshah05/NatHacks2026";
 
@@ -55,14 +57,15 @@ export default function PrivacyPage() {
           <dl className={styles.terms}>
             <dt>You save a route</dt>
             <dd>
-              Its name, its start and end points, the profile, your anonymous id, and the route OpenPath found for it, so it
-              can tell you when the route changes. It also keeps when the route was last checked and when you were last
-              alerted.
+              Its name, its start and end points, the profile, your anonymous id, and the route OpenPath found for it (the
+              paths it uses and its travel time), so it can tell you when the route changes. It also keeps the
+              route&rsquo;s current status, when it was last checked and when you were last alerted.
             </dd>
             <dt>You turn on alerts</dt>
             <dd>
               The push address your browser&rsquo;s push service gave it, the two keys that encrypt alerts for your browser,
-              your anonymous id, and a count of failed deliveries.
+              your anonymous id, when you turned alerts on, when an alert last reached your browser, and a count of failed
+              deliveries.
             </dd>
             <dt>You send a report</dt>
             <dd>
@@ -83,6 +86,16 @@ export default function PrivacyPage() {
             to send live updates, and forgets them when you leave.
           </p>
           <p>
+            <strong>Not about you.</strong> The server also keeps the city&rsquo;s barriers from its public sources and the
+            latest road-condition reading for each public 511 Alberta camera: a label such as dry, wet or ice, a score, the
+            camera&rsquo;s position and the times of the reading. Never an image, and nothing from you.
+          </p>
+          <p>
+            <strong>Rate limits.</strong> To stop floods, the server counts how many reports, saved routes and alert
+            settings arrive from each network address, one minute at a time. The count lives in memory for that minute and
+            is never written down.
+          </p>
+          <p>
             <strong>Logs.</strong> Like most web services, the server logs each request. That log can include your anonymous
             id, what you searched for and the points of routes you plan. Report photos and notes never go into it.
           </p>
@@ -91,6 +104,7 @@ export default function PrivacyPage() {
           <ul>
             <li>Reports: 2 hours for ice, 6 hours for a blocked path and 12 hours for snow, then they are removed.</li>
             <li>The report limit log: 24 hours.</li>
+            <li>The rate-limit count for your network address: one minute, in memory.</li>
             <li>Saved routes: until you remove them.</li>
             <li>
               Alert subscriptions: until your browser&rsquo;s push service says the subscription has ended, for example after
