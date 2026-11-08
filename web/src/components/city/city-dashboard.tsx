@@ -254,14 +254,15 @@ export default function CityDashboard() {
             )}
             {items.length > 0 && <a href="#city-map">Go to the map</a>}
           </div>
-        </div>
-
-        <div className={ranking || !loading ? styles.list : `${styles.list} loading-space`}>
-          {/* The rows are h3s; this h2 keeps the outline in order (h1, h2, h3) without
-              adding a visible heading above a list that already has its count. */}
+          {/* The rows are h3s; this h2 keeps the outline in order (h1, h2, h3) without a
+              visible heading above a list that already has its count. It sits here, not
+              in the list box, so the empty list paints nothing while it loads. */}
           <h2 className="sr-only" id="barriers-title">
             Barriers, most important first
           </h2>
+        </div>
+
+        <div className={ranking || !loading ? styles.list : `${styles.list} loading-space`}>
           {ranking && !items.length && !problems.ranking && (
             <p className={styles.empty}>
               No barriers are reported right now. The list fills in as the City&apos;s sources report closures,
