@@ -121,3 +121,15 @@ responses; other source sections can coexist. The frozen replay serves original
 observation timestamps with `mode=replay`. A web consumer must display that mode
 and use `/api/status` for freshness. Source attribution must also appear on the
 shared app's sources page when integrated.
+
+## Traffic Disruptions (OP-108, Tatsat)
+
+**What it is.** The City's list of current road disruptions: construction, incidents and special events, each with a point, the street and cross streets, an impact and start/finish dates. Dataset `k4tx-5k8p`, updated several times a day.
+
+**How we access it.** The City open data API (`https://data.edmonton.ca/resource/k4tx-5k8p.json`), filtered to statuses `Current`, `Revised` and `Emergency`, read in pages every 15 minutes by `cloud/app/adapters/traffic_disruptions.py`. The `SOCRATA_APP_TOKEN` raises the rate limit when set.
+
+**What becomes an obstruction.** Only closures (`Total Closure`, `Directional Closure`, `Permanent Closure`, `Traffic Incident Closure`) whose dates cover now. They are `caution` items in category `road`: they never reroute anyone, they appear in the route report so people expect a detour at the crossing. Delays are skipped because they do not affect pedestrians. A row without a point or dates is skipped and logged; it never fails the refresh.
+
+**Licence and attribution.** City of Edmonton Open Data Terms of Use; shown as "City of Edmonton Open Data".
+
+**Recorded sample.** `cloud/tests/fixtures/traffic_disruptions/current.json` holds 30 current rows recorded on November 8, 2026 (see `manifest.json`), used by the tests and by replay mode.

@@ -8,6 +8,11 @@
   the web app can show the Replay badge.
 - ``CORS_ORIGINS``: the web origins allowed to call the API from a browser.
 - ``RENDER_GIT_COMMIT``: set by Render. ``/health`` reports it as ``version``.
+- ``SCHEDULER``: ``on`` (the default) runs every data source on its cadence (OP-103);
+  ``off`` serves only what the database already holds, which tests rely on.
+- ``REPLAY_SNAPSHOT``: in replay mode, the folder of recorded responses
+  (``cloud/tests/fixtures`` for ``make dev``). ``REPLAY_AT`` optionally freezes the clock.
+- ``SOCRATA_APP_TOKEN``: raises the City open data rate limit. Optional.
 """
 
 from __future__ import annotations
@@ -16,14 +21,17 @@ import os
 import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Literal
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from cloud.app import obstructions_api
+from cloud.app import obstructions_api, sources, status, weather_service
 from cloud.app.db import make_engine
+from cloud.app.scheduler import Scheduler, utcnow
 from cloud.app.store import ObstructionStore
 
 # /health reports this version when RENDER_GIT_COMMIT is not set (local runs).
@@ -89,16 +97,50 @@ def cors_settings(raw: str | None) -> tuple[list[str], str | None]:
     return exact, regex
 
 
+def scheduler_enabled(raw: str | None) -> bool:
+    """``SCHEDULER=off`` (or ``0`` / ``false``) disables fetching; anything else enables it."""
+    return (raw or "on").strip().lower() not in {"off", "0", "false", "no"}
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Open the database and the obstruction store at startup, and close them at shutdown."""
+    """Open the store, build the data sources and start the scheduler; undo it all at shutdown."""
     store = ObstructionStore(make_engine())
     store.create_tables()
     app.state.store = store  # read by obstructions_api.get_store
-    try:
-        yield
-    finally:
-        store.engine.dispose()
+    mode: str = app.state.mode
+    snapshot_raw = os.environ.get("REPLAY_SNAPSHOT")
+    snapshot = Path(snapshot_raw) if snapshot_raw else None
+    run_scheduler = scheduler_enabled(os.environ.get("SCHEDULER"))
+    app.state.scheduler = None
+    app.state.weather_service = None
+    # One HTTP client per flavour, shared by every adapter and closed at shutdown.
+    async with httpx.AsyncClient(timeout=10) as async_client:
+        with httpx.Client(timeout=10) as sync_client:
+            scheduler: Scheduler | None = None
+            if run_scheduler:
+                weather = sources.build_weather_service(mode, snapshot, async_client)
+                app.state.weather_service = (
+                    weather  # read by weather_service.get_weather
+                )
+                built = sources.build_sources(
+                    mode=mode,
+                    snapshot=snapshot,
+                    app_token=os.environ.get("SOCRATA_APP_TOKEN"),
+                    async_client=async_client,
+                    sync_client=sync_client,
+                    weather_service=weather,
+                )
+                clock = sources.replay_clock(snapshot) if mode == "replay" else utcnow
+                scheduler = Scheduler(store, built, clock=clock)
+                app.state.scheduler = scheduler
+                await scheduler.start()
+            try:
+                yield
+            finally:
+                if scheduler is not None:
+                    await scheduler.stop()
+                store.engine.dispose()
 
 
 def create_app() -> FastAPI:
@@ -107,6 +149,8 @@ def create_app() -> FastAPI:
     mode = data_mode(os.environ.get("DATA_MODE"))
 
     app = FastAPI(title="OpenPath API", version="0.1.0", lifespan=lifespan)
+    app.state.mode = mode  # read by the lifespan and by /api/status
+    app.state.version = version
 
     origins, origin_regex = cors_settings(os.environ.get("CORS_ORIGINS"))
     app.add_middleware(
@@ -118,6 +162,8 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(obstructions_api.router)
+    app.include_router(status.router)
+    app.include_router(weather_service.router)
 
     @app.get("/health", tags=["ops"])
     def health() -> Health:

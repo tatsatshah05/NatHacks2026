@@ -1,0 +1,17 @@
+{
+  "_comment": "Scheduled data sources (OP-103). Keys match cloud/app/sources.py. Each adapter sets its own default cadence; override with cadence_s. timeout_s is per attempt; retries are extra attempts; a source is stale after stale_after_failures failures in a row. Change this file only after the team agrees (AGENTS.md, Contracts).",
+  "defaults": {
+    "timeout_s": 10,
+    "retries": 3,
+    "stale_after_failures": 3
+  },
+  "sources": {
+    "lrt": {"enabled": true},
+    "snow_complaints": {"enabled": true, "timeout_s": 20},
+    "trail_closures": {"enabled": true},
+    "construction": {"enabled": true, "timeout_s": 20},
+    "snow_clearing": {"enabled": true, "timeout_s": 20},
+    "traffic_disruptions": {"enabled": true},
+    "weather": {"enabled": true, "timeout_s": 20}
+  }
+}
