@@ -1,0 +1,6 @@
+# Reviewed false positives only. Each line is a gitleaks fingerprint: commit:file:rule:line.
+# Never add a real secret here; remove it from history and rotate it instead.
+
+# OP-102: an empty `VAPID_PRIVATE_KEY=` line, where the rule ran on into the next
+# line's variable name. Fixed in .env.example by giving every variable its own comment line.
+c75c651139b9f373e6d8d299ad45901331329cfa:.env.example:generic-api-key:11

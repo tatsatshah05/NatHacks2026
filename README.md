@@ -24,7 +24,7 @@ There is no hardware.
 
 ## How We Work
 
-The team works through four phases together. Each person owns about 8 story points per phase. Tatsat is the scrum master: every pull request into `main` needs a passing CI run and Tatsat's approval.
+The team works through four phases together. Each person owns about 8 story points per phase. Each phase has its own branch (`phase_1` to `phase_4`): pull requests go into the current phase branch, and each finished phase is released into `main`. Tatsat is the scrum master. Every pull request needs a passing CI run and an approval from Tatsat, Ipsa or Kashish.
 
 | Phase | Hours | Milestone |
 | --- | --- | --- |
@@ -43,6 +43,21 @@ Tatsat (lead), Ipsa, Estella, Kaleb, Matthew and Kashish.
 2. Read [User Stories](docs/USER_STORIES.md) to see your stories, and [GUIDELINE.md](GUIDELINE.md) for the workflow.
 3. Find your stories under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) using your name label.
 4. Coding agents (Claude Code, Codex, Cursor, Copilot and others) follow [AGENTS.md](AGENTS.md), which holds the project context and rules.
+
+## Develop Locally
+
+You need Python 3.12, Node.js LTS and GNU make. On Windows, install them with `winget install Python.Python.3.12 OpenJS.NodeJS.LTS ezwinports.make`, then restart VS Code so the new commands are found.
+
+```bash
+make setup   # creates .venv and installs the cloud, vision and web dependencies
+make dev     # API on http://localhost:8000 and web app on http://localhost:3000, with no API keys
+make web     # only the web app, pointed at the API on :8000
+make test    # pytest, plus web lint and typecheck
+make lint    # ruff check and format check, plus web lint (what CI runs)
+make types   # regenerates web/src/lib/api-types.ts after an API change
+```
+
+`make dev` uses SQLite and the recorded fixtures in `cloud/tests/fixtures/`, in replay mode, so it never needs keys or the network; `http://localhost:8000/health` shows `"mode": "replay"`. Nothing reads a `.env` file. Deployment setup is in [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Documents
 

@@ -19,10 +19,10 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
-- **November 7, 2026:** Phase 1 is in progress. OP-104's walking network is merged through PR #97. OP-101 (contracts) and OP-102 (skeleton) remain integration dependencies on this branch.
-- **OP-106 preparation on this branch:** `cloud/app/elevator_mapping.py` audits City elevators and adapts the merged OP-104 arrays for outage masking. The network tests are required, not optional. `docs/elevators.proposed.json` contains four inactive candidate matches and 28 unmatched entries; `docs/elevator-candidates.json` and recorded OSM responses provide review evidence. Shared configuration, independent device-match review and final app integration remain pending; see `docs/OP-106.md`.
-- **OP-106 review behavior:** masks only flagged elevator links or exact reviewed `edge_pairs`, never every path touching an elevator node. Reviewed nearest-link node anchors support way IDs lost during simplification; ambiguous anchors retain a station warning. Bad outage rows are logged and skipped. The edge index and copied profile weights use NumPy arrays.
-- **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
+- **November 7, 2026:** planning is complete and Phase 1 is under way. OP-102 adds the skeleton: the FastAPI app (`GET /health`, plus OP-101's `GET /api/obstructions` and store), the Makefile, `render.yaml` and `.env.example`. The web app in `web/` comes from OP-113.
+- **Deploys:** the one-time Render, Vercel and GitHub setup is in [docs/DEPLOY.md](docs/DEPLOY.md).
+- **CI/CD is live, and every branch below is protected.** Every pull request needs the `CI passed` check and an approval from Tatsat, Ipsa or Kashish. See [docs/CI_CD.md](docs/CI_CD.md).
+- **Phase branches:** Phase 1 work goes into the `phase_1` branch, which is the default branch. When the phase passes its checkpoint, `phase_1` is released into `main`, and `phase_2` starts from `main`.
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
 ## Where to Find Context
@@ -33,7 +33,7 @@ Update this section whenever the status changes.
 | Every user story with its owner and story points | [docs/USER_STORIES.md](docs/USER_STORIES.md) |
 | Acceptance criteria and live status of a story | GitHub issues `OP-101` to `OP-414` (#29 to #81) |
 | Team workflow and Definition of Done | [GUIDELINE.md](GUIDELINE.md) |
-| CI checks, merge rules and deployment | [docs/CI_CD.md](docs/CI_CD.md) |
+| CI checks, merge rules and deployment | [docs/CI_CD.md](docs/CI_CD.md) and [docs/DEPLOY.md](docs/DEPLOY.md) |
 | Data source details and licences (created in Phase 1) | `docs/DATA_SOURCES.md` |
 
 `PLAN.md` section 14 and `docs/USER_STORIES.md` are generated from the backlog. To change a story, edit its GitHub issue and tell the lead; do not edit those sections by hand.
@@ -43,11 +43,11 @@ Update this section whenever the status changes.
 | Person | GitHub | Label |
 | --- | --- | --- |
 | Tatsat (lead and scrum master) | `tatsatshah05` | `person: Tatsat` |
-| Ipsa | `ipsamanhas` | `person: Ipsa` |
+| Ipsa (reviewer) | `ipsamanhas` | `person: Ipsa` |
 | Estella | `estella1221` | `person: Estella` |
 | Kaleb | `kalebpham` | `person: Kaleb` |
-| Kashish | `kashishgupta2911` | `person: Kashish` |
-| Matthew | not yet a collaborator | `person: Matthew` |
+| Kashish (reviewer) | `kashishgupta2911` | `person: Kashish` |
+| Matthew | `Maosro` | `person: Matthew` |
 
 Issues also carry `phase N: ...`, `points: N`, `priority: must|should|could` and `epic: ...` labels, and one of four phase milestones.
 
@@ -82,11 +82,11 @@ Open decisions D-1 to D-5 are in PLAN.md section 16.
 ## How to Work a Story
 
 1. Open the story's issue (`OP-<id>`). Read the user story, the acceptance criteria and the dependencies. Check that the dependencies are merged or can be mocked.
-2. Branch from `main` as `op-<id>-<short-name>`.
+2. Branch from the current phase branch (`phase_1` during Phase 1) as `op-<id>-<short-name>`. Never branch from `main` or open story pull requests into it.
 3. For any change that touches more than one file, plan first. Stay inside the acceptance criteria, and do not build later-phase stories.
 4. Add tests and run `make test`.
-5. Open a pull request titled `OP-<id>: <story title>` with `Closes #<issue number>`. Work outside a story uses a `docs:`, `chore:`, `ci:` or `fix:` title. CI checks the title, the link, the files, the Python code and the web app.
-6. The pull request merges only when `CI passed` is green and the scrum master (`@tatsatshah05`) approves. Merges are squash-only, and a merge to `main` deploys to production.
+5. Open a pull request into the story's phase branch (`OP-1xx` into `phase_1`, `OP-2xx` into `phase_2`, and so on), titled `OP-<id>: <story title>`, with `Closes #<issue number>`. Work outside a story uses a `docs:`, `chore:`, `ci:` or `fix:` title. CI checks the title, the link, the files, the Python code and the web app.
+6. The pull request merges only when `CI passed` is green and one reviewer approves: Tatsat (`@tatsatshah05`), Ipsa (`@ipsamanhas`) or Kashish (`@kashishgupta2911`). Merges are squash-only. Merges into a phase branch deploy to staging, and phase releases into `main` deploy to production.
 7. If the story needs a change to a shared contract, stop and ask the lead.
 8. If you add a command, an endpoint, an environment variable or a decision, update this file in the same pull request.
 
@@ -121,7 +121,7 @@ web/     Next.js on Vercel: planner, route report, alerts (PWA), city dashboard,
 ```
 PLAN.md  AGENTS.md  CLAUDE.md  GUIDELINE.md  README.md  Makefile  render.yaml  .env.example
 .github/   workflows/ci.yml  CODEOWNERS  pull_request_template.md  ISSUE_TEMPLATE/
-cloud/     app/{main,schemas,db,store,network,scheduler,status,matching,routing,report,search,weather,push,ws}.py
+cloud/     app/{main,schemas,db,store,network,obstructions_api,scheduler,status,matching,routing,report,search,weather,push,ws}.py
            app/adapters/  one file per source   data/network.npz (prebuilt walking network, committed)   tests/ (fixtures in tests/fixtures/)
 vision/    train.py  worker.py  tools/label.py  LABELS.md  MODEL_CARD.md  tests/
 web/       src/app/{page.tsx, alerts/, city/, sources/, about/, privacy/, demo/}  src/lib/api-types.ts (generated)  public/sw.js
@@ -164,7 +164,7 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 - **Apple Maps:** `https://maps.apple.com/?saddr=LAT,LNG&daddr=LAT,LNG&dirflg=w`, and the UI notes that it may not keep the detour.
 
 **API:**
-- **Health:** `GET /health` returns `{"status": "ok", "version": "<git commit>"}` from `RENDER_GIT_COMMIT`. The deploy job waits for this version.
+- **Health:** `GET /health` returns `{"status": "ok", "version": "<git commit>", "mode": "live"}`. `version` comes from `RENDER_GIT_COMMIT` (`dev` locally), and the deploy job waits for it. `mode` is `DATA_MODE` (`live` or `replay`); the web app shows the Replay badge when it is `replay`.
 - **Read:** `GET /health`, `/api/status`, `/api/obstructions?bbox=`, `/api/route?from=&to=&profile=&mode=walk|walk_lrt`, `/api/search?q=`, `/api/weather`, `/api/cameras`, `/api/priority`.
 - **Write:** `POST /api/reports`, `/api/push/subscribe`, `/api/saved-routes`, `/api/ingest/camera` (`X-Worker-Key`), `/api/admin/override` (`X-Admin-Key`, testing only).
 - **Live:** `WS /ws` with events `obstruction_changed`, `route_changed` and `source_status`.
@@ -188,52 +188,43 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 
 ## Commands
 
+OP-109's standalone weather app: `.venv/bin/python -m uvicorn cloud.app.weather_app:create_app --factory --port 8001`; replay requires `DATA_MODE=replay` and `REPLAY_SNAPSHOT` pointing to the snapshot described in [Estella's weather guide](docs/ESTELLA_PHASE1.md).
+
 These live in the root Makefile and are available after OP-102.
 
 | Command | What it does |
 | --- | --- |
-| `make setup` | Creates `.venv` (cloud + vision), runs `npm ci` in `web/` |
+| `make setup` | Creates `.venv` with every `cloud/` and `vision/` requirements file (as CI installs them), runs `npm ci` in `web/` |
 | `make dev` | API on :8000 (SQLite, recorded fixtures, no keys) + web on :3000 |
+| `make web` | Only the web app on :3000, pointed at the API on :8000 |
 | `make test` | `pytest` for cloud and vision, plus `npm run lint` and `npm run typecheck` in `web/` |
-| `make graph` | Rebuilds `cloud/data/network.npz` with OSMnx (local only, then commit). Until OP-102 adds the Makefile: `pip install -r scripts/requirements-graph.txt` then `python scripts/build_graph.py` |
-| `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` |
+| `make graph` | Installs `scripts/requirements-graph.txt`, then rebuilds `cloud/data/network.npz` with OSMnx (local only, then commit). macOS or Linux for now: `scripts/build_graph.py` uses the Unix-only `resource` module |
+| `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` (with `npx openapi-typescript`) |
 | `make record` | Records a replay snapshot of every source (no images) |
 | `make worker` | Runs the vision worker locally |
+| `make lint` | `ruff check`, `ruff format --check` and `npm run lint` (the same lint CI runs) |
+| `make format` | `ruff check --fix`, then `ruff format` |
+| `make build` | Production build of the web app (`npm run build`) |
 
-OP-106 adds an offline inventory audit while shared application integration is pending:
+`make record` and `make worker` print "not built yet" and exit with an error until OP-305 and OP-204 add their scripts. While `web/` is missing, the web steps of `make setup`, `make test` and `make lint` are skipped, `make dev` starts only the API, and `make web`, `make build` and `make types` stop with an error. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux.
 
-```bash
-python -m cloud.app.elevator_mapping --inventory docs/elevators.proposed.json --devices cloud/tests/fixtures/elevator_mapping/devices.json
-```
-
-The audit reports reviewed, candidate and unmapped counts. Passing this audit
-validates the document; it does not certify real OSM matches or complete OP-106.
-
-OP-106 also adds a local candidate report command using the merged network file:
-
-```bash
-python scripts/elevator_candidates.py \
-  --network cloud/data/network.npz \
-  --devices cloud/tests/fixtures/elevator_mapping/devices.json \
-  --stations cloud/tests/fixtures/elevator_mapping/stations.json \
-  --out docs/elevator-candidates.json
-```
-
-Its default 200 m search radius is a review aid, not a match threshold for
-routing. It never activates a match or writes shared configuration.
+`make dev` and `make web` run `scripts/dev.py`. It removes API keys from the environment and sets `DATA_MODE=replay` with `REPLAY_SNAPSHOT=cloud/tests/fixtures`, so adapters must read their fixtures in replay mode. If one server stops (for example because its port is in use), the other is stopped too and `make dev` fails with that server's exit code.
 
 ## Environment Variables
 
-Never commit values. Keep `.env.example` current.
+Never commit values. Keep `.env.example` current. Nothing loads `.env.example` or a `.env` file: Render and Vercel take values from their dashboards, and `make dev` sets its own.
 
 - **cloud:** `DATABASE_URL`, `ADMIN_KEY`, `WORKER_KEY`, `CORS_ORIGINS`, `SOCRATA_APP_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DATA_MODE` (`live` or `replay`), `REPLAY_SNAPSHOT`, `WEATHER_LAT`, `WEATHER_LNG`, `LRT_TRIPS`
 - **vision:** `CLOUD_URL`, `WORKER_KEY`, `ALBERTA_511_KEY`, `MODEL_URL`
-- **web:** `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- **web:** `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. The OP-113 web app currently reads `NEXT_PUBLIC_API_BASE_URL` instead of `NEXT_PUBLIC_API_URL`; `make dev` and docs/DEPLOY.md set both until the two agree.
+
+`REPLAY_SNAPSHOT` is a folder, not a file: one subfolder of recorded responses per source, as in `cloud/tests/fixtures/`. `CORS_ORIGINS` is comma-separated, and a `*` matches part of one host-name label (`https://openpath-*-<team-slug>.vercel.app`). It is not a security boundary; see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Conventions
 
 - **Python 3.12:**
   - Type hints everywhere; Pydantic v2 and SQLModel; `ruff format` and `ruff check`; `pytest`.
+  - Imports are rooted at the repository: `from cloud.app import db`, run as `uvicorn cloud.app.main:app` from the root. Tool settings live in the root `pyproject.toml`; dependencies in `cloud/requirements*.txt` and `vision/requirements.txt`.
   - Put units in names (`length_m`, `eta_min`, `air_c`).
   - Use UTC with ISO 8601 everywhere.
 - **Logging:** one line per state change, for example `CHANGE city_lrt_devices:1234 new elevator_out Central/West Platform`.
@@ -256,6 +247,8 @@ These apply to the web app, and judges will check them.
 - Fully keyboard operable with visible focus, 44 px touch targets, `prefers-reduced-motion` respected, text resizable to 200%.
 
 ## Testing
+
+Run `make test` from the repository root. Tests import code as `cloud.app.<module>`; the root `pyproject.toml` puts the repository on the import path.
 
 - **cloud:**
   - Each adapter with recorded fixtures, including a failing source and a changed schema.
