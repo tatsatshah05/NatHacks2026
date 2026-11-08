@@ -65,8 +65,8 @@ graph:  ## Rebuild cloud/data/network.npz with OSMnx (laptop only; commit the re
 	$(VENV_PY) -m pip install -r scripts/requirements-graph.txt
 	$(VENV_PY) scripts/build_graph.py
 
-record:  ## Record a replay snapshot of every source (OP-305)
-	@echo make record is not built yet: OP-305 adds scripts/record_snapshot.py && exit 1
+record:  ## Record a replay snapshot of every source into snapshots/<UTC time>/ (OP-305, no images)
+	$(VENV_PY) scripts/record_snapshot.py $(RECORD_FLAGS)
 
 worker:  ## Run the vision worker locally (OP-204)
 	$(VENV_PY) -m vision.worker
