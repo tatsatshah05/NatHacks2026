@@ -18,9 +18,6 @@ export default function NotFound() {
           <p className="lead">Check the address, or start from the planner.</p>
           <div className="problem-actions">
             <ButtonLink href="/">Plan a route</ButtonLink>
-            <ButtonLink variant="secondary" href="/city">
-              See city conditions
-            </ButtonLink>
           </div>
         </div>
       </main>
