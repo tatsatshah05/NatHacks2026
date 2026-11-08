@@ -1,0 +1,86 @@
+import { CAMERA_VIEWER_URL, cameraName, readingWords, scoreWords } from "@/lib/city";
+import Panel from "../ui/panel";
+import TimeAgo from "../ui/time-ago";
+import CameraGlyph from "./camera-glyph";
+import type { CameraGroup } from "./cameras";
+import styles from "./city-dashboard.module.css";
+
+type Props = {
+  cameras: readonly CameraGroup[];
+  error: string | null;
+  replay: boolean;
+  now: Date;
+  selectedId: string | null;
+  onToggle: (id: string) => void;
+};
+
+/** The keyboard and screen-reader path to every camera on the map. No images, ever. */
+export default function RoadCameras({ cameras, error, replay, now, selectedId, onToggle }: Props) {
+  return (
+    <Panel aria-labelledby="road-cameras-title" className={styles.panel} id="road-cameras">
+      <h2 id="road-cameras-title">Road cameras</h2>
+      <p>
+        What OpenPath&apos;s road-condition model read on each 511 Alberta camera. OpenPath never shows or keeps the
+        camera pictures. 511 Alberta has no page for a single camera, so each link opens its camera list; look for
+        the camera by its location there.
+      </p>
+      {replay && <p>These are recorded readings played back, not live ones.</p>}
+      {error && (
+        <p className={styles.problem}>
+          <strong>Camera readings could not be loaded.</strong> {error} Refresh the list to try again.
+        </p>
+      )}
+      {!error && cameras.length === 0 && (
+        <p className={styles.empty}>
+          No camera readings from the last two hours. The camera worker reads each camera every few minutes while it
+          runs; when it is off, the ice-risk weather watch still applies.
+        </p>
+      )}
+      {cameras.length > 0 && (
+        <ul className={styles.cameras}>
+          {cameras.map((camera) => {
+            const name = cameraName({ camera_id: camera.cameraId, view_id: camera.views[0].properties.view_id });
+            const pressed = selectedId === camera.id;
+            const several = camera.views.length > 1;
+            return (
+              <li key={camera.id} className={pressed ? styles.cameraSelected : undefined}>
+                <h3 className={styles.cameraName} id={`${camera.id}-name`.replace(":", "-")}>
+                  <CameraGlyph size={20} className={styles.cameraIcon} />
+                  {name}
+                </h3>
+                <ul className={styles.views}>
+                  {camera.views.map((view, index) => {
+                    const reading = view.properties;
+                    const score = scoreWords(reading.score);
+                    return (
+                      <li key={view.id}>
+                        {several && <>View {index + 1}: </>}
+                        <strong>{readingWords(reading)}</strong>
+                        {score && <>. {score}</>}. <TimeAgo iso={reading.observed_at} now={now} />.
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className={styles.meta}>{camera.headline.attribution}.</p>
+                <div className={styles.cameraActions}>
+                  <button
+                    type="button"
+                    className="button button-text"
+                    aria-pressed={pressed}
+                    aria-describedby={`${camera.id}-name`.replace(":", "-")}
+                    onClick={() => onToggle(camera.id)}
+                  >
+                    Show on map
+                  </button>
+                  <a className={styles.external} href={CAMERA_VIEWER_URL} rel="noreferrer">
+                    Open 511 Alberta&apos;s camera list<span className="sr-only"> to find {name}</span>
+                  </a>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Panel>
+  );
+}

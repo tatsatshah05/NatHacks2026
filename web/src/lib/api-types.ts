@@ -265,10 +265,31 @@ export interface paths {
          * @description Report snow, ice or a blocked path at a point in Edmonton, with an optional photo.
          *
          *     The report becomes a ``community_report`` obstruction straight away and expires
-         *     after the hours in ``config/reports.json``. A photo that a photo check confirms
-         *     gives medium confidence; anything else gives low. The photo is never stored.
+         *     after the hours in ``config/reports.json``. A photo that the road-condition model
+         *     and Claude both confirm gives medium confidence; anything else gives low, and
+         *     ``photo.checked_by`` names the checks that answered. The photo is never stored.
          */
         post: operations["post_report_api_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/priority": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Priority
+         * @description Every active obstruction, ranked clear-first, with a sentence on why.
+         */
+        get: operations["get_priority_api_priority_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -618,6 +639,15 @@ export interface components {
              */
             maps_note: string;
         };
+        /** NearestCounter */
+        NearestCounter: {
+            /** Name */
+            name: string;
+            /** Distance M */
+            distance_m: number;
+            /** Daily Pedestrians */
+            daily_pedestrians: number;
+        };
         /**
          * ObstructionCollection
          * @description Response of ``GET /api/obstructions``: a GeoJSON FeatureCollection.
@@ -698,6 +728,25 @@ export interface components {
          * @enum {string}
          */
         Outcome: "new" | "changed" | "same" | "older";
+        /** PedestrianCountsInfo */
+        PedestrianCountsInfo: {
+            /** Dataset */
+            dataset: string;
+            /** Url */
+            url: string;
+            /** Attribution */
+            attribution: string;
+            /** Counters */
+            counters: number;
+            /** Window Start */
+            window_start: string | null;
+            /** Window End */
+            window_end: string | null;
+            /** Radius M */
+            radius_m: number;
+            /** Statistic */
+            statistic: string;
+        };
         /**
          * PhotoResult
          * @description What happened to the photo, for the response. Never the photo itself.
@@ -721,6 +770,71 @@ export interface components {
              * @description The checks that answered for this photo, in the order they ran: 'model' (the ONNX road-condition model) and 'claude'. Empty when no check answered. Medium confidence with both is the decided setup.
              */
             checked_by: ("model" | "claude")[];
+        };
+        /** PriorityItem */
+        PriorityItem: {
+            /**
+             * Rank
+             * @description 1 is the barrier to clear first
+             */
+            rank: number;
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Detail */
+            detail: string | null;
+            kind: components["schemas"]["Kind"];
+            effect: components["schemas"]["Effect"];
+            category: components["schemas"]["Category"];
+            confidence: components["schemas"]["Confidence"];
+            /** Source */
+            source: string;
+            /** Attribution */
+            attribution: string;
+            /** Url */
+            url: string | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Age S */
+            age_s: number;
+            /** Lng */
+            lng: number;
+            /** Lat */
+            lat: number;
+            /** On Network */
+            on_network: boolean;
+            /** Saved Routes Affected */
+            saved_routes_affected: number;
+            /** Pedestrian Weight */
+            pedestrian_weight: number;
+            nearest_counter: components["schemas"]["NearestCounter"] | null;
+            /** Score */
+            score: number;
+            /** Why */
+            why: string;
+        };
+        /** PriorityResponse */
+        PriorityResponse: {
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Mode */
+            mode: string;
+            /** Saved Routes */
+            saved_routes: number;
+            /** Saved Routes Pending */
+            saved_routes_pending: number;
+            /** People Scale */
+            people_scale: number;
+            pedestrian_counts: components["schemas"]["PedestrianCountsInfo"] | null;
+            /** Items */
+            items: components["schemas"]["PriorityItem"][];
         };
         /** PublicKeyOut */
         PublicKeyOut: {
@@ -1663,6 +1777,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_priority_api_priority_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriorityResponse"];
+                };
             };
         };
     };

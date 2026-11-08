@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import MapPage from "@/components/map-page";
+import CityDashboard from "@/components/city/city-dashboard";
 
-export const metadata: Metadata = { title: "City conditions | OpenPath" };
+export const metadata: Metadata = { title: "Barriers to clear first | OpenPath" };
 
 export default function CityPage() {
-  return <MapPage />;
+  return <CityDashboard />;
 }

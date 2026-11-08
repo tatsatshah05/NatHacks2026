@@ -1,0 +1,338 @@
+/*
+  The city dashboard (OP-310, OP-309). Tokens only; see docs/design/DESIGN.md.
+  The rank column is the one bold thing here: the content is a real ranking.
+*/
+
+/* Layout: one column on a phone; from 960 px the list on the left and a sticky
+   map on the right, as on every OpenPath page, but with a wider list column. */
+.page {
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 24px 0 48px;
+}
+.intro,
+.list,
+.side,
+.after {
+  min-width: 0;
+}
+@media (min-width: 960px) {
+  .page {
+    column-gap: 48px;
+    grid-template-areas:
+      "intro side"
+      "list side"
+      "after side";
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.75fr);
+    grid-template-rows: auto auto 1fr;
+    padding-top: 32px;
+    row-gap: 28px;
+  }
+  .intro {
+    grid-area: intro;
+  }
+  .list {
+    grid-area: list;
+  }
+  .after {
+    grid-area: after;
+  }
+  .side {
+    align-self: start;
+    grid-area: side;
+    position: sticky;
+    top: 16px;
+  }
+}
+
+/* How the ranking works: a native disclosure, closed by default. */
+.method {
+  margin: 0 0 16px;
+}
+.method summary {
+  color: var(--action);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 10px 0;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+}
+.method p {
+  margin: 4px 0 12px;
+}
+
+/* Filters: search across the top, then four selects. */
+.toolbar {
+  border-top: 2px solid var(--ink);
+  display: grid;
+  gap: 12px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 20px 0 16px;
+  padding-top: 16px;
+}
+.search,
+.clear {
+  grid-column: 1 / -1;
+}
+@media (min-width: 640px) {
+  .toolbar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.select {
+  min-width: 0;
+}
+.selectWrap {
+  position: relative;
+}
+/* The chevron is drawn with two borders, so it follows the theme. */
+.selectWrap::after {
+  border-bottom: 2px solid var(--ink);
+  border-right: 2px solid var(--ink);
+  content: "";
+  height: 8px;
+  pointer-events: none;
+  position: absolute;
+  right: 14px;
+  top: calc(50% - 6px);
+  transform: rotate(45deg);
+  width: 8px;
+}
+.selectControl {
+  appearance: none;
+  background: var(--card);
+  border: 2px solid var(--muted);
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  min-height: 48px;
+  padding: 10px 34px 10px 12px;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+.clear :global(.button) {
+  padding-bottom: 0;
+  padding-top: 0;
+}
+
+/* Count, CSV and the map link share a line when there is room. */
+.countRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.countRow :global(.status-line) {
+  flex: 1 1 16rem;
+  margin: 0;
+}
+.countRow a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
+}
+
+/* The ranked rows: plain rows with decorative rules, not cards. */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.row {
+  border-left: 4px solid transparent;
+  column-gap: 12px;
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  padding: 14px 8px 12px 0;
+}
+.row + .row {
+  border-top: 1px solid var(--line);
+}
+.rowSelected {
+  background: var(--card);
+  border-left-color: var(--action);
+}
+.rank {
+  font-size: 1.5625rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  grid-row: 1 / span 2;
+  line-height: 1.1;
+  margin: 0;
+  text-align: right;
+}
+.rowBody {
+  min-width: 0;
+}
+.rowTitle {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  margin: 0 0 4px;
+}
+.rowTitle :global(.hazard-mark) {
+  align-items: flex-start;
+}
+.rowTitle :global(.hazard-shape) {
+  margin-top: 2px;
+}
+.rowTitle:focus-visible {
+  outline-offset: 4px;
+}
+.why {
+  margin: 0 0 4px;
+}
+.meta {
+  color: var(--muted);
+  margin: 0;
+}
+.rowAction {
+  grid-column: 2;
+  justify-self: start;
+}
+@media (min-width: 640px) {
+  .row {
+    grid-template-columns: 3rem minmax(0, 1fr) auto;
+  }
+  .rowAction {
+    align-self: start;
+    grid-column: 3;
+    grid-row: 1;
+    margin-top: -10px;
+  }
+}
+.list > :global(.button) {
+  margin-top: 16px;
+}
+.empty {
+  padding: 8px 0;
+}
+.problem {
+  border-left: 4px solid var(--ink);
+  padding-left: 12px;
+}
+
+/* The map side. */
+.side .mapCanvas {
+  height: 55vh;
+  min-height: 320px;
+}
+@media (min-width: 960px) {
+  .side .mapCanvas {
+    height: max(360px, 52vh);
+  }
+}
+.side > :global(.muted) {
+  margin: 0;
+}
+.detail {
+  border-top: 2px solid var(--ink);
+  margin-top: 16px;
+  padding-top: 12px;
+}
+.detail h3 {
+  font-size: 1.125rem;
+  margin-bottom: 6px;
+}
+.detail p {
+  margin: 6px 0 0;
+}
+.detail a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
+}
+
+/* Camera markers: a squared-off tag with the glyph and the reading in words, so a
+   camera never looks like one of the round barrier markers. Pointer only. */
+.cameraMarker {
+  align-items: center;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 6px;
+  line-height: 1.2;
+  min-height: 44px;
+  padding: 4px 10px 4px 8px;
+  white-space: nowrap;
+}
+.cameraMarker:global(.is-selected) {
+  outline: 3px solid var(--action);
+  outline-offset: 2px;
+  z-index: 2;
+}
+
+/* Panels after the list. */
+.panel h3 {
+  font-size: 1.125rem;
+}
+.cameras,
+.views,
+.sources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cameras > li,
+.sources > li {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+.cameras > li:first-child,
+.sources > li:first-child {
+  border-top: 0;
+}
+.cameras > li.cameraSelected {
+  border-left: 4px solid var(--action);
+  padding-left: 12px;
+}
+.cameraName {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+.cameraIcon {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.cameraActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+}
+.external {
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
+}
+.sourceName {
+  display: flex;
+  flex-wrap: wrap;
+  font-weight: 700;
+  gap: 0 12px;
+  justify-content: space-between;
+  margin: 0;
+}
+.sourceState {
+  font-weight: 400;
+}
+/* Out of date: a bold state word and an ink bar, never colour alone. */
+.sources > li.sourceStale {
+  border-left: 4px solid var(--ink);
+  padding-left: 12px;
+}
+.sourceStale .sourceState {
+  font-weight: 700;
+}
+.sources p,
+.views li {
+  max-width: 70ch;
+}
