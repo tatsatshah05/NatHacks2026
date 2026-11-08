@@ -281,5 +281,8 @@ Review with Estella before Phase 2 starts:
 - [ ] Confirm controls remain at least 44px and layouts work at 200% zoom.
 - [ ] Confirm colour contrast and non-colour indicators in the implemented UI.
 
-**Review status:** wireframes prepared for accessibility review; Estella
-approval should be recorded on the OP-114 pull request before Phase 2 begins.
+**Review status:** the OP-212 design/source review is recorded in
+[Estella's review](../ESTELLA_OP212.md), including measured contrast and filed
+findings. Use the [UI PR checklist](../../web/ACCESSIBILITY.md) for implementation.
+The checklist above still requires runtime/device verification; the design
+review does not certify the implemented UI as conformant.
