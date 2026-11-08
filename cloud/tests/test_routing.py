@@ -306,6 +306,95 @@ def test_steps_merge_consecutive_edges(router) -> None:
     assert [s.text for s in best.steps] == ["Follow Avenue A for 200 m"]
 
 
+# -------------------------------------------------- review regressions (Estella)
+
+
+def small_network(edges: list[RawEdge], nodes: list[RawNode]) -> WalkNetwork:
+    return WalkNetwork.from_data(export_network(nodes, edges, source="test"))
+
+
+def test_parallel_edges_do_not_produce_duplicate_alternates(config) -> None:
+    """Two parallel edges A-B plus a detour A-C-B: the alternates are the detour, never A-B twice."""
+    nodes = [
+        RawNode(1, LAT0, LNG0),
+        RawNode(2, LAT0, LNG0 + DLNG),
+        RawNode(3, LAT0 + DLAT, LNG0),
+    ]
+    edges = [
+        RawEdge(1, 2, 100.0, highway="footway", name="Main Street north side", osmid=1),
+        RawEdge(1, 2, 100.0, highway="footway", name="Main Street south side", osmid=2),
+        RawEdge(1, 3, 100.0, highway="footway", name="Side Street", osmid=3),
+        RawEdge(3, 2, 100.0, highway="footway", name="Back Lane", osmid=4),
+    ]
+    router = Router(small_network(edges, nodes), config)
+    result = router.route(LAT0, LNG0, LAT0, LNG0 + DLNG, "standard")
+    node_paths = [r.nodes for r in result.routes]
+    assert len(node_paths) == len(set(node_paths)), node_paths  # no repeated route
+    assert len(result.routes) == 2
+    assert result.routes[0].distance_m == 100 and result.routes[1].distance_m == 200
+
+
+def test_snapping_never_exceeds_the_configured_limit(router, grid, config) -> None:
+    """With every path out of node 1 blocked and a 50 m limit, no farther node is chosen."""
+    from cloud.app.profiles import Snap
+
+    _, index = grid
+    tight = Router(
+        grid[0], config.model_copy(update={"snap": Snap(warn_m=40, max_m=50)})
+    )
+    hazards = {
+        index[(1, 2)]: [EdgeHazard("c:1", Effect.BLOCKED, Confidence.HIGH)],
+        index[(1, 4)]: [EdgeHazard("c:2", Effect.BLOCKED, Confidence.HIGH)],
+    }
+    result = tight.route(*latlng(1), *latlng(9), "wheelchair", hazards)
+    assert (
+        result.origin[0] == 0 and result.origin[1] <= 50
+    )  # stayed on the nearest node
+    assert result.routes == [] and any(
+        "No route is possible" in w for w in result.warnings
+    )
+    # The normal limit (1,000 m) still allows the 100 m move, as the earlier test shows.
+    assert router.route(*latlng(1), *latlng(9), "wheelchair", hazards).routes
+
+
+def test_a_hazard_still_crossed_is_not_reported_as_avoided(config) -> None:
+    """One snow item spans two paths; the route leaves one but crosses the other, so it is not avoided."""
+    nodes = [
+        RawNode(1, LAT0, LNG0),
+        RawNode(2, LAT0, LNG0 + DLNG),
+        RawNode(3, LAT0 + DLAT, LNG0),
+        RawNode(4, LAT0 + DLAT, LNG0 + DLNG),
+    ]
+    edges = [
+        RawEdge(1, 2, 100.0, highway="footway", name="A-B", osmid=1),
+        RawEdge(2, 4, 100.0, highway="footway", name="B-D", osmid=2),
+        RawEdge(1, 3, 120.0, highway="footway", name="A-C", osmid=3),
+        RawEdge(3, 4, 100.0, highway="footway", name="C-D", osmid=4),
+    ]
+    net = small_network(edges, nodes)
+    idx = {
+        (int(net.edge_u[i]) + 1, int(net.edge_v[i]) + 1): i
+        for i in range(net.edge_count)
+    }
+    snow = EdgeHazard(
+        "city_311_snow:7", Effect.SNOW, Confidence.LOW, "Snow-covered corridor"
+    )
+    closed = EdgeHazard(
+        "city_construction:9", Effect.BLOCKED, Confidence.HIGH, "Sidewalk closed"
+    )
+    hazards = {idx[(1, 2)]: [snow, closed], idx[(3, 4)]: [snow]}
+    result = Router(net, config).route(
+        LAT0, LNG0, LAT0 + DLAT, LNG0 + DLNG, "standard", hazards
+    )
+    best = result.routes[0]
+    assert best.nodes == (0, 2, 3)  # A-C-D, around the closed sidewalk
+    assert [h.item_id for h in best.hazards_avoided] == [
+        "city_construction:9"
+    ]  # snow is still crossed
+    assert [h.item_id for h in best.hazards_on_route] == ["city_311_snow:7"]
+    assert best.reason.startswith("Avoids Sidewalk closed")
+
+
 # ------------------------------------------------------------------------ API
 
 
