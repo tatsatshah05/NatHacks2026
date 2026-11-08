@@ -21,6 +21,21 @@ Update this section whenever the status changes.
 
 - **OP-205:** camera `ice` (or `wet` while the watch is active) becomes `ice_risk` on the crossings within 50 m of the camera. `CameraIceHazardProvider` (`cloud/app/camera_ice_routing.py`) is `app.state.hazard_provider`: it wraps the matcher and adds those exact crossings, so camera risks never meet the matcher's area rule. See [docs/OP-205.md](docs/OP-205.md).
 
+- **OP-204 on this branch:** `vision/worker.py` and `vision/inference.py` run
+  scheduled CPU inference with shared OP-112 rate limiting, in-memory frames,
+  two-observation stability and a metadata-only client for OP-213's
+  `POST /api/ingest/camera`. `inference.py` reads OP-202's `labels.json` with the
+  wording it imports from `vision/model_contract.py`. Only `image/jpeg` responses
+  are classified; 511's HTTP-200 PNG placeholder becomes `unknown`
+  (`camera_unavailable`). Readings expire after three intervals, capped at the
+  API's 2-hour limit. `vision/tests/test_worker_ingest.py` posts real worker
+  readings through `HttpPublisher` into the API and checks them on
+  `GET /api/cameras`. Official metadata is recorded (392 cameras; approximate
+  Edmonton bbox: 19 cameras/47 enabled views); one JPEG view was verified in
+  memory. Live use needs the published `model.onnx` and `labels.json`. See
+  [docs/OP-204.md](docs/OP-204.md). Shared schemas, API routes and
+  configuration are unchanged; no worker deploy is activated.
+
 - **November 7, 2026:** Phase 1 is in progress. OP-104's walking network is merged through PR #97. OP-101 (contracts), OP-102 (skeleton) and OP-103 (scheduler) remain integration dependencies on this branch.
 - **OP-107 on this branch:** the construction adapter and recorded preview isolate malformed/amended rows and use only a short line near the official permit point. Broad corridors fall back to the point. Shared API/store/scheduler integration remains pending; see [docs/OP-107.md](docs/OP-107.md). OP-103 owns hourly cadence, retries and cooldowns; every adapter call performs one fetch, with no internal sleeps or poll gate.
 - **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
@@ -228,7 +243,7 @@ These live in the root Makefile and are available after OP-102.
 | `make format` | `ruff check --fix`, then `ruff format` |
 | `make build` | Production build of the web app (`npm run build`) |
 
-`make record` and `make worker` print "not built yet" and exit with an error until OP-305 and OP-204 add their scripts. While `web/` is missing, the web steps of `make setup`, `make test` and `make lint` are skipped, `make dev` starts only the API, and `make web`, `make build` and `make types` stop with an error. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux.
+`make record` prints "not built yet" and exits with an error until OP-305 adds its script. `make worker` now runs a network-free, explicitly synthetic OP-204 replay; see below for live prerequisites. While `web/` is missing, the web steps of `make setup`, `make test` and `make lint` are skipped, `make dev` starts only the API, and `make web`, `make build` and `make types` stop with an error. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux.
 
 `make dev` and `make web` run `scripts/dev.py`. It removes API keys from the environment and sets `DATA_MODE=replay` with `REPLAY_SNAPSHOT=cloud/tests/fixtures`, so adapters must read their fixtures in replay mode. If one server stops (for example because its port is in use), the other is stopped too and `make dev` fails with that server's exit code.
 
@@ -247,6 +262,27 @@ Use `--live` instead of `--fixtures` for one official City API read, with option
 `SOCRATA_APP_TOKEN` from the shell (`.env.example` contains its blank template).
 `--at` is replay-only and requires a timezone; `--local-timezone` defaults to
 `America/Edmonton`. This preview prints output and does not write to the store.
+
+OP-204 commands (defaults perform no network calls):
+
+```bash
+python -m vision.worker
+python -m pytest vision/tests/test_worker.py vision/tests/test_worker_inference.py vision/tests/test_worker_review.py vision/tests/test_worker_ingest.py -q
+```
+
+The direct 511 JPEG response is verified. With OP-202's published `model.onnx`
+(at `MODEL_URL`) and its `labels.json`, use
+`python -m vision.worker --live --model-labels /path/to/labels.json --model-sha256 EXPECTED_SHA256 --min-score VALIDATED_SCORE`.
+It uses existing `ALBERTA_511_KEY` and `MODEL_URL`, with `--interval-s` defaulting
+to 300 seconds and an optional `--boundary` GeoJSON. `--once` runs one pass.
+`DATA_MODE=replay` prohibits live fetching. Posting additionally requires
+`--publish`, `CLOUD_URL` and `WORKER_KEY`; the API must run with `DATA_MODE=live`,
+because it refuses a live reading in replay mode (409). `--once --publish` reports
+delivery counts and fails only when posts were attempted but all failed; a single
+pass cannot confirm a reading, so it normally makes zero attempts. A shared
+one-minute cooldown follows a 511 HTTP 429; live startup uses OP-112's on-disk
+metadata cache. Replay data is never posted. See [docs/OP-204.md](docs/OP-204.md)
+for the labels.json format, expiry and remaining work.
 
 OP-205 checks: `python -m pytest cloud/tests/test_camera_ice.py cloud/tests/test_camera_ice_routing.py cloud/tests/test_camera_ice_review.py cloud/tests/test_camera_ice_app.py -q`.
 

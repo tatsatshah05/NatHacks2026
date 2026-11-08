@@ -8,7 +8,12 @@ Road-condition model and camera worker (PLAN.md section 7).
 - `evaluate.py` and `MODEL_CARD.md`: scores a trained run on its unseen test cameras and regenerates the model card (OP-203). See [Evaluation](#evaluation) below.
 - `tools/dataset.py`: validate local labels, preserve camera-disjoint splits, prepare a blind second-label sample, and measure agreement (OP-201). Follow the [dataset workflow](../docs/ESTELLA_OP201.md); the label tool's `--only` option restricts a session to the sample CSV.
 - `tools/collect.py`: preview approved live 511 frames before retaining them, one view per camera by default (`--views all` adds each camera's other enabled views under `raw/view_<view_id>/`); `python -m vision.tools.collect --limit 6 --reviewer Estella`. Supply the actual reviewer; live collection requires it. Press `k` only after privacy review. `--plan` lists camera IDs offline. Wait a minute between runs to respect the shared request window.
-- Planned: `worker.py` (OP-204).
+- `worker.py` and `inference.py` (OP-204): scheduled in-memory classification,
+  shared 511 rate limiting, two-observation stability and the client for OP-213's
+  `POST /api/ingest/camera`. `inference.py` reads `labels.json` with the wording in
+  `model_contract.py`, so it prepares images exactly as training did.
+  `python -m vision.worker` runs a network-free synthetic replay; see
+  [OP-204](../docs/OP-204.md) for live use.
 
 Add runtime dependencies to `vision/requirements.txt`; `make setup` installs them. `vision/data/` is git-ignored: images, label CSVs and training runs stay local.
 
