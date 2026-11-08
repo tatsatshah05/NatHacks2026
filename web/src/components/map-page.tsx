@@ -5,6 +5,7 @@ import { getObstructions } from "@/lib/api";
 import { Obstruction } from "@/lib/types";
 import MapView from "./map-view";
 import { formatObserved, getKindMeta, kindMeta } from "./obstruction-meta";
+import Link from "next/link";
 
 export default function MapPage() {
   const [obstructions, setObstructions] = useState<Obstruction[]>([]);
@@ -38,7 +39,7 @@ export default function MapPage() {
   return (
     <main className="app-shell">
       <header className="site-header">
-        <a className="brand" href="/" aria-label="PathSense home"><span className="brand-mark" aria-hidden="true">⌁</span><span>PathSense</span></a>
+        <Link className="brand" href="/" aria-label="OpenPath home"><span className="brand-mark" aria-hidden="true">⌁</span><span>OpenPath</span></Link>
         <nav aria-label="Primary navigation"><a href="#conditions">Conditions</a><a href="#legend">Legend</a><a href="#about">About</a></nav>
         <button className="outline-button" type="button" onClick={() => void load()}>Refresh</button>
       </header>
@@ -76,7 +77,7 @@ export default function MapPage() {
       </section>
 
       <section id="legend" className="legend-section" aria-labelledby="legend-title"><div><p className="eyebrow">Read the map</p><h2 id="legend-title">Every condition has a sign</h2></div><div className="legend-grid">{Object.entries(kindMeta).map(([kind, meta]) => <div className="legend-item" key={kind}><span className={`card-icon ${meta.pattern}`} aria-hidden="true">{meta.icon}</span><span>{meta.label}</span></div>)}</div></section>
-      <footer id="about"><strong>PathSense</strong><span>Accessible information for every Edmonton journey.</span><span>Map data © OpenStreetMap contributors.</span></footer>
+      <footer id="about"><strong>OpenPath</strong><span>Accessible information for every Edmonton journey.</span><span>Map data © OpenStreetMap contributors.</span></footer>
     </main>
   );
 }
