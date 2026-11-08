@@ -10,3 +10,6 @@ b6e11b8dd033f58dcb038e721d576fde73d4185d:cloud/app/adapters/city_advisories.py:g
 
 # OP-110: earlier revisions of the note above tripped the same rule; the scan covers every commit in the pull request.
 82da026f5137179f3c4e0190000c9c003a37e81a:.gitleaksignore:generic-api-key:8
+
+# Squash merge of OP-110 on phase_1 (same ZoneInfo false positive; the code now uses a named constant).
+4b176c2a13c8ca89803fb9ada56b0641cc03cebf:cloud/app/adapters/city_advisories.py:generic-api-key:30
