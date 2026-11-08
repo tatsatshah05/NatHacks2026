@@ -467,6 +467,21 @@ export interface components {
          * @enum {string}
          */
         Confidence: "high" | "medium" | "low";
+        /**
+         * CountChange
+         * @description Today's item count against yesterday's, as ``GET /api/status`` shows it.
+         */
+        CountChange: {
+            /** Today */
+            today: number;
+            /** Yesterday */
+            yesterday?: number | null;
+            /**
+             * Drop
+             * @default false
+             */
+            drop: boolean;
+        };
         /** DeviceOut */
         DeviceOut: {
             /** Device Id */
@@ -1134,6 +1149,16 @@ export interface components {
             stale: boolean;
             /** Age S */
             age_s?: number | null;
+            /**
+             * Rejected Rows
+             * @default 0
+             */
+            rejected_rows: number;
+            /** Unexpected Fields */
+            unexpected_fields?: string[];
+            /** Last Validation Error */
+            last_validation_error?: string | null;
+            count_change?: components["schemas"]["CountChange"] | null;
         };
         /**
          * StationOut
