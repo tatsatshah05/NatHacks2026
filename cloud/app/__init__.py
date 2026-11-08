@@ -1,0 +1,1 @@
+"""OpenPath API (FastAPI)."""
