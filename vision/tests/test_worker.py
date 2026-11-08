@@ -148,6 +148,36 @@ def test_offline_frames_confirm_unknown_and_do_not_renew_previous_dry() -> None:
     assert unknown.reason == "camera_http_error"
 
 
+def test_one_line_when_no_view_is_usable_and_one_when_readings_resume(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """OP-412: the laptop log says when the cameras stop giving usable readings."""
+    caplog.set_level(logging.INFO, logger="vision.worker")
+    camera_worker, clock, _ = make_worker(["dry", "dry", "wet", "wet"])
+    good_client = camera_worker.frames.client
+    for _ in range(2):  # dry confirmed: a normal start, nothing to announce
+        camera_worker.cycle()
+        clock.sleep(300)
+    down = httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(503)))
+    camera_worker.frames.client = down
+    for _ in range(4):  # unknown confirmed on the second pass, then stays unknown
+        camera_worker.cycle()
+        clock.sleep(300)
+    stopped = [r for r in caplog.records if "no usable reading" in r.message]
+    assert [r.message for r in stopped] == [
+        "WARN camera_model no usable reading on any of 1 views; ice risk falls back to the weather watch"
+    ]
+    assert [r.levelno for r in stopped] == [logging.WARNING]
+    camera_worker.frames.client = good_client
+    for _ in range(2):  # two agreeing wet frames confirm again
+        camera_worker.cycle()
+        clock.sleep(300)
+    resumed = [r.message for r in caplog.records if "resumed" in r.message]
+    assert resumed == ["CHANGE camera_model usable readings resumed on 1 of 1 views"]
+    # What the worker posts is unchanged: the same readings as before this line existed.
+    assert camera_worker.last_good["511:9001:1"].label == "wet"
+
+
 def test_identical_frozen_frame_never_confirms_or_renews_safety() -> None:
     camera_worker, clock, _ = make_worker(
         ["dry"] * 3,

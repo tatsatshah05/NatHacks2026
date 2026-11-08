@@ -147,7 +147,7 @@ Headings use letter-spacing 0. Lines never run past 70ch. Use sentence case ever
 
 **Saved route status.** A saved route's status uses the hazard shapes with words: `ok` is the clear circle, "Clear, about 12 min"; `changed` is the caution triangle, "Changed: now 16 min (+4)" (whole minutes, as the push message counts them); `impossible` is the blocked square, "No route right now".
 
-**App icon.** `scripts/build_icons.py` draws the icons from coordinates: the wordmark's start and end circles joined by a line that jogs at 45 degrees, as the route line kinks around a barrier, in white on `--action`. The maskable icon keeps the glyph inside the central 40% safe circle.
+**App icon.** `scripts/build_icons.py` draws the icons from coordinates: the wordmark's start and end circles joined by a line that jogs at 45 degrees, as the route line kinks around a barrier, in white on `--action`. The maskable icon keeps the glyph inside the central 40% safe circle. `scripts/make_icons.py` (OP-411) runs it and adds the browser favicon `web/src/app/icon.svg` from the same geometry, with a light and a dark variant: a `prefers-color-scheme` rule inside the SVG swaps the tile and glyph between each theme's `--action` and `--on-action`, so the mark keeps its contrast on a dark tab bar. Launcher icons cannot carry that rule, so `web/public/icons/icon.svg` stays single-coloured.
 
 **City map markers.** Markers are pointer shortcuts only. The list beside the map is the keyboard and screen-reader path and selects the same items, so markers are hidden from assistive technology and stay out of the tab order.
 
@@ -236,3 +236,54 @@ The route line alone is only 2.2:1 (light) and 2.0:1 (dark) against the roads it
 
 **Changes after the first screenshots ("remove one accessory").** The reading lists had lost their markers to Tailwind's preflight; they are back. A credit that already ended in a full stop got a second one; credits are now quoted exactly. The long "What OpenPath uses it for" column name became "Used for". Numbers and units are joined by non-breaking spaces so "30 m" never splits across lines. The explanation above the speech switches was cut to two short sentences.
 
+## 10. Judge page and launch assets (OP-411)
+
+**Subject, audience, job.** `/demo` is the hand-off. A judge sits across a table from a laptop, or looks at a projector, and has seconds: get the app onto their own phone, then tell them one trip to try. The page is read from a distance, so it is one screen at 1280 × 800, quiet and large. On a phone it is the same page in one column.
+
+**Direction: one square, one sentence, one trip.** The QR code is the one bold element here; the route line is the system's bold element everywhere else, and the two are never on the same screen. Everything around the square is the system's own type, left aligned, with no panel, rule or drawing to compete with the three finder squares. The square sits in the right column, where other screens put the map, and the words sit in the left column at a 52ch measure (the planner's 44ch made the trip's description wrap past the fold at 800 px): the page keeps the grid people already know.
+
+```
+Desktop (1280 x 800)                                   Phone (390)
++----------------------------------------------------+  +--------------------------+
+| o-o OpenPath [Replay]   Plan City Alerts ... About |  | o-o OpenPath [Replay]    |
++----------------------------------------------------+  | Plan City Alerts ...     |
+| OpenPath                    +------------------+   |  +--------------------------+
+| Accessible routes across    |                  |   |  | OpenPath                 |
+| Edmonton, with every known  |   [QR code]      |   |  | Accessible routes ...    |
+| barrier between A and B.    |                  |   |  | +----------------------+ |
+|                             |                  |   |  | |      [QR code]       | |
+| Try this trip               +------------------+   |  | +----------------------+ |
+| Edmonton Convention Centre  openpath-lyart.        |  | openpath-lyart.vercel.app|
+| to the Alberta Legislature, vercel.app             |  | Try this trip            |
+| for a wheelchair.                                  |  | ...                      |
+| Three routes, drawn as ...                         |  | Then                     |
+|                                                    |  | ...                      |
+| Then                                               |  +--------------------------+
+| Switch the profile. ...                            |
+| Open the route report ...                          |
+| Save the route and turn on alerts. ...             |
++----------------------------------------------------+
+| Conditions come from public data ...  Data sources  Privacy |
++----------------------------------------------------+
+```
+
+**Colour.** Ink on snow, as everywhere. The QR code is the one exception to the theme tokens: its modules are always `#0D1F2D` on a `#FFFFFF` tile, in dark mode too, because many phone cameras refuse an inverted code and the page has one job. The tile is the code's quiet zone (four modules on every side) made visible. The address under it is a link in `--action`.
+
+**Type.** The system's scale, one step up where a judge reads from a distance: h1 31 for the name, the pitch and the address at 25 (400 and 700), the trip link and the "then" lines at 18 (the lead size), the trip's detail at 16. Nothing is tracked or capitalised. The address drops its `https://`, as people read it.
+
+**Layout.** One column with 16 px gutters; from 900 px, `minmax(0, 52ch)` of words on the left and the square on the right, left aligned in its column, never centred. The square's side is `clamp(240px, 100vh - 360px, 520px)`, so the whole page, header and footer included, fits 800 px without scrolling and the square stays the largest thing on the screen. On a phone the square is the full column width. The DOM order is name, pitch, square and address, trip, then, in every layout.
+
+**Copy.** The pitch is PLAN.md's one sentence. The trip is a real pair from `config/places.json`, written as a link that opens the planner pre-filled (`lib/route-link.ts`, the same `from`, `from_name`, `to`, `to_name` and `profile` parameters a shared route uses), and what the judge will see is stated from the replay data and labelled as such: live, the page shows today's conditions. The three "then" lines are plain verbs, not a numbered sequence.
+
+**Principles.**
+
+1. The square is the hero. Nothing else on the page is drawn.
+2. Readable at three metres: the name, the address and the trip are the three things a judge needs, and each is one glance.
+3. One screen. Header, square, words and footer fit 1280 × 800.
+4. Honest. The Replay badge shows as on every page, and the trip's description says which conditions are recorded and which are live.
+
+**Review against the usual tells.** A "scan me" poster centres the code and sets the address under it in a monospace face; this page keeps the system's left-aligned grid and one typeface. A "try this" list is usually numbered; these lines are not a sequence, so they take plain markers. A first draft put the square in a `Panel`: its 2 px ink top rule read as a fourth finder mark, so the square sits on the page with no frame. A caption that said "Scan with your phone's camera" was cut: the address beneath the square says what it is, and the alt text names the URL. The product name stays at the system's h1 size rather than a display size: the page has one bold element, and the square is it.
+
+**The QR code.** `lib/qr.ts` is a dependency-free encoder written for this project from ISO/IEC 18004 (byte mode, versions 1 to 40, levels L to H, mask by the standard's penalty rules). It runs on the server, so the page carries one inline SVG path and no script. The production address encodes at version 3, level M (29 modules). Verified on November 8, 2026: the module matrices match the Python `qrcode` package for 211 of 216 combinations of six texts, four levels and all eight masks (the five differences are automatic mask choice only, where both masks are valid), and OpenCV's `QRCodeDetector` decodes the rendered page's screenshot to the production URL. `?url=` overrides the target for local testing (http or https only).
+
+**Social preview and favicon.** `app/opengraph-image.tsx` renders the mark, the name, the pitch and the address at 1200 × 630 in the light tokens, with Atkinson Hyperlegible fetched when the image is built and the renderer's default sans serif when that fetch fails (a preview in the wrong face beats a failed build). Twitter cards fall back to the same image, so there is no second file. The icons Next links from every page are files beside the layout, because an `icons` field in the metadata export would replace them: `app/icon.svg` (the favicon with its light and dark variants, section 5, "App icon"), `app/icon1.png` (64 px, for browsers that ignore SVG favicons) and `app/apple-icon.png` (180 px). `scripts/make_icons.py` writes all three.

@@ -117,6 +117,8 @@ export interface paths {
          *
          *     Read at the app's clock, like the map and route hazards, so a replay with a
          *     frozen or running clock (OP-305) shows the recorded readings of that time.
+         *     ``summary`` (OP-412) is the ``cameras`` block of ``GET /api/status``, built
+         *     from the same rows, so one call also says whether the cameras are reporting.
          */
         get: operations["list_cameras_api_cameras_get"];
         put?: never;
@@ -332,6 +334,7 @@ export interface components {
             generated_at: string;
             /** Features */
             features: components["schemas"]["CameraFeature"][];
+            summary?: components["schemas"]["CamerasStatus"] | null;
         };
         /** CameraFeature */
         CameraFeature: {
@@ -450,6 +453,48 @@ export interface components {
              * @default Road camera data: 511 Alberta, Government of Alberta
              */
             attribution: string;
+        };
+        /**
+         * CamerasStatus
+         * @description The ``cameras`` block of ``GET /api/status`` and ``summary`` of ``GET /api/cameras``.
+         */
+        CamerasStatus: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "live" | "stale" | "none";
+            /**
+             * Ice Source
+             * @enum {string}
+             */
+            ice_source: "cameras" | "weather_watch";
+            /** Readings */
+            readings: number;
+            /** Usable */
+            usable: number;
+            /** Views Total */
+            views_total: number;
+            /** Newest Observed At */
+            newest_observed_at: string | null;
+            /** Newest Age S */
+            newest_age_s: number | null;
+            /** Oldest Age S */
+            oldest_age_s: number | null;
+            /** Model Versions */
+            model_versions: string[];
+            /** Score Min */
+            score_min: number | null;
+            /** Score Median */
+            score_median: number | null;
+            /** Labels */
+            labels: {
+                [key: string]: number;
+            };
+            /** Watch Active */
+            watch_active: boolean | null;
+            /** Live Within S */
+            live_within_s: number;
         };
         /**
          * Category
@@ -1202,6 +1247,7 @@ export interface components {
             generated_at: string;
             /** Sources */
             sources: components["schemas"]["SourceStatus"][];
+            cameras?: components["schemas"]["CamerasStatus"] | null;
         };
         /** StepOut */
         StepOut: {
