@@ -916,6 +916,24 @@ main > .page-title,
 .maplibregl-map .maplibregl-ctrl-group button + button {
   border-top: 2px solid var(--ink);
 }
+/* MapLibre's compact attribution: its toggle is 24 x 24 in the library's stylesheet.
+   44 x 44 here (OP-408), as the zoom controls are, with the text kept clear of it.
+   The box is content-box in MapLibre's rules, so 40 px plus the 2 px paddings is 44. */
+.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact {
+  border-radius: 22px;
+  min-height: 40px;
+  padding-right: 44px;
+}
+.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  padding: 2px 48px 2px 12px;
+}
+.maplibregl-map .maplibregl-ctrl-attrib-button {
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 22px;
+  height: 44px;
+  width: 44px;
+}
 .maplibregl-map .maplibregl-canvas:focus-visible,
 .maplibregl-map .maplibregl-ctrl-group button:focus-visible,
 .maplibregl-map .maplibregl-ctrl-attrib-button:focus-visible,

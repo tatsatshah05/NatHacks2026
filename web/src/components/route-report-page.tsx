@@ -33,8 +33,18 @@ export default function RouteReportPage() {
   const searchParams = useSearchParams();
   const key = searchParams.toString();
   const params = useMemo(() => parseReportParams(new URLSearchParams(key)), [key]);
+  // Choosing a route rewrites only `route=` (and `demo=`) in the address, and Next feeds
+  // replaceState back into useSearchParams. The trip alone keys the report, so a choice
+  // never remounts it: focus stays on the chosen radio, the status line announces the
+  // choice and the routes are not fetched again (OP-408).
+  const tripKey = useMemo(() => {
+    const trip = new URLSearchParams(key);
+    trip.delete("route");
+    trip.delete("demo");
+    return trip.toString();
+  }, [key]);
   if (!params) return <NoTrip />;
-  return <RouteReport key={key} params={params} />;
+  return <RouteReport key={tripKey} params={params} />;
 }
 
 function NoTrip() {
@@ -89,7 +99,10 @@ function RouteReport({ params }: { params: ReportParams }) {
         if (!isAbort(error)) setFailure(error);
       });
     return () => controller.abort();
-  }, [params, demo, attempt]);
+    // Keyed by its trip, this component only ever sees `params` change its rank or demo
+    // flag, both kept in state above, so the trip is read when the effect runs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, attempt]);
 
   const retry = useCallback(() => {
     setDemo(false);
