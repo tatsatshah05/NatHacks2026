@@ -1,0 +1,102 @@
+{
+  "name": "Snow and Ice Clearing Route Status",
+  "description": "NB: The source map is only updated if a \"snow event\" is declared; if snowfall is relatively minor it may be cleared without the progress being reflected on the map.\n\nThis dataset provides a tabular representation of the data used to populate the map at https://gis.edmonton.ca/SnowAndIceControl.\n\nIt is obtained by paging through the data exposed by the ArcGIS REST API, e.g. https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Public_SNIC_Map_SNICRouting_View_ver2__Read_Only/FeatureServer/0/query?where=1%3D1&outFields=*&returnGeometry=true&resultOffset=0&resultRecordCount=500&f=geojson.\n\nTo know how many times we need to page through the data to extract all of the rows, the total row count is obtained thus: https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Public_SNIC_Map_SNICRouting_View_ver2__Read_Only/FeatureServer/0/query?where=1%3D1&returnCountOnly=true&f=json.",
+  "columns": [
+    {
+      "fieldName": "fid",
+      "dataTypeName": "number",
+      "description": "Nonstable, unique identifier for the row"
+    },
+    {
+      "fieldName": "district",
+      "dataTypeName": "text",
+      "description": "One of CENTRAL, NORTHEAST, SOUTHEAST, SOUTHWEST, or NORTHWEST"
+    },
+    {
+      "fieldName": "last_updat",
+      "dataTypeName": "calendar_date",
+      "description": "NB: deprecated field (always empty; kept for backwards compatibility)"
+    },
+    {
+      "fieldName": "linear_km",
+      "dataTypeName": "number",
+      "description": ""
+    },
+    {
+      "fieldName": "loc_note",
+      "dataTypeName": "text",
+      "description": ""
+    },
+    {
+      "fieldName": "num_passes",
+      "dataTypeName": "text",
+      "description": "NB: deprecated field (always empty; kept for backwards compatibility)"
+    },
+    {
+      "fieldName": "pass_km",
+      "dataTypeName": "text",
+      "description": "NB: deprecated field (always empty; kept for backwards compatibility)"
+    },
+    {
+      "fieldName": "priority",
+      "dataTypeName": "number",
+      "description": "See https://www.edmonton.ca/transportation/on_your_streets/neighbourhood-roads-winter"
+    },
+    {
+      "fieldName": "road_from",
+      "dataTypeName": "text",
+      "description": ""
+    },
+    {
+      "fieldName": "road_on",
+      "dataTypeName": "text",
+      "description": ""
+    },
+    {
+      "fieldName": "road_to",
+      "dataTypeName": "text",
+      "description": ""
+    },
+    {
+      "fieldName": "route",
+      "dataTypeName": "text",
+      "description": ""
+    },
+    {
+      "fieldName": "route_id",
+      "dataTypeName": "text",
+      "description": "Combination of District (abbreviated), Route, and Segment"
+    },
+    {
+      "fieldName": "route_stat",
+      "dataTypeName": "text",
+      "description": ""
+    },
+    {
+      "fieldName": "seg_stat",
+      "dataTypeName": "text",
+      "description": ""
+    },
+    {
+      "fieldName": "segment",
+      "dataTypeName": "text",
+      "description": ""
+    },
+    {
+      "fieldName": "serv_ach",
+      "dataTypeName": "text",
+      "description": ""
+    },
+    {
+      "fieldName": "serv_hrs",
+      "dataTypeName": "text",
+      "description": ""
+    },
+    {
+      "fieldName": "geometry_line",
+      "dataTypeName": "multiline",
+      "description": ""
+    }
+  ],
+  "retrieved_on": "2026-11-07"
+}
