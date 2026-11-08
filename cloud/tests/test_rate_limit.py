@@ -12,6 +12,7 @@ from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
+from cloud.app.admin_api import require_admin_key
 from cloud.app.ingest_api import require_worker_key
 from cloud.app.main import create_app
 from cloud.app.rate_limit import (
@@ -302,7 +303,8 @@ def test_every_write_route_is_keyed_or_limited(env: None) -> None:
         if not route.methods - {"GET", "HEAD", "OPTIONS"}:
             continue
         calls = {dependency.call for dependency in route.dependant.dependencies}
-        keyed = require_worker_key in calls and keyed_write_limit in calls
+        has_key = require_worker_key in calls or require_admin_key in calls
+        keyed = has_key and keyed_write_limit in calls
         if not (public_write_limit in calls or keyed):
             unguarded.append(f"{sorted(route.methods)} {route.path}")
     assert unguarded == []

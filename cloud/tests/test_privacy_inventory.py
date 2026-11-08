@@ -40,7 +40,8 @@ PRIVACY_PAGE = REPO / "web" / "src" / "app" / "privacy" / "page.tsx"
 
 # Every table and column the API can create, by name. Personal data lives only in
 # saved_route, push_subscription and community_report_log, each under an anonymous
-# client_id; obstruction and camera_reading hold public conditions.
+# client_id; obstruction and camera_reading hold public conditions, and
+# source_count_daily holds one item count per public source and UTC day (OP-407).
 INVENTORY: dict[str, set[str]] = {
     "obstruction": {
         "id",
@@ -104,6 +105,7 @@ INVENTORY: dict[str, set[str]] = {
         "notified_status",
         "pending",
     },
+    "source_count_daily": {"source", "day", "item_count", "updated_at"},
     "push_subscription": {
         "id",
         "client_id",

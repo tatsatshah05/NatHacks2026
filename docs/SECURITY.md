@@ -23,7 +23,7 @@ into the 24-hour rate-limit log.
 | Route | Header | Check |
 | --- | --- | --- |
 | `POST /api/ingest/camera` | `X-Worker-Key` | `ingest_api.require_worker_key`: `secrets.compare_digest` on UTF-8 bytes (a non-ASCII header is a plain 401, never a 500). An unset or empty `WORKER_KEY` answers 503: the route is off, never open. |
-| `/api/admin/override` | `X-Admin-Key` | **Does not exist in this version.** `render.yaml` generates `ADMIN_KEY` and `.env.example` lists it, but no code reads it. If an admin route is added, use the same pattern as `require_worker_key` (bytes, constant time, unset means off), then list it with the keyed limit in `test_rate_limit.py::test_every_write_route_is_keyed_or_limited`. |
+| `POST /api/admin/override`, `DELETE /api/admin/override[/{source_ref}]` | `X-Admin-Key` | `admin_api.require_admin_key` (OP-406): the same pattern as the worker key (UTF-8 bytes, constant time; an unset or empty `ADMIN_KEY` answers 503, so the route is off, never open), followed by the keyed limit. Testing only: it stores one labelled test obstruction (`Test override: ...`, source `admin_override`, attribution `Test override, not real data`) that expires within an hour. Render generates `ADMIN_KEY`; the smoke tests never call it. |
 
 `scripts/dev.py` (`make dev`) removes both keys and every other secret from the
 environment, so a local run can never post to a live source.
@@ -226,13 +226,10 @@ Add the date, the commit and the results to this page.
 2. **One FastAPI for tests and production.** Fix
    `test_attach_wires_the_scheduler_and_the_matcher` for starlette 1.x and lift the
    `fastapi<0.129` cap in `cloud/requirements-weather.txt` (above).
-3. **`ADMIN_KEY`.** Either build the testing-only override route behind it, with the
-   `require_worker_key` pattern and the keyed limit, or remove the variable from
-   `render.yaml` and `.env.example`. Lead's call.
-4. **Proxy hops.** If Render documents the exact number of hops it adds, key the
+3. **Proxy hops.** If Render documents the exact number of hops it adds, key the
    limiter by the last trusted hop instead of the first address, which a client can
    forge.
-5. **One process.** The limiter counts per process. If the API ever runs on more than
+4. **One process.** The limiter counts per process. If the API ever runs on more than
    one instance, each instance has its own counts; that is acceptable for a limit
    against floods, but say so here.
-6. **Error tracking and uptime** (decision D-1 in PLAN.md section 16) are still open.
+5. **Error tracking and uptime** (decision D-1 in PLAN.md section 16) are still open.

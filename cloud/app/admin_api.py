@@ -44,6 +44,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from .obstructions_api import get_now, get_store
+from .rate_limit import keyed_write_limit
 from .schemas import Category, Confidence, Effect, Geometry, Kind, Obstruction
 from .store import ObstructionStore
 from .ws import matcher_of
@@ -144,7 +145,8 @@ def rebuild_hazards(request: Request, now: datetime) -> bool:
     "/override",
     response_model=OverrideOut,
     status_code=201,
-    dependencies=[Depends(require_admin_key)],
+    # The key first (OP-401): a request without it never counts against the lead.
+    dependencies=[Depends(require_admin_key), Depends(keyed_write_limit)],
 )
 def set_override(
     body: OverrideIn,
@@ -196,7 +198,8 @@ def _drop(
     "/override/{source_ref}",
     status_code=204,
     response_class=Response,
-    dependencies=[Depends(require_admin_key)],
+    # The key first (OP-401): a request without it never counts against the lead.
+    dependencies=[Depends(require_admin_key), Depends(keyed_write_limit)],
 )
 def remove_override(
     source_ref: str,
@@ -215,7 +218,8 @@ def remove_override(
     "/override",
     status_code=204,
     response_class=Response,
-    dependencies=[Depends(require_admin_key)],
+    # The key first (OP-401): a request without it never counts against the lead.
+    dependencies=[Depends(require_admin_key), Depends(keyed_write_limit)],
 )
 def clear_overrides(
     request: Request,
