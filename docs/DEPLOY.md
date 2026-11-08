@@ -50,10 +50,10 @@ Until these are set, the deploy job skips each step with a notice instead of fai
 
 ## 4. Camera worker on demo day
 
-Render's free plan has no background workers, so the camera worker (OP-204) runs on one team laptop during the demo and posts to the live API (decided November 8; Estella runs it on demo day, and until then it runs on Tatsat's laptop). Run it on one laptop only: the 511 key allows 10 calls per 60 seconds for the whole team, so stop any frame collection while it runs.
+Render's free plan has no background workers, so the camera worker (OP-204) runs on one team laptop during the demo and posts to the live API (decided November 8; it runs on Tatsat's laptop, including on demo day). Run it on one laptop only: the 511 key allows 10 calls per 60 seconds for the whole team, so stop any frame collection while it runs.
 
 1. **Install:** `make setup` in the repository.
-2. **Set the environment** in the terminal (values by direct message from Tatsat; never commit them):
+2. **Set the environment** in the terminal (the values stay on Tatsat's laptop; never commit them):
 
    ```bash
    export ALBERTA_511_KEY="..."   # the team's 511 Alberta key
@@ -63,7 +63,7 @@ Render's free plan has no background workers, so the camera worker (OP-204) runs
    export MODEL_URL="..."         # the model release asset, once it is published (see step 3)
    ```
 
-3. **Get the model details:** `labels.json`, the model's SHA-256 and the validated minimum score in `vision/MODEL_CARD.md`. The weights are not published as a release yet, so until they are, get `model.onnx` from Tatsat and pass `--model-file` instead of setting `MODEL_URL`; the SHA-256 is checked either way.
+3. **Get the model details:** `labels.json`, the model's SHA-256 and the validated minimum score in `vision/MODEL_CARD.md`. The weights are not published as a release yet, so until they are, use the local `model.onnx` with `--model-file` instead of setting `MODEL_URL`; the SHA-256 is checked either way.
 4. **Start it** and keep the laptop awake and on power (`caffeinate -i` on macOS):
 
    ```bash
