@@ -252,6 +252,7 @@ def backup_postgres(
 def write_manifest(
     backup: Path, db: Database, tables: Mapping[str, int], created_at: datetime
 ) -> Path:
+    """Write ``<backup>.json``. No URL or host: it is uploaded unencrypted."""
     manifest = backup.with_name(backup.name + ".json")
     manifest.write_text(
         json.dumps(
@@ -260,7 +261,6 @@ def write_manifest(
                     "+00:00", "Z"
                 ),
                 "kind": db.kind,
-                "database": db.shown,
                 "file": backup.name,
                 "size_bytes": backup.stat().st_size,
                 "sha256": sha256(backup),

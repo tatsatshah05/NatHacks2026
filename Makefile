@@ -15,7 +15,7 @@ REQUIREMENTS := $(sort $(wildcard cloud/requirements*.txt cloud/tests/requiremen
 # The web app (web/) comes from OP-113. Web steps are skipped until it is here.
 HAS_WEB := $(wildcard web/package.json)
 
-.PHONY: setup dev web test lint format build types graph lrt record worker
+.PHONY: setup dev web test lint format build types graph lrt record worker demo-check
 
 setup:  ## Create .venv (cloud + vision) and install the web app's dependencies
 	$(PYTHON) -m venv .venv
@@ -73,3 +73,6 @@ record:  ## Record a replay snapshot of every source into snapshots/<UTC time>/ 
 
 worker:  ## Run the vision worker locally (OP-204)
 	$(VENV_PY) -m vision.worker
+
+demo-check:  ## Check every demo dependency, ok or FAIL per line (OP-402); DEMO_CHECK_FLAGS="--mode replay --api ... --web ..."
+	$(VENV_PY) scripts/demo_check.py $(DEMO_CHECK_FLAGS)
