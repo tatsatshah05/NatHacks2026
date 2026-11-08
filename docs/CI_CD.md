@@ -60,7 +60,7 @@ Ruff is pinned to **0.17.4** in CI. Before pushing, run `pip install ruff==0.17.
 | `phase_N` | `staging` | The deploy job calls the staging Render deploy hooks, then smoke-tests the staging API and web app |
 | `main` | `production` | The deploy job calls the production Render deploy hooks, then smoke-tests production |
 
-Vercel's Git integration builds a preview for every pull request and branch, and production from `main`.
+Vercel's Git integration deploys production from `main` only. `web/vercel.json` turns Git deployments off for every other branch (`git.deploymentEnabled`), because the Hobby plan allows 100 deployments per rolling 24 hours and preview deployments for every push used them up on November 8. Review a web change locally with `make dev` or `make web`; there are no preview links.
 
 `GET /health` returns `{"status": "ok", "version": "<git commit>"}`, using Render's `RENDER_GIT_COMMIT`, so the smoke test can confirm that the new version is live. Until an environment is configured, the deploy job skips cleanly.
 

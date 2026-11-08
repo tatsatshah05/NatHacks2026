@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible } from "next/font/google";
 import SettingsApplier from "@/components/settings-applier";
 import { SETTINGS_BOOT_SCRIPT } from "@/lib/settings-boot";
@@ -15,7 +15,25 @@ const atkinson = Atkinson_Hyperlegible({
 
 export const metadata: Metadata = {
   title: "OpenPath",
-  description: "Accessible routes across Edmonton, with every known barrier between A and B."
+  description: "Accessible routes across Edmonton, with every known barrier between A and B.",
+  // OP-306: the installable app (Add to Home Screen) that push alerts need on iOS.
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }
+    ],
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180" }
+  },
+  appleWebApp: { capable: true, title: "OpenPath", statusBarStyle: "default" }
+};
+
+// The browser bar matches the page (--snow) in each theme.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F5F8FA" },
+    { media: "(prefers-color-scheme: dark)", color: "#0D1F2D" }
+  ]
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

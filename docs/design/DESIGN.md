@@ -138,10 +138,16 @@ Headings use letter-spacing 0. Lines never run past 70ch. Use sentence case ever
 | `LiveStatus` | The live connection on a page with a route | One quiet line, not a badge: a circle that is filled (live), half filled (reconnecting) or hollow (offline), and the word. Then the speech switch and the assertive region for route changes, which is always in the page. |
 | `RouteFailure`, `NoRoute` (`route-problem.tsx`) | A route request that failed or found nothing | An ink rule on the left, a short heading that says what happened, one sentence that says what to do, then "Try again" (and "Show demo routes instead" when the service cannot be reached). A refused request offers no retry: it needs new places. |
 | `CityWideConditions` | Conditions that cover the whole city | One line each, shown once above the routes: "Ice-risk watch is on for the whole city." They are never stops on a line. The route report still lists them under Weather and ice. |
+| `SaveRouteButton` (`save-route-button.tsx`, OP-306) | "Save this route" in each route's actions | One tap opens an inline form (name, filled with the destination). When alerts can be turned on, the form's main button is "Save and turn on alerts" (the permission request starts inside that press) with "Save without alerts" beside it; otherwise "Save route" plus a note saying why alerts are not offered. The result takes focus and says what happens: "Saved. You'll get an alert if this route closes or gets 20% slower." Saved without alerts, it offers "Turn on alerts for this route". The open form sits between two `--line` rules. |
+| Alerts page (`alerts-page.tsx`, OP-306) | `/alerts` | Saved routes first (no route, then changed, then clear), as plain rows, then one panel "Alerts on this device" with the state in words. Remove asks first ("Keep it" takes focus, Escape keeps), then a status line with Undo, which saves the trip again. |
 
 **City-wide items.** The API marks an item that covers the whole city only through its note (`cloud/app/report.py` `NOTES["citywide"]`), so `isCityWide()` in `lib/report-format.ts` tests that note. If `ReportItemOut` gains an `everywhere` flag, test that instead.
 
 **Stop order.** The API does not yet say where along the route each condition lies. Stops therefore follow the report's group order (indoor, sidewalks and paths, roads and crossings, weather and ice), and within each group the report's own order. When `GET /api/route` adds a position, sort by it.
+
+**Saved route status.** A saved route's status uses the hazard shapes with words: `ok` is the clear circle, "Clear, about 12 min"; `changed` is the caution triangle, "Changed: now 16 min (+4)" (whole minutes, as the push message counts them); `impossible` is the blocked square, "No route right now".
+
+**App icon.** `scripts/build_icons.py` draws the icons from coordinates: the wordmark's start and end circles joined by a line that jogs at 45 degrees, as the route line kinks around a barrier, in white on `--action`. The maskable icon keeps the glyph inside the central 40% safe circle.
 
 **City map markers.** Markers are pointer shortcuts only. The list beside the map is the keyboard and screen-reader path and selects the same items, so markers are hidden from assistive technology and stay out of the tab order.
 

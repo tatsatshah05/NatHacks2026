@@ -60,13 +60,13 @@ export default function RouteResult({
         <ButtonLink variant="secondary" href={reportLink}>
           View route report<span className="sr-only"> for route {route.rank}</span>
         </ButtonLink>
+        {saveAction}
         <ButtonLink variant="secondary" href={route.google_maps_url}>
           Open in Google Maps<span className="sr-only">, route {route.rank}</span>
         </ButtonLink>
         <ButtonLink variant="secondary" href={route.apple_maps_url}>
           Open in Apple Maps<span className="sr-only">, route {route.rank}</span>
         </ButtonLink>
-        {saveAction}
       </div>
       <p className="route-note note">{mapsNote}</p>
       {route.lrt && <p className="route-note note">{route.lrt.attribution}.</p>}

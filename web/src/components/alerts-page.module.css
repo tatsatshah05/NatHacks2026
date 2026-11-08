@@ -1,0 +1,98 @@
+/* OP-306: the Alerts page. Saved routes are plain rows with decorative rules between
+   them (as on the City list), not cards; the device setting is one panel beside them. */
+.saved {
+  margin-top: 24px;
+}
+
+.notice {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 12px;
+}
+
+.notice :global(.status-line) {
+  margin: 0;
+}
+
+/* A short word: keep the 44 px target wide as well as tall. */
+.undo {
+  justify-content: center;
+  min-width: 44px;
+}
+
+.routes {
+  border-top: 2px solid var(--ink);
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.route {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 16px 0;
+}
+
+.route + .route {
+  border-top: 1px solid var(--line);
+}
+
+.route p {
+  margin: 0;
+}
+
+.name {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.meta {
+  color: var(--muted);
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 6px;
+}
+
+.confirm {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.confirm p {
+  font-weight: 700;
+}
+
+.confirm .actions {
+  margin-top: 0;
+}
+
+.empty {
+  margin-top: 4px;
+}
+
+.state p {
+  margin: 0 0 8px;
+}
+
+.deviceActions {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-top: 16px;
+}
+
+.deviceActions p {
+  margin: 0;
+}
+
+.deviceStatus {
+  margin: 12px 0 0;
+}
