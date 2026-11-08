@@ -1,0 +1,5 @@
+pytest==9.2.0
+ruff==0.17.4
+# Same runtime bounds as OP-104; used by its network and the candidate report.
+numpy>=2,<3
+scipy>=1.13,<2

@@ -1,0 +1,457 @@
+{
+  "schema_version": 1,
+  "elevators": [
+    {
+      "device_id": "1",
+      "station": "Churchill",
+      "location": "Chancery",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "4",
+      "station": "Churchill",
+      "location": "Winspear",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "29",
+      "station": "Clareview",
+      "location": "Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "30",
+      "station": "Belvedere",
+      "location": "Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "31",
+      "station": "Belvedere",
+      "location": "West Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "32",
+      "station": "Belvedere",
+      "location": "East Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "84",
+      "station": "Government Centre",
+      "location": "South Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "85",
+      "station": "Government Centre",
+      "location": "South Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "86",
+      "station": "Government Centre",
+      "location": "North Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "87",
+      "station": "Government Centre",
+      "location": "North Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "88",
+      "station": "Corona",
+      "location": "South Entrance",
+      "status": "candidate",
+      "osm_refs": [
+        {
+          "type": "way",
+          "id": 1168890851
+        }
+      ],
+      "reason": "City South Entrance; OSM level 0;-1 supports an entrance-to-concourse candidate. Entrance identity still needs independent review.",
+      "matched_by": "codex-for-kalebpham",
+      "reviewed_by": null,
+      "evidence": [
+        "https://data.edmonton.ca/d/javh-pjj2",
+        "https://www.openstreetmap.org/way/1168890851",
+        "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/way-1168890851.json"
+      ],
+      "anchor_node_id": 13296108642,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "89",
+      "station": "Corona",
+      "location": "Platform",
+      "status": "candidate",
+      "osm_refs": [
+        {
+          "type": "way",
+          "id": 1168890847
+        }
+      ],
+      "reason": "City Platform; OSM level -1;-2 supports a concourse-to-platform candidate. Physical device identity still needs independent review.",
+      "matched_by": "codex-for-kalebpham",
+      "reviewed_by": null,
+      "evidence": [
+        "https://data.edmonton.ca/d/javh-pjj2",
+        "https://www.openstreetmap.org/way/1168890847",
+        "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/way-1168890847.json"
+      ],
+      "anchor_node_id": 13296108602,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "90",
+      "station": "Bay/Enterprise Square",
+      "location": "Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "91",
+      "station": "Bay/Enterprise Square",
+      "location": "North Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "92",
+      "station": "Central",
+      "location": "Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "93",
+      "station": "Central",
+      "location": "North Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "94",
+      "station": "Churchill",
+      "location": "Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "96",
+      "station": "Coliseum",
+      "location": "West Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "97",
+      "station": "Coliseum",
+      "location": "East Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "98",
+      "station": "Coliseum",
+      "location": "Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "100",
+      "station": "Health Sciences/Jubilee",
+      "location": "Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "111",
+      "station": "University",
+      "location": "East Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "112",
+      "station": "University",
+      "location": "West Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "113",
+      "station": "University",
+      "location": "East Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "114",
+      "station": "Southgate",
+      "location": "Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "115",
+      "station": "Southgate",
+      "location": "East Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "116",
+      "station": "Southgate",
+      "location": "West Entrance",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "117",
+      "station": "Century Park",
+      "location": "Platform",
+      "status": "candidate",
+      "osm_refs": [
+        {
+          "type": "node",
+          "id": 662687994
+        }
+      ],
+      "reason": "City Platform; candidate nearest the official station point. OSM has no device ref or level tags, so platform assignment remains unverified.",
+      "matched_by": "codex-for-kalebpham",
+      "reviewed_by": null,
+      "evidence": [
+        "https://data.edmonton.ca/d/javh-pjj2",
+        "https://www.openstreetmap.org/node/662687994",
+        "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/node-662687994.json"
+      ],
+      "anchor_node_id": 662687994,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "118",
+      "station": "Century Park",
+      "location": "East Entrance",
+      "status": "candidate",
+      "osm_refs": [
+        {
+          "type": "node",
+          "id": 5206760179
+        }
+      ],
+      "reason": "City East Entrance; candidate east of the platform candidate. OSM has no device ref or level tags, so entrance assignment remains unverified.",
+      "matched_by": "codex-for-kalebpham",
+      "reviewed_by": null,
+      "evidence": [
+        "https://data.edmonton.ca/d/javh-pjj2",
+        "https://www.openstreetmap.org/node/5206760179",
+        "Recorded evidence: cloud/tests/fixtures/elevator_mapping/osm/node-5206760179.json"
+      ],
+      "anchor_node_id": 5206760179,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "130",
+      "station": "MacEwan",
+      "location": "Platform",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "602",
+      "station": "Churchill",
+      "location": "Churchill Connector",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    },
+    {
+      "device_id": "610",
+      "station": "Davies",
+      "location": "Davies Station",
+      "status": "unmapped",
+      "osm_refs": [],
+      "reason": "No tagged elevator objects within the 200 m review radius of station points in OP-104 0cb7504; the station proxy needs entrance/platform verification.",
+      "matched_by": null,
+      "reviewed_by": null,
+      "evidence": [],
+      "anchor_node_id": null,
+      "edge_pairs": []
+    }
+  ]
+}
