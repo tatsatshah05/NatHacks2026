@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>OpenPath</title>
+<style>
+.tile{fill:#1450A3}.mark{fill:#FFFFFF}.path{stroke:#FFFFFF}
+@media (prefers-color-scheme: dark){.tile{fill:#8DB8FF}.mark{fill:#0D1F2D}.path{stroke:#0D1F2D}}
+</style>
+<rect class="tile" width="512" height="512" rx="96"/>
+<path class="path" d="M208 400 L208 304 L304 208 L304 112" fill="none" stroke-width="30" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="mark" cx="208" cy="400" r="44"/>
+<circle class="mark" cx="304" cy="112" r="44"/>
+</svg>

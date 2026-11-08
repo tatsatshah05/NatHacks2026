@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible } from "next/font/google";
 import SettingsApplier from "@/components/settings-applier";
 import { SETTINGS_BOOT_SCRIPT } from "@/lib/settings-boot";
+import { PITCH, PRODUCTION_URL, SITE_NAME } from "@/lib/site";
 import "./globals.css";
 
 // One family, two weights. Atkinson Hyperlegible was drawn for low-vision readers;
@@ -13,19 +14,29 @@ const atkinson = Atkinson_Hyperlegible({
   variable: "--font-body"
 });
 
+// OP-411: every page shares this; a page sets its own full title ("Plan a route | OpenPath").
+// Absolute links in the social tags resolve against the production address, so a shared
+// link always previews the real app. The icons are files beside this layout, which Next
+// links on its own (an `icons` field here would replace them): icon.svg (light and dark
+// variants), icon1.png for browsers without SVG favicons, apple-icon.png for iOS. All
+// three come from scripts/make_icons.py.
 export const metadata: Metadata = {
-  title: "OpenPath",
-  description: "Accessible routes across Edmonton, with every known barrier between A and B.",
+  metadataBase: new URL(PRODUCTION_URL),
+  title: SITE_NAME,
+  description: PITCH,
+  applicationName: SITE_NAME,
   // OP-306: the installable app (Add to Home Screen) that push alerts need on iOS.
   manifest: "/manifest.webmanifest",
-  icons: {
-    icon: [
-      { url: "/icons/icon.svg", type: "image/svg+xml" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }
-    ],
-    apple: { url: "/apple-touch-icon.png", sizes: "180x180" }
+  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "default" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: PITCH,
+    url: "/",
+    locale: "en_CA"
   },
-  appleWebApp: { capable: true, title: "OpenPath", statusBarStyle: "default" }
+  twitter: { card: "summary_large_image", title: SITE_NAME, description: PITCH }
 };
 
 // The browser bar matches the page (--snow) in each theme.
