@@ -238,7 +238,9 @@ main > .page-title,
 .site-nav a:hover {
   text-decoration: underline;
 }
-.site-nav a[aria-current="page"] {
+/* "page" for this page, "true" for its section (sources and privacy under About). */
+.site-nav a[aria-current="page"],
+.site-nav a[aria-current="true"] {
   border-bottom-color: var(--action);
 }
 .mode-badge {
@@ -1085,17 +1087,42 @@ main > .page-title,
   margin: 0;
 }
 
-/* The line draws once; nothing else moves. */
+/* The line draws once; nothing else moves. OP-307's "Never reduce" setting
+   (data-motion="full") opts out of the system preference; "Always reduce"
+   (data-motion="reduce") repeats these rules at the end of this file. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :root:not([data-motion="full"]) *,
+  :root:not([data-motion="full"]) *::before,
+  :root:not([data-motion="full"]) *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
-  .route-line.is-revealing {
+  :root:not([data-motion="full"]) .route-line.is-revealing {
     animation: none;
   }
+}
+
+/* OP-307: accessibility settings (lib/settings.ts). The settings page and the
+   inline script in layout.tsx set these attributes on <html>; with none set, the
+   page follows the browser's text size and the system's motion and colour
+   preferences. Text size scales the root, so every rem (text, headings, the 16 px
+   base) grows and layouts reflow; 44 px targets stay at least 44 px. */
+:root[data-text="large"] {
+  font-size: 125%;
+}
+:root[data-text="larger"] {
+  font-size: 150%;
+}
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+:root[data-motion="reduce"] .route-line.is-revealing {
+  animation: none;
 }

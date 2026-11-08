@@ -11,6 +11,7 @@ import httpx
 import pytest
 
 from cloud.app.adapters import traffic_disruptions as td
+from cloud.app.adapters._text import DETAIL_MAX_CHARS
 from cloud.app.schemas import SourceAdapter
 
 FIXTURES = Path(__file__).parent / "fixtures" / "traffic_disruptions"
@@ -120,8 +121,25 @@ def test_bad_rows_are_skipped_not_fatal(rows, caplog) -> None:
 def test_detail_is_capped_at_the_contract_limit(rows) -> None:
     row = dict(next(r for r in rows if r["disruption_id"] == "1309"), details="x" * 900)
     items, _ = td.normalize([row], NOW)
-    assert len(items[0].detail) <= td.MAX_DETAIL
-    assert items[0].detail.endswith("...")
+    assert len(items[0].detail) <= DETAIL_MAX_CHARS
+    assert items[0].detail.endswith("... Sidewalks may be affected.")
+
+
+def test_long_details_are_shortened_at_a_word_and_keep_the_sidewalk_note(
+    rows,
+) -> None:
+    notice = " ".join(["Northbound curb lane closed for water main work"] * 20)
+    row = dict(next(r for r in rows if r["disruption_id"] == "1309"), details=notice)
+    items, skipped = td.normalize([row], NOW)
+    assert skipped == [] and len(items) == 1
+    detail = items[0].detail
+    assert len(detail) <= DETAIL_MAX_CHARS
+    assert detail.startswith(
+        "124 Avenue NW from 66 Street NW to 67 Street NW. Northbound curb lane"
+    )
+    assert detail.endswith("... Sidewalks may be affected.")
+    kept = detail.removesuffix("... Sidewalks may be affected.")
+    assert kept.rsplit(" ", 1)[-1] in notice.split()  # a whole word, not half of one
 
 
 def test_adapter_fetch_and_failure_keep_last_good() -> None:

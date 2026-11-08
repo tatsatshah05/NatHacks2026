@@ -10,49 +10,49 @@ neither of those is a result on unseen cameras.
 
 - **Task:** classify one road camera frame as `dry`, `wet`, `snow_partial`, `snow_covered`, `ice`, `unusable`.
 - **Architecture:** mobilenet_v3_small, fine-tuned from ImageNet weights with `vision/train.py` (OP-202).
-- **Run:** `v1-night`, model SHA-256 `5b54b705219138edea5b26c13f9c2a99390dde4f6058c6a822da879f59304b96`, seed 202, PyTorch 2.15.0, evaluated 2026-11-08T08:16:46+00:00.
-- **Weights:** `model.onnx` and `labels.json`, never committed. Not yet published: the lead publishes them as the GitHub release `camera-model-night-v1`. Until then the worker loads them from the lead's laptop with `--model-file`, and the SHA-256 above is still checked.
+- **Run:** `v2-ours`, model SHA-256 `09c4eddf5f4d945f40a1e29c51256cb5c51cdd349c2295761a7c76e41405776c`, seed 202, PyTorch 2.15.0, evaluated 2026-11-08T17:07:42+00:00.
+- **Weights:** published as a GitHub release asset (`model.onnx` and `labels.json`), never committed.
 - **Use in OpenPath:** the vision worker (OP-204) reads 511 Alberta cameras. An `ice` reading, or `wet` while the weather watch is active, becomes **ice risk** at medium confidence on crossings within 50 m. `unusable` becomes `unknown`, never `dry`, and a reading changes only after two agreeing frames.
 
 ## Training data
 
-- **511 Alberta camera frames** labelled with `vision/LABELS.md` (OP-201). Labeller names as recorded in the label CSVs: `Claude (AI-assisted)` and `Claude second pass (blind)`. Training: 230 frames from 90 cameras; validation: 36 frames from 13 cameras. Frames are kept only where the terms allow (decision D-3, docs/DATA_SOURCES.md), and never one in which a person can be identified.
+- **511 Alberta camera frames** labelled with `vision/LABELS.md` (OP-201). Labeller names as recorded in the label CSVs: `Claude (AI-assisted)` and `Claude second pass (blind)`. Training: 830 frames from 90 cameras; validation: 123 frames from 13 cameras. Frames are kept only where the terms allow (decision D-3, docs/DATA_SOURCES.md), and never one in which a person can be identified.
 
 ## Labeller agreement
 
-35 images were labelled in two labelling passes, by `Claude (AI-assisted)` and `Claude second pass (blind)`: 91.4% agreement, Cohen's kappa 0.82. Agreement shows how consistent the labels are, not that they are correct. Images the two passes disagreed on are left out of testing. For this run they were not left out of training: the model was trained on the first-pass labels only (see Run notes).
+103 images were labelled in two labelling passes, by `Claude (AI-assisted)` and `Claude second pass (blind)`: 93.2% agreement, Cohen's kappa 0.83. Agreement shows how consistent the labels are, not that they are correct. Images the two passes disagreed on are left out of training and testing.
 
 ## Results on unseen cameras
 
-Test set: 76 images from 26 cameras (`101`, `105`, `114`, `116`, `120`, `125`, `149`, `152`, `24`, `290`, `292`, `32`, `425`, `47`, `62`, `63`, `64`, `66`, `75`, `77`, `79`, `87`, `89`, `91`, `93`, `96`).
+Test set: 306 images from 26 cameras (`101`, `105`, `114`, `116`, `120`, `125`, `149`, `152`, `24`, `290`, `292`, `32`, `425`, `47`, `62`, `63`, `64`, `66`, `75`, `77`, `79`, `87`, `89`, `91`, `93`, `96`).
 
-**Accuracy: 81.6%**, which meets the checkpoint target of 80% (a target, to be confirmed by the team after this baseline).
+**Accuracy: 89.9%**, which meets the checkpoint target of 80% (a target, to be confirmed by the team after this baseline).
 
 | Class | Test images | Recall | Precision |
 | --- | --- | --- | --- |
-| `dry` | 30 | 83.3% | 73.5% |
-| `wet` | 4 | 25.0% | 25.0% |
+| `dry` | 224 | 95.5% | 91.8% |
+| `wet` | 16 | 56.2% | 60.0% |
 | `snow_partial` | 0 | n/a (no test images) | n/a (never predicted) |
 | `snow_covered` | 0 | n/a (no test images) | n/a (never predicted) |
 | `ice` | 0 | n/a (no test images) | n/a (never predicted) |
-| `unusable` | 42 | 85.7% | 94.7% |
+| `unusable` | 66 | 78.8% | 89.7% |
 
 Confusion matrix (rows: true class, columns: predicted class):
 
 | True \ Predicted | `dry` | `wet` | `snow_partial` | `snow_covered` | `ice` | `unusable` |
 | --- | --- | --- | --- | --- | --- | --- |
-| `dry` | 25 | 3 | 0 | 0 | 0 | 2 |
-| `wet` | 3 | 1 | 0 | 0 | 0 | 0 |
+| `dry` | 214 | 4 | 0 | 0 | 0 | 6 |
+| `wet` | 7 | 9 | 0 | 0 | 0 | 0 |
 | `snow_partial` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `snow_covered` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `ice` | 0 | 0 | 0 | 0 | 0 | 0 |
-| `unusable` | 6 | 0 | 0 | 0 | 0 | 36 |
+| `unusable` | 12 | 2 | 0 | 0 | 0 | 52 |
 
 No test images for `snow_partial`, `snow_covered`, `ice`, so those classes are untested on unseen cameras.
 
 ## Speed
 
-Single-image CPU inference, one thread: median 3.05 ms, p95 3.27 ms over 50 runs on Darwin arm64 arm (target under 200 ms). Measured where training ran, not on Render.
+Single-image CPU inference, one thread: median 2.98 ms, p95 3.09 ms over 50 runs on Darwin arm64 arm (target under 200 ms). Measured where training ran, not on Render.
 
 ## Known limits
 
@@ -63,23 +63,21 @@ Single-image CPU inference, one thread: median 3.05 ms, p95 3.27 ms over 50 runs
 - **Coverage.** Trained and tested only on Alberta 511 cameras. Accuracy on other cameras, angles or regions is unknown.
 - **Small test set.** Results come from a few cameras over a short period; one camera's quirks can move the numbers by several points.
 
-## Run notes (added by hand; every number below was measured on November 8, 2026)
+## Run notes (written by hand, November 8, 2026)
 
-These notes cover what the generated sections above cannot show. The numbers come from
-the run files (`metrics.json`, `split.json`, `evaluation.json`) and from scoring scripts run on the same test frames.
+- **Data.** 1,372 frames from 129 provincial 511 Alberta cameras across Alberta (City of Calgary cameras excluded), all taken on November 8: 343 at night (05:56 to 06:32 UTC) and 3 daytime rounds of 343 (14:40 to 16:24 UTC, every enabled view revisited each round). Frames are kept privately on the lead's laptop under decision D-3 and deleted after the event. Labels: `Claude (AI-assisted)`; 103 frames blind-labelled a second time (93.2% agreement, kappa 0.83, AI-to-AI agreement, not human). Class counts: dry 1,045, wet 51, snow_partial 2, unusable 274, no snow_covered, no ice.
+- **Freeze.** Training used the labels as they stood at 10:12 MST (1,228 frames, round 3 part-way); the 144 frames labelled after that are used for testing only. The 2 `snow_partial` frames were left out of this run: the trainer weights classes by inverse frequency, and a first attempt with one such frame in training gave that image about 60% of the loss and a 4% validation score, so this run (`v2-ours`) trains on dry, wet and unusable only.
+- **Two models, measured the same way** on the 308 test frames from the 26 unseen cameras (the table above leaves out 2 frames the two labelling passes disagreed on). `v2-rscd` (SHA-256 `f837bb0bb2e32afb5ae2fbe8e7d014dddc00187213ef6a501646239af317e72e`) adds a seeded RSCD sample to training: 400 each of `fresh_snow`, `melted_snow` and `ice`, plus 70 from each of 6 dry and wet asphalt folders. Reference labels are the AI-assisted labels, so these are agreement with Claude-made labels. "With Claude" is the live agree rule with Claude Haiku 5.5 (`vision/ai_check.py`).
 
-- **What this model is.** It is the first model of the day-and-night plan (issue #132), trained on **night frames only** that were collected on November 8 from 05:56 to 06:32 UTC. It has never seen daylight. Labels are **AI-assisted** (Claude), not human: the lead decided that Claude does all collection and labelling for this run. Agreement above is **AI-to-AI**, and test scores are agreement with AI-made labels, not human ground truth.
-- **Cameras.** The 343 frames come from 129 camera locations across Alberta. City of Calgary cameras were excluded: they carry the City's watermark, and the team's rules require a City's written permission. The camera list's `Source` field does not show ownership, so the Calgary area was excluded by location as well, and every frame was reviewed for City watermarks. No frame had to be deleted for privacy.
-- **The result is not robust.** Trained with both label files, three disputed frames drop out. That changes which cameras the seeded split puts in validation, and on that split the same script scored **60.5%** on the same 76 test frames, against 81.6% here. With about 230 training frames, the score depends heavily on which cameras end up in training and validation. Read 81.6% as one draw, not a stable figure.
-- **Wet roads are the weak point.** Recall for wet is 1 of 4. For the class where a mistake matters most (a wet road shown as dry), this model alone is not good enough.
-- **Claude must agree before a reading is posted** (lead decision, `vision/ai_check.py`). The worker posts a reading only when this model and Claude give the same label; otherwise the reading is `unknown`. On the same test frames (77, before the disputed frame was dropped), at a minimum score of 0.5:
+  | 308 test frames | `v2-ours` alone | `v2-ours` + Claude | `v2-rscd` alone | `v2-rscd` + Claude |
+  | --- | --- | --- | --- | --- |
+  | Readings posted (not `unknown`) | 242 | 211 | 234 | 213 |
+  | Correct | 218 (90.1%) | 207 (98.1%) | 215 (91.9%) | 205 (96.2%) |
+  | False `dry` | 19 | 4 | 17 | 7 |
+  | `wet` found by the model (of 16) | 7 | | 2 | |
+  | Snow or ice predicted (false alarms) | 0 | | 0 | |
 
-| Setup | Readings posted | Match the labels | False `dry` | Measured API cost per frame checked |
-| --- | --- | --- | --- | --- |
-| This model alone | 30 | 21 | 8 | – |
-| + Claude Haiku 5.5 (live since 07:31 UTC) | 20 | 19 | 1 | $0.0002 |
-| + Claude Sonnet 5.5 (it made the labels, so this row is inflated) | 18 | 18 | 0 | $0.0032 |
-| + Claude Opus 5.5 | 20 | 19 | 1 | $0.0055 |
-
-- **Live.** The worker runs on the lead's laptop (Render's free plan has no background workers; docs/DEPLOY.md, section 4) and has posted readings for the 47 Edmonton camera views since 07:15 UTC on November 8.
-- **Next.** Daytime frames are collected after sunrise, and one model is trained on day and night together. This card is regenerated for it.
+  Daytime (231 frames) with Claude: `v2-ours` 188 of 192 posted correct, 4 false dry; `v2-rscd` 186 of 194, 7 false dry. Night (77 frames) with Claude: both 19 of 19. On 60 RSCD images per class held out of training, `v2-rscd` answered `ice` for 56 of 60 ice, `snow_partial` for 57 of 60 melted snow and `snow_covered` for 34 of 60 fresh snow (the rest `unknown`); `v2-ours` answered `unknown` for all 300.
+- **What runs live** (lead decision, November 8, 11:10 MST): both, through `vision/snow_assist.py`. `v2-ours` decides dry, wet and unusable; `v2-rscd` is consulted on every frame and its answer is used only when it is `snow_partial`, `snow_covered` or `ice`; Claude Haiku 5.5 must then agree with the final label. On the 308 test frames the combined model gives exactly `v2-ours`'s predictions, so the numbers above are its measured behaviour. The reading's `model_version` is `<v2-ours sha256>+snow:<first 16 of v2-rscd sha256>`. `v2-ours` ran alone from 10:27 MST; the combined model replaced it the same morning.
+- **Snow and ice are not measured on 511 cameras.** No Alberta camera showed snow or ice on November 8 (2 `snow_partial` frames in 1,372; the forecast had no snow before the demo). The RSCD held-out numbers are agreement with RSCD's own labels on dashcam close-ups, not accuracy on highway cameras. A snow or ice reading needs the snow model and Claude to agree, which keeps false alarms unlikely but leaves detection unproven.
+- **Cost.** The Claude check on the 240 test frames the model would have posted cost US$0.04 (about US$0.0002 per frame).
