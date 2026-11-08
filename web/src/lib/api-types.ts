@@ -84,6 +84,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ingest/camera": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest Camera
+         * @description Store the latest reading for one camera view (upsert by ``source_ref``).
+         */
+        post: operations["ingest_camera_api_ingest_camera_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cameras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cameras
+         * @description The latest unexpired reading for every camera view, as GeoJSON points.
+         */
+        get: operations["list_cameras_api_cameras_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -108,6 +148,137 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CameraCollection */
+        CameraCollection: {
+            /**
+             * Type
+             * @default FeatureCollection
+             * @constant
+             */
+            type: "FeatureCollection";
+            /** Generated At */
+            generated_at: string;
+            /** Features */
+            features: components["schemas"]["CameraFeature"][];
+        };
+        /** CameraFeature */
+        CameraFeature: {
+            /**
+             * Type
+             * @default Feature
+             * @constant
+             */
+            type: "Feature";
+            /** Id */
+            id: string;
+            geometry: components["schemas"]["CameraPoint"];
+            properties: components["schemas"]["CameraProperties"];
+        };
+        /** CameraPoint */
+        CameraPoint: {
+            /**
+             * Type
+             * @default Point
+             * @constant
+             */
+            type: "Point";
+            /** Coordinates */
+            coordinates: [
+                number,
+                number
+            ];
+        };
+        /** CameraProperties */
+        CameraProperties: {
+            /** Source */
+            source: string;
+            /** Source Ref */
+            source_ref: string;
+            /** Camera Id */
+            camera_id: number;
+            /** View Id */
+            view_id: number;
+            /**
+             * Label
+             * @enum {string}
+             */
+            label: "dry" | "wet" | "snow_partial" | "snow_covered" | "ice" | "unknown";
+            /** Score */
+            score: number | null;
+            /** Reason */
+            reason: string | null;
+            /** Observed At */
+            observed_at: string;
+            /** Expires At */
+            expires_at: string;
+            /** Age S */
+            age_s: number;
+            /** Model Version */
+            model_version: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "live" | "replay";
+            /** Attribution */
+            attribution: string;
+        };
+        /**
+         * CameraReadingIn
+         * @description One reading as the worker posts it (agreed payload, issue #47).
+         */
+        CameraReadingIn: {
+            /**
+             * Source
+             * @default camera_model
+             * @constant
+             */
+            source: "camera_model";
+            /**
+             * Source Ref
+             * @example 511:1234:1
+             */
+            source_ref: string;
+            /** Camera Id */
+            camera_id: number;
+            /** View Id */
+            view_id: number;
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
+            /**
+             * Label
+             * @enum {string}
+             */
+            label: "dry" | "wet" | "snow_partial" | "snow_covered" | "ice" | "unknown";
+            /** Score */
+            score?: number | null;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Model Version */
+            model_version: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "live" | "replay";
+            /**
+             * Attribution
+             * @default Road camera data: 511 Alberta, Government of Alberta
+             */
+            attribution: string;
+        };
         /**
          * Category
          * @description Where the barrier is. The route report groups items by category.
@@ -183,6 +354,18 @@ export interface components {
              * @enum {string}
              */
             mode: "live" | "replay";
+        };
+        /** IngestResult */
+        IngestResult: {
+            /** Stored */
+            stored: boolean;
+            /** Source Ref */
+            source_ref: string;
+            /** Label */
+            label: string;
+            /** Changed */
+            changed: boolean;
+            outcome: components["schemas"]["Outcome"];
         };
         /**
          * Kind
@@ -265,6 +448,64 @@ export interface components {
             /** Attribution */
             attribution: string;
         };
+        /**
+         * Outcome
+         * @enum {string}
+         */
+        Outcome: "new" | "changed" | "same" | "older";
+        /** ReportGroupOut */
+        ReportGroupOut: {
+            category: components["schemas"]["Category"];
+            /** Label */
+            label: string;
+            /** Items */
+            items: components["schemas"]["ReportItemOut"][];
+        };
+        /**
+         * ReportItemOut
+         * @description One obstruction in a route report.
+         */
+        ReportItemOut: {
+            /** Id */
+            id: string;
+            status: components["schemas"]["Status"];
+            /**
+             * Distance M
+             * @description Metres from the route line; null when an avoided item is more than 50 m away, or the distance is unknown.
+             */
+            distance_m: number | null;
+            /** @description Null when only the routing hazard is known. */
+            kind: components["schemas"]["Kind"] | null;
+            effect: components["schemas"]["Effect"];
+            confidence: components["schemas"]["Confidence"];
+            /** Title */
+            title: string;
+            /** Detail */
+            detail: string | null;
+            /** Source */
+            source: string;
+            /** Attribution */
+            attribution: string | null;
+            /**
+             * Observed At
+             * @description When OpenPath last confirmed this item with its source (show "checked 2 min ago", not "updated"). Null when only the routing hazard is known.
+             */
+            observed_at: string | null;
+            /** Starts At */
+            starts_at: string | null;
+            /** Ends At */
+            ends_at: string | null;
+            /**
+             * Url
+             * @description Link to the official source.
+             */
+            url: string | null;
+            /**
+             * Note
+             * @description Why the item cannot change routes, when that is not obvious.
+             */
+            note: string | null;
+        };
         /** RouteOut */
         RouteOut: {
             /** Rank */
@@ -287,10 +528,25 @@ export interface components {
             warnings: string[];
             /** Reason */
             reason: string | null;
+            report: components["schemas"]["RouteReportOut"];
             /** Google Maps Url */
-            google_maps_url?: string | null;
+            google_maps_url: string;
             /** Apple Maps Url */
-            apple_maps_url?: string | null;
+            apple_maps_url: string;
+        };
+        /**
+         * RouteReportOut
+         * @description Every known obstruction on the route, within 50 m of it, or avoided by it.
+         */
+        RouteReportOut: {
+            /** On Route */
+            on_route: number;
+            /** Nearby */
+            nearby: number;
+            /** Avoided */
+            avoided: number;
+            /** Groups */
+            groups: components["schemas"]["ReportGroupOut"][];
         };
         /** RouteResponse */
         RouteResponse: {
@@ -309,6 +565,8 @@ export interface components {
             routes: components["schemas"]["RouteOut"][];
             /** Warnings */
             warnings: string[];
+            /** Apple Maps Note */
+            apple_maps_note: string;
         };
         /**
          * SourceStatus
@@ -350,6 +608,12 @@ export interface components {
             /** Age S */
             age_s?: number | null;
         };
+        /**
+         * Status
+         * @description How an item relates to one route.
+         * @enum {string}
+         */
+        Status: "on_route" | "nearby" | "avoided";
         /** StatusResponse */
         StatusResponse: {
             /** Mode */
@@ -526,6 +790,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WeatherResponse"];
+                };
+            };
+        };
+    };
+    ingest_camera_api_ingest_camera_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-worker-key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CameraReadingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cameras_api_cameras_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraCollection"];
                 };
             };
         };
