@@ -346,5 +346,18 @@ def test_recorded_camera_readings_load_as_replay(
     assert later == []
 
 
+def test_an_unreadable_camera_recording_never_stops_the_app(
+    monkeypatch, tmp_path: Path
+) -> None:
+    snapshot = tmp_path / "snapshot"
+    (snapshot / "cameras").mkdir(parents=True)
+    (snapshot / "cameras" / "readings.json").write_text("{not json")
+    monkeypatch.setenv("DATA_MODE", "replay")
+    monkeypatch.setenv("REPLAY_SNAPSHOT", str(snapshot))
+    with TestClient(create_app()) as client:
+        assert client.get("/health").json()["mode"] == "replay"
+        assert client.get("/api/cameras").json()["features"] == []
+
+
 def iso(value: datetime) -> str:
     return value.astimezone(UTC).isoformat().replace("+00:00", "Z")

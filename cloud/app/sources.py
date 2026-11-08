@@ -248,7 +248,12 @@ def load_replay_cameras(snapshot: Path, camera_store: Any, now: datetime) -> int
     path = Path(snapshot) / CAMERAS_FILE
     if not path.is_file():
         return 0
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        # A bad recording must never stop the demo: serve the rest without cameras.
+        log.warning("REPLAY cameras unreadable, none loaded: %s (%s)", path, error)
+        return 0
     features = data.get("features", []) if isinstance(data, dict) else []
     stored = skipped = 0
     for feature in features:
