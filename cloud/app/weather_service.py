@@ -137,5 +137,9 @@ router = APIRouter()
 @router.get("/api/weather", response_model=WeatherResponse)
 async def get_weather(request: Request) -> WeatherResponse:
     """Always return 200: cached weather, or an explicit unknown first reading."""
-    service: WeatherService = request.app.state.weather_service
+    service: WeatherService | None = getattr(request.app.state, "weather_service", None)
+    if (
+        service is None
+    ):  # scheduler off (tests, or a database-only instance): nothing fetched yet
+        return WeatherResponse(mode=getattr(request.app.state, "mode", "live"))
     return service.last_good or WeatherResponse(mode=service.mode)
