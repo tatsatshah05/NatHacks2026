@@ -1,0 +1,10 @@
+{
+ "dataset": "k4tx-5k8p",
+ "title": "Traffic Disruptions",
+ "portal": "https://data.edmonton.ca/d/k4tx-5k8p",
+ "query": "$where=status='Current'&$order=date_issued DESC&$limit=30",
+ "recorded_at": "2026-11-08T01:15:00Z",
+ "rows": 30,
+ "sha256": "fcb17b66f48d649a14b5ac62c92e60a25d4e1af70315b153d752216f7b777154",
+ "note": "Recorded sample of current disruptions for offline tests and replay. Public City of Edmonton open data; no personal information."
+}
