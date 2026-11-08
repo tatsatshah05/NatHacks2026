@@ -29,9 +29,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from cloud.app import ingest_api, obstructions_api, sources, status, weather_service
+from cloud.app import (
+    ingest_api,
+    obstructions_api,
+    routing_api,
+    sources,
+    status,
+    weather_service,
+)
 from cloud.app.camera_readings import CameraReadingStore
 from cloud.app.db import make_engine
+from cloud.app.network import DEFAULT_NETWORK_PATH, WalkNetwork
+from cloud.app.profiles import load_routing_config
+from cloud.app.routing import Router
 from cloud.app.scheduler import Scheduler, utcnow
 from cloud.app.store import ObstructionStore
 
@@ -120,6 +130,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     run_scheduler = scheduler_enabled(os.environ.get("SCHEDULER"))
     app.state.scheduler = None
     app.state.weather_service = None
+    # Routing (OP-207): the prebuilt walking network loads in well under a second.
+    # Without the file (a bare checkout) /api/route answers 503 instead of crashing startup.
+    app.state.router = None
+    app.state.hazard_provider = None  # OP-206 sets the matcher here
+    if DEFAULT_NETWORK_PATH.exists():
+        app.state.router = Router(WalkNetwork.load(), load_routing_config())
     # One HTTP client per flavour, shared by every adapter and closed at shutdown.
     async with httpx.AsyncClient(timeout=10) as async_client:
         with httpx.Client(timeout=10) as sync_client:
@@ -169,6 +185,7 @@ def create_app() -> FastAPI:
 
     app.include_router(obstructions_api.router)
     app.include_router(status.router)
+    app.include_router(routing_api.router)
     app.include_router(weather_service.router)
     app.include_router(ingest_api.router)
 
