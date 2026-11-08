@@ -47,3 +47,14 @@ In **Settings → Secrets and variables → Actions**:
 | Variable | `WEB_URL` | The Vercel production URL |
 
 Until these are set, the deploy job skips each step with a notice instead of failing.
+
+## Current deployment (November 8, 2026)
+
+| Part | Where |
+| --- | --- |
+| API | `https://openpath-api-w6ql.onrender.com` (Render web service `openpath-api`, free plan, Blueprint managed from `main`) |
+| Web app | `https://openpath-lyart.vercel.app` (Vercel project `openpath`, root directory `web`, production branch `main`) |
+| GitHub `production` environment | secret `RENDER_API_DEPLOY_HOOK`; variables `API_URL`, `WEB_URL` |
+| Vercel environment variables | `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL` (production and preview) |
+
+`CORS_ORIGINS` on the API is `https://openpath-lyart.vercel.app,https://openpath-*-tatsats-projects-997c1533.vercel.app`. The free Render instance sleeps after inactivity; decision D-2 covers always-on instances for judging.

@@ -67,7 +67,7 @@ Vercel's Git integration builds a preview for every pull request and branch, and
 ## Moving to the Next Phase (Scrum Master)
 
 1. Run the checkpoint demo on staging. Everything for the phase must be merged into `phase_N`.
-2. Open the release pull request: `scripts/phase.sh finish N`. CI runs, Ipsa or Kashish approves, and you merge it. `main` deploys to production.
+2. Open the release pull request: `scripts/phase.sh finish N`. It creates `release/phase-N` (the phase branch with `main` merged in, because squash-only merging means the phase branch never contains `main`), and opens it against `main`. CI runs, Ipsa or Kashish approves, and you merge it. `main` deploys to production.
 3. Start the next phase: `scripts/phase.sh start N+1`. This creates `phase_N+1` from `main`, protects it with the same rules, and makes it the default branch. It also lists any open pull requests for the new phase that still target the wrong branch.
 4. Tell the team to branch from `phase_N+1`.
 
