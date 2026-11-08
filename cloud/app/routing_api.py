@@ -11,6 +11,8 @@ or avoided by it, grouped by category.
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
@@ -25,7 +27,9 @@ from .maps_links import (
 )
 from .matching import HazardProvider
 from .report import ItemIndex, RouteReportOut, build_report
-from .routing import HazardMap, Router, RoutingError
+from .routing import HazardMap, Route, Router, RoutingError
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["routing"])
 
@@ -110,10 +114,27 @@ def get_report_items(
     """
     provider = getattr(request.app.state, "hazard_provider", None)
     if isinstance(provider, HazardProvider):
+        # ``latest`` is read separately from ``get_hazards``, so a background rebuild
+        # finishing in between can pair a newer index with older hazards. That is
+        # harmless: a hazard missing from the index is listed from the hazard itself
+        # (``ReportRecord.of_hazard``), and a newer item is at worst listed as nearby.
         latest = provider.latest
         if latest is not None and latest.items is not None:
             return [latest.items]
     return []
+
+
+def route_report(route: Route, items: Sequence[ItemIndex]) -> RouteReportOut:
+    """The route's report; if building it fails, the hazards routing met, never a 500.
+
+    One odd item must never break routing (AGENTS.md, priority 1), so a failure is
+    logged and the report falls back to what the route itself carries.
+    """
+    try:
+        return RouteReportOut.of(build_report(route, items))
+    except Exception:
+        log.exception("REPORT failed; listing only the hazards this route met")
+        return RouteReportOut.of(build_report(route, ()))
 
 
 @router.get("/route", response_model=RouteResponse)
@@ -173,7 +194,7 @@ def get_route(
                 ],
                 warnings=r.warnings,
                 reason=r.reason,
-                report=RouteReportOut.of(build_report(r, items)),
+                report=route_report(r, items),
                 google_maps_url=google_maps_url(
                     (from_lat, from_lng),
                     (to_lat, to_lng),

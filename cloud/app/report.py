@@ -19,7 +19,8 @@ Groups
     blocked before snow, ice risk and caution; then nearest first.
 
     Each item keeps what a person needs to judge it: source and attribution, title
-    and detail, confidence, last update (``observed_at``), the source's own dates
+    and detail, confidence, when OpenPath last confirmed it with its source
+    (``observed_at``; not when the source last changed it), the source's own dates
     and a link to the official source.
 
 Records from more than one place
@@ -228,7 +229,7 @@ class ItemIndex:
                     sizes.append(len(part))
                     part_owner.append(n)
                 rings_of_item.append(ring_ids)
-            if item.geometry.type in POLYGON_TYPES:
+            if item.geometry.type in POLYGON_TYPES and rings_of_item:
                 polygon_parts.append((n, rings_of_item))
 
         # One projection for every position, then segments inside each part: point i
@@ -302,6 +303,10 @@ def _parts(item: Obstruction) -> list[list[list[tuple[float, float]]]]:
 
     A point, a line or each line of a MultiLineString is a "polygon" of one part, so
     one loop handles every type; real polygons have one part per ring.
+
+    Empty parts are dropped. The schema rejects an empty geometry but accepts an
+    empty part inside a valid one (``MultiLineString [[a, b], []]``, an empty hole
+    ring), and ``ItemIndex.build`` needs every part to own at least one position.
     """
 
     def part(positions: Sequence[Any]) -> list[tuple[float, float]]:
@@ -310,15 +315,17 @@ def _parts(item: Obstruction) -> list[list[list[tuple[float, float]]]]:
     coords = item.geometry.coordinates
     match item.geometry.type:
         case "Point":
-            return [[part([coords])]]
+            polygons = [[part([coords])]]
         case "LineString":
-            return [[part(coords)]]
+            polygons = [[part(coords)]]
         case "MultiLineString":
-            return [[part(line)] for line in coords]
+            polygons = [[part(line)] for line in coords]
         case "Polygon":
-            return [[_closed(part(ring)) for ring in coords]]
+            polygons = [[_closed(part(ring)) for ring in coords]]
         case _:  # MultiPolygon
-            return [[_closed(part(ring)) for ring in polygon] for polygon in coords]
+            polygons = [[_closed(part(ring)) for ring in polygon] for polygon in coords]
+    kept = [[ring for ring in polygon if ring] for polygon in polygons]
+    return [polygon for polygon in kept if polygon]
 
 
 def _closed(ring: list[tuple[float, float]]) -> list[tuple[float, float]]:
@@ -519,7 +526,11 @@ class ReportItemOut(BaseModel):
     detail: str | None
     source: str
     attribution: str | None
-    observed_at: datetime | None = Field(description="Last update from the source.")
+    observed_at: datetime | None = Field(
+        description="When OpenPath last confirmed this item with its source (show "
+        '"checked 2 min ago", not "updated"). Null when only the routing hazard '
+        "is known."
+    )
     starts_at: datetime | None
     ends_at: datetime | None
     url: str | None = Field(description="Link to the official source.")

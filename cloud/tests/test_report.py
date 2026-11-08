@@ -496,6 +496,70 @@ def test_inside_respects_holes() -> None:
     assert inside(points, [outer, hole]).tolist() == [True, False, False]
 
 
+# ------------------------------------------------- odd items (review fixes)
+# The schema rejects an empty geometry but accepts an empty part inside a valid one.
+
+
+def road(
+    item: Callable[..., Obstruction], ref: str, geometry: dict[str, Any]
+) -> Obstruction:
+    return item(ref, geometry, category="road", kind="road_closed", effect="caution")
+
+
+def test_an_empty_last_part_does_not_break_the_index(router, index, item, now) -> None:
+    near = road(item, "near", point(100, -20))
+    lines = road(
+        item,
+        "lines",
+        {
+            "type": "MultiLineString",
+            "coordinates": [line((110, -10), (190, -10))["coordinates"], []],
+        },
+    )
+    holed = road(  # the very last part of the last item is an empty hole ring
+        item,
+        "holed",
+        {"type": "Polygon", "coordinates": [square(80, -20, 120, 20), []]},
+    )
+    matched = match_items([near, lines, holed], index, now)
+    assert matched.items is not None  # used to raise IndexError
+    best = trip(router, "A", "C", matched.hazards)[0]
+    assert listed(build_report(best, [matched.items])) == {
+        "city_construction:near": ("on_route", 20),  # snapped to B
+        "city_construction:lines": ("on_route", 10),  # along B-C
+        "city_construction:holed": ("on_route", 0),  # the route passes through it
+    }
+
+
+def test_an_empty_part_does_not_borrow_the_next_items_position(
+    router, index, item, now
+) -> None:
+    far = road(  # 4 km away; its empty part used to land on the next item's position
+        item,
+        "far",
+        {
+            "type": "MultiLineString",
+            "coordinates": [line((4000, 4000), (4100, 4000))["coordinates"], []],
+        },
+    )
+    near = road(item, "near", point(100, -20))
+    _, report = report_for(router, index, now, far, near)
+    assert listed(report) == {"city_construction:near": ("on_route", 20)}
+
+
+def test_a_failing_index_build_keeps_the_hazards(
+    monkeypatch, network, index, item, now, caplog
+) -> None:
+    def broken(*args: Any, **kwargs: Any) -> ItemIndex:
+        raise RuntimeError("synthetic index failure")
+
+    monkeypatch.setattr(ItemIndex, "build", broken)
+    matched = match_items([item("1", point(20, -10))], index, now)
+    assert matched.items is None
+    assert edge_of(network, "AB") in matched.hazards  # routing still avoids it
+    assert "REPORT index failed" in caplog.text
+
+
 # --------------------------------------------------------------------- API
 
 
@@ -596,6 +660,39 @@ def test_route_endpoint_without_a_matcher_reports_routing_hazards(app, network) 
     report = get_route(app)["routes"][0]["report"]
     assert report["avoided"] == 1
     assert report["groups"][1]["items"][0]["title"] == "Elevator out"
+
+
+def test_a_failing_report_falls_back_to_the_routes_hazards(
+    monkeypatch, app, network, store: ObstructionStore, item, caplog
+) -> None:
+    store.upsert([live_item(item, "1", point(20, -10))], datetime.now(UTC))
+    app.state.hazard_provider = HazardProvider(store, network)
+
+    def broken(self: ItemIndex, *args: Any, **kwargs: Any) -> dict[str, float]:
+        raise RuntimeError("synthetic report failure")
+
+    monkeypatch.setattr(ItemIndex, "near", broken)
+    body = get_route(app)  # 200, not 500
+    report = body["routes"][0]["report"]
+    assert report["avoided"] == 1
+    (closed,) = report["groups"][1]["items"]
+    assert (closed["id"], closed["status"]) == ("city_construction:1", "avoided")
+    assert closed["observed_at"] is None  # only what the routing hazard carries
+    assert "REPORT failed" in caplog.text
+
+
+def test_a_failing_index_build_still_routes(
+    monkeypatch, app, network, store: ObstructionStore, item
+) -> None:
+    def broken(*args: Any, **kwargs: Any) -> ItemIndex:
+        raise RuntimeError("synthetic index failure")
+
+    monkeypatch.setattr(ItemIndex, "build", broken)
+    store.upsert([live_item(item, "1", point(20, -10))], datetime.now(UTC))
+    app.state.hazard_provider = HazardProvider(store, network)
+    best = get_route(app)["routes"][0]
+    assert best["distance_m"] == 400  # still around the closure
+    assert best["report"]["avoided"] == 1
 
 
 # ------------------------------------------------------------- the real city

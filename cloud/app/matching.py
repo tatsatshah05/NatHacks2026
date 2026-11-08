@@ -357,7 +357,10 @@ def match_items(
         for edge in match.edges:
             result.hazards.setdefault(edge, []).append(hazard)
     methods = {item_id: match.method for item_id, match in result.matches.items()}
-    result.items = ItemIndex.build(items, index.to_xy, methods)
+    try:
+        result.items = ItemIndex.build(items, index.to_xy, methods)
+    except Exception:  # the report must never stop hazards reaching routing
+        log.exception("REPORT index failed; routes list only the hazards they meet")
     return result
 
 
