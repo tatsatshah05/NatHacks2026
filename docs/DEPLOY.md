@@ -50,7 +50,7 @@ Until these are set, the deploy job skips each step with a notice instead of fai
 
 ## 4. Camera worker on demo day
 
-Render's free plan has no background workers, so the camera worker (OP-204) runs on one team laptop during the demo and posts to the live API (decided November 8; Estella runs it). Run it on one laptop only: the 511 key allows 10 calls per 60 seconds for the whole team, so stop any frame collection while it runs.
+Render's free plan has no background workers, so the camera worker (OP-204) runs on one team laptop during the demo and posts to the live API (decided November 8; Estella runs it on demo day, and until then it runs on Tatsat's laptop). Run it on one laptop only: the 511 key allows 10 calls per 60 seconds for the whole team, so stop any frame collection while it runs.
 
 1. **Install:** `make setup` in the repository.
 2. **Set the environment** in the terminal (values by direct message from Tatsat; never commit them):
@@ -59,16 +59,20 @@ Render's free plan has no background workers, so the camera worker (OP-204) runs
    export ALBERTA_511_KEY="..."   # the team's 511 Alberta key
    export WORKER_KEY="..."        # the same value as WORKER_KEY on the openpath-api service
    export CLOUD_URL="https://openpath-api-w6ql.onrender.com"
-   export MODEL_URL="..."         # the model release asset from OP-202
+   export ANTHROPIC_API_KEY="..." # the Claude agree check; this laptop only, never on Render
+   export MODEL_URL="..."         # the model release asset, once it is published (see step 3)
    ```
 
-3. **Get the model details** from the OP-202/OP-203 release: `labels.json`, the model's SHA-256 and the validated minimum score in `vision/MODEL_CARD.md`.
+3. **Get the model details:** `labels.json`, the model's SHA-256 and the validated minimum score in `vision/MODEL_CARD.md`. The weights are not published as a release yet, so until they are, get `model.onnx` from Tatsat and pass `--model-file` instead of setting `MODEL_URL`; the SHA-256 is checked either way.
 4. **Start it** and keep the laptop awake and on power (`caffeinate -i` on macOS):
 
    ```bash
    caffeinate -i python -m vision.worker --live --publish \
-     --model-labels /path/to/labels.json --model-sha256 <sha256> --min-score <validated score>
+     --model-file /path/to/model.onnx --model-labels /path/to/labels.json \
+     --model-sha256 <sha256> --min-score <validated score> --ai-check claude-haiku-5-5
    ```
+
+   `--ai-check` posts a reading only when the model and Claude agree; anything else posts `unknown` (lead decision, November 8). It stops at startup without `ANTHROPIC_API_KEY`. If the Claude API fails 3 times in a row, the check pauses for 5 minutes and those views post `unknown`, so a pass is never held up. Leave out `--model-file` once `MODEL_URL` is set.
 
 5. **Check** that `https://openpath-api-w6ql.onrender.com/api/cameras` lists readings with `age_s` under 600 within about 10 minutes.
 
