@@ -71,6 +71,8 @@ One section per source. Each adapter's owner keeps their section current: what t
 
 **Licence and attribution.** CC BY 4.0 ([IEEE DataPort](https://ieee-dataport.org/documents/rscd-road-surface-classification-dataset-detailed-annotations-driving-assistance), [Mendeley Data](https://data.mendeley.com/datasets/w86hvkrzc5)). Credit: Tong Zhao, "RSCD: Road Surface Classification Dataset with Detailed Annotations for Driving Assistance", IEEE DataPort, 2022, doi:10.21227/446p-xr65, in `vision/MODEL_CARD.md` and on `/sources`.
 
+**City-owned cameras in the 511 feed (November 8, 2026).** Some 511 Alberta cameras belong to cities and carry a City's watermark (for example the City of Calgary). The team's rules require a City's written permission for City cameras, so their frames are not kept for training. The camera list's `Source` field does not show ownership (City of Calgary cameras also appear as `Alberta511`), so the Calgary area is excluded by location as well, and frames are reviewed for City watermarks before labelling.
+
 **Decision D-3 (decided by Tatsat on November 8, 2026; [issue #132](https://github.com/tatsatshah05/NatHacks2026/issues/132)).** No RSCD for the November 8 models: they train only on real 511 camera frames. Any class with no real 511 examples (likely `ice`) is reported as not covered in `vision/MODEL_CARD.md`, never filled in from another dataset. Keeping 511 frames follows the camera images decision above. Never keep an image in which a person can be identified, and never commit images.
 
 ## Environment and Climate Change Canada
