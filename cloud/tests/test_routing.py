@@ -296,7 +296,9 @@ def test_route_endpoint(client) -> None:
     best = body["routes"][0]
     assert best["rank"] == 1 and best["geometry"]["type"] == "LineString"
     assert best["distance_m"] == 400 and best["eta_min"] > 0
-    assert best["steps"] and best["google_maps_url"] is None  # OP-209 fills the links
+    assert best["steps"] and best["google_maps_url"].startswith(
+        "https://www.google.com/maps/dir/"
+    )
 
 
 def test_route_endpoint_uses_the_hazard_provider(client, grid) -> None:
