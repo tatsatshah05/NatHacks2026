@@ -35,7 +35,7 @@ import sys
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 log = logging.getLogger("vision.label")
 
@@ -221,13 +221,28 @@ class LabelSession:
         self._rows: dict[str, LabelRow] = read_labels(out_csv)
         all_images = list_images(images_dir)
         if selected_images is not None:
+            safe_selection = set()
+            root = images_dir.resolve()
+            for key in selected_images:
+                if not isinstance(key, str) or not key.strip():
+                    raise ValueError("Selection contains an invalid image path")
+                path = PurePosixPath(key.replace("\\", "/"))
+                if (
+                    path.is_absolute()
+                    or PureWindowsPath(key).drive
+                    or ".." in path.parts
+                    or not (root / str(path)).resolve().is_relative_to(root)
+                ):
+                    raise ValueError(
+                        "Selection contains a path outside the image folder"
+                    )
+                safe_selection.add(str(path))
             available = {self._key(path) for path in all_images}
-            if selected_images - available:
-                raise ValueError(
-                    "Selection contains missing images or paths outside the image folder"
-                )
+            missing = safe_selection - available
+            if missing:
+                log.info("SKIP %d selected images no longer present", len(missing))
             all_images = [
-                path for path in all_images if self._key(path) in selected_images
+                path for path in all_images if self._key(path) in safe_selection
             ]
         self._queue: list[Path] = [
             p for p in all_images if self._key(p) not in self._rows

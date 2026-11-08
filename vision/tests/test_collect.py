@@ -192,3 +192,31 @@ def test_plan_reads_cache_without_key_or_network(tmp_path, monkeypatch, capsys):
     with pytest.raises(SystemExit) as error:
         main(["--cache", str(cache)])
     assert error.value.code == 2
+
+
+@pytest.mark.parametrize(
+    "content", ["[]", '{"cameras": null}', '{"cameras": [null]}', '{"cameras": {}}']
+)
+def test_cli_handles_malformed_cache_without_traceback(tmp_path, content, capsys):
+    cache = tmp_path / "bad.json"
+    cache.write_text(content)
+    with pytest.raises(SystemExit) as error:
+        main(["--plan", "--cache", str(cache)])
+    assert error.value.code == 2
+    assert "Cannot read cached camera metadata" in capsys.readouterr().err
+
+
+def test_live_collection_requires_the_actual_reviewer(monkeypatch, capsys):
+    monkeypatch.setenv("ALBERTA_511_KEY", "placeholder")
+    with pytest.raises(SystemExit) as error:
+        main([])
+    assert error.value.code == 2
+    assert "--reviewer is required" in capsys.readouterr().err
+
+
+def test_missing_key_with_explicit_reviewer_is_named(monkeypatch, capsys):
+    monkeypatch.delenv("ALBERTA_511_KEY", raising=False)
+    with pytest.raises(SystemExit) as error:
+        main(["--reviewer", "Ipsa"])
+    assert error.value.code == 2
+    assert "ALBERTA_511_KEY" in capsys.readouterr().err

@@ -201,8 +201,45 @@ def test_selection_only_shows_blind_sample_and_resumes(tmp_path):
     session.save()
     assert LabelSession(images, second, "Ipsa", selected_images=selected).total == 0
     assert LabelSession(images, second, "Ipsa", selected_images=set()).total == 0
-    with pytest.raises(ValueError, match="missing images"):
+    with pytest.raises(ValueError, match="outside"):
         LabelSession(images, second, "Ipsa", selected_images={"../outside.png"})
+
+
+def test_selection_resumes_after_privacy_deletion_but_rejects_symlink_escape(tmp_path):
+    images, _, rows, _ = dataset(tmp_path, 2)
+    selected = {row.image for row in rows}
+    (images / rows[0].image).unlink()
+    session = LabelSession(
+        images, tmp_path / "second.csv", "Ipsa", selected_images=selected
+    )
+    assert session.total == 1 and session.current.name == rows[1].image
+    (images / rows[1].image).unlink()
+    assert (
+        LabelSession(
+            images, tmp_path / "second.csv", "Ipsa", selected_images=selected
+        ).total
+        == 0
+    )
+    outside = tmp_path / "outside.png"
+    Image.new("RGB", (8, 8)).save(outside)
+    (images / rows[0].image).symlink_to(outside)
+    with pytest.raises(ValueError, match="outside"):
+        LabelSession(images, tmp_path / "second.csv", "Ipsa", selected_images=selected)
+
+
+def test_training_handoff_exports_frozen_test_cameras_and_per_split_classes(tmp_path):
+    images, labels, _, out = dataset(tmp_path)
+    report = prepare(labels, images, out)
+    assert (out / "test_cameras.txt").read_text().splitlines() == report[
+        "split_cameras"
+    ]["test"]
+    for split in ("train", "test"):
+        manifest = read_csv(out / f"{split}.csv")
+        counts = report["split_class_counts"][split]
+        assert set(counts) == set(LABELS)
+        assert counts == {
+            label: sum(row["label"] == label for row in manifest) for label in LABELS
+        }
 
 
 def test_cli_reports_bad_registry_cleanly(tmp_path, capsys):

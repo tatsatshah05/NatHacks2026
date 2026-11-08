@@ -25,6 +25,7 @@ from vision.cameras import (
     EDMONTON_BBOX_APPROX,
     KEY_ENV,
     Camera,
+    CameraSchemaError,
     CameraView,
     RateLimiter,
     in_bbox,
@@ -206,7 +207,10 @@ def main(argv: list[str] | None = None) -> int:
         default=6,
         help="One view per camera; default 6 for the first review batch.",
     )
-    parser.add_argument("--reviewer", default="Estella")
+    parser.add_argument(
+        "--reviewer",
+        help="Required for live collection; recorded on every retained frame.",
+    )
     parser.add_argument(
         "--scope",
         choices=("edmonton", "alberta"),
@@ -227,6 +231,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if not 1 <= args.limit <= 50:
         parser.error("--limit must be between 1 and 50")
+    if not args.plan and (args.reviewer is None or not args.reviewer.strip()):
+        parser.error("--reviewer is required for live collection")
     if not args.plan and not os.environ.get(KEY_ENV, "").strip():
         parser.error(
             f"Set {KEY_ENV} in this terminal first; never paste it into code or chat"
@@ -238,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
             args.scope,
             set(args.camera_ids) if args.camera_ids is not None else None,
         )
-    except (OSError, ValueError, KeyError):
+    except (OSError, ValueError, KeyError, TypeError, CameraSchemaError):
         parser.exit(
             2,
             "Cannot read cached camera metadata; run python -m vision.cameras first.\n",

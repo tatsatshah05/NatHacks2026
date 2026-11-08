@@ -200,6 +200,12 @@ def build_report(
         )
         for split in ("train", "test")
     }
+    split_class_counts = {}
+    for split in ("train", "test"):
+        counts = Counter(
+            row.label for row in rows.values() if cameras[row.camera_id] == split
+        )
+        split_class_counts[split] = {label: counts[label] for label in LABELS}
     duplicates = [images for images in hashes.values() if len(images) > 1]
     cross_split = [
         images
@@ -223,6 +229,7 @@ def build_report(
         "camera_count": sum(len(value) for value in split_cameras.values()),
         "class_counts": {label: classes[label] for label in LABELS},
         "split_cameras": split_cameras,
+        "split_class_counts": split_class_counts,
         "duplicate_image_groups": duplicates,
         "cross_split_duplicate_groups": cross_split,
         "double_label_target": math.ceil(len(rows) / 10),
@@ -299,6 +306,13 @@ def prepare(
         ],
     )
     write_json(out / "report.json", report)
+    # OP-202 must receive these frozen IDs explicitly; its default split differs.
+    temporary = out / "test_cameras.txt.tmp"
+    temporary.write_text(
+        "".join(f"{camera}\n" for camera in report["split_cameras"]["test"]),
+        encoding="utf-8",
+    )
+    os.replace(temporary, out / "test_cameras.txt")
     return report
 
 
