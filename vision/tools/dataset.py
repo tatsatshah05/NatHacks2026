@@ -295,7 +295,7 @@ def prepare(
                 if plan["camera_splits"][row.camera_id] == split
             ],
         )
-    # Deliberately omit primary labels and labeller names from the second-person queue.
+    # Deliberately omit primary labels and labeller names from the blind second-pass queue.
     blind_columns = ["image", "camera_id", "captured_at"]
     write_csv(
         out / "double_label.csv",

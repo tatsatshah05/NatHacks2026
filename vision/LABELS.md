@@ -15,7 +15,7 @@ python -m vision.tools.label --images vision/data/raw --out vision/data/labels.c
 - `--labeller`: your name, written into every row.
 - `vision/data/` is git-ignored. Never commit images or the CSV with images in it.
 - The window needs the GUI build of OpenCV. `vision/requirements.txt` installs the headless build for the Render worker, so on your laptop run `pip uninstall opencv-python-headless` and `pip install "opencv-python>=4.9,<5"` once. If the tool prints that OpenCV cannot open a window, this is why.
-- Use one CSV per labeller (`labels_<name>.csv`). The tool skips every image already in a CSV, so two people who want to label the same images for the agreement check (OP-201) each need their own file.
+- Use one CSV per labeller (`labels_<name>.csv`). The tool skips every image already in a CSV, so two labellers who label the same images for the agreement check (OP-201) each need their own file.
 
 ### Keys
 
@@ -110,4 +110,4 @@ The picture does not show the road surface well enough to label: a black or offl
 - Label in sessions of about 100 images, then take a short break. Tired labelling drifts toward `dry`.
 - If you find yourself giving one class to almost everything from one camera, look at a few frames again against the class descriptions.
 - When a rule in this guide is unclear or two labellers disagree on a kind of image, write the case down and raise it with the vision lead; the guide is updated and the disputed images are relabelled. Do not keep a private rule.
-- Ten percent of the images are labelled twice by different people to measure agreement (OP-201). The result goes in `vision/MODEL_CARD.md`.
+- Ten percent of the images are labelled twice, blind and under two different labeller names, to measure agreement (OP-201). For natHACKS 2026 both passes are AI-assisted (`Claude (AI-assisted)` first, `Claude second pass (blind)` second; issue #132), so the result is reported as AI-to-AI agreement, not human agreement. The result goes in `vision/MODEL_CARD.md`.

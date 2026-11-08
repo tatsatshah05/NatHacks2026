@@ -43,9 +43,13 @@ One section per source. Each adapter's owner keeps their section current: what t
 
 **Licence and attribution.** 511 Alberta information may be reproduced for non-commercial or educational purposes without charge or further permission; commercial reproduction needs written permission from the Government of Alberta, and information is provided as is ([About 511 Alberta](https://511.alberta.ca/about/about)). Shown as "Road camera data: 511 Alberta, Government of Alberta" on `/sources` and beside each camera reading.
 
-**Camera images (November 7 team clearance reported; provider reply unverified).** On November 7, 2026, Estella explicitly confirmed that Tatsat cleared retaining training frames and authorized AI-assisted visual screening, collection and labeling, subsequently extending collection to 1,500 total frames. **Source:** Estella's explicit confirmations in the project's Codex conversation that day. This records user-reported team clearance for the private OP-201 work; it is **not** a claim that a written reply from 511 Alberta has been received. The November 7 written request remains unverified in the material supplied here. Keep the actual clearance evidence with the private handoff and have the lead reconcile the provider reply when received.
+**Camera images (decided November 8, 2026; [issue #132](https://github.com/tatsatshah05/NatHacks2026/issues/132)).** Tatsat, the lead, decided that keeping 511 camera frames for training is allowed under the general alberta.ca non-commercial terms. No 511 page addresses training images, so this is the team's decision, not permission from 511 Alberta. It comes with these rules:
 
-Retained training frames, original/reviewed labels, derived image copies and archives must remain in team-only, access-restricted private storage, never public links or repositories. Skip identifiable people and readable plates. If 511 declines retention, delete all retained frames and image-containing copies/archives, stop collection, and use only alternative sources whose terms permit the intended use. Live app/worker frames continue to be processed in memory and discarded; training retention does not authorize re-hosting camera images in the app.
+- Frames stay private on Tatsat's laptop. They are never committed to git and never put anywhere public: no public links, release assets or public repositories. Any other copy, such as the OP-201 pilot files, stays team-only and access-restricted under the same rules.
+- Training frames are credited to the Government of Alberta / 511 Alberta, in `vision/MODEL_CARD.md` and on `/sources`.
+- Any frame with an identifiable person or a readable plate is deleted, not labelled.
+- Everything is deleted after the event, including `op201_handoff.zip`, `op201_blind_review.zip` and any other copies.
+- Live app and worker frames are still processed in memory and discarded. The decision does not allow re-hosting camera images in the app.
 
 **Update cadence and limits.** The camera list is meant to refresh daily; the scheduling arrives with the worker (OP-204). 511 Alberta allows 10 calls every 60 seconds; one shared `RateLimiter` enforces that for every request, including the image requests OP-204 will add.
 
@@ -65,7 +69,7 @@ Retained training frames, original/reviewed labels, derived image copies and arc
 
 **Licence and attribution.** CC BY 4.0 ([IEEE DataPort](https://ieee-dataport.org/documents/rscd-road-surface-classification-dataset-detailed-annotations-driving-assistance), [Mendeley Data](https://data.mendeley.com/datasets/w86hvkrzc5)). Credit: Tong Zhao, "RSCD: Road Surface Classification Dataset with Detailed Annotations for Driving Assistance", IEEE DataPort, 2022, doi:10.21227/446p-xr65, in `vision/MODEL_CARD.md` and on `/sources`.
 
-**Decision D-3 (proposed; the lead records the final decision in PLAN.md section 16).** Pre-train on RSCD with attribution. The current private OP-201 retention basis is the November 7 user-reported team clearance documented above; a provider reply is not independently verified here. If 511 says no, delete retained frames and image-containing copies, and train only on permitted RSCD/community material. Keep training data team-only and access-restricted, never public or committed. Never retain identifiable people. RSCD remains supplementary pre-training data and does not replace OP-201's real-camera benchmark.
+**Decision D-3 (decided by Tatsat on November 8, 2026; [issue #132](https://github.com/tatsatshah05/NatHacks2026/issues/132)).** No RSCD for the November 8 models: they train only on real 511 camera frames. Any class with no real 511 examples (likely `ice`) is reported as not covered in `vision/MODEL_CARD.md`, never filled in from another dataset. Keeping 511 frames follows the camera images decision above. Never keep an image in which a person can be identified, and never commit images.
 
 ## Environment and Climate Change Canada
 

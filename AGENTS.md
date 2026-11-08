@@ -202,7 +202,7 @@ OP-201 dataset audit: `python -m vision.tools.dataset --images vision/data/raw -
 
 OP-201 → OP-202: pass only `--labels vision/data/labels_primary.csv` and the frozen IDs via `--test-cameras $(cat vision/data/dataset/test_cameras.txt)` to `vision.train` (when OP-202 is available); its default split differs and does not read the registry. Do not glob `labels_*.csv` or train on blind second-label CSVs. The audit reports `split_class_counts` and exports `test_cameras.txt`.
 
-OP-201 collection after team source clearance: `python -m vision.tools.collect --limit 6 --reviewer Estella` previews each image in memory; only `k` retains a privacy-reviewed frame in ignored `vision/data/raw/`. `--plan` lists cached camera IDs offline. The UTC filename timestamp is retrieval time, not verified capture time.
+OP-201 collection (keeping frames follows the lead's November 8 decision in #132): `python -m vision.tools.collect --limit 6 --reviewer Estella` previews each image in memory; only `k` retains a privacy-reviewed frame in ignored `vision/data/raw/`. `--views all` also fetches each camera's other enabled views, through the same rate limiter and host check, into `vision/data/raw/view_<view_id>/`. `--plan` lists cached camera IDs offline. The UTC filename timestamp is retrieval time, not verified capture time.
 
 Issue #44 permits additional provincial snow/ice training examples: `python -m vision.tools.collect --scope alberta --limit 20 --reviewer Estella` (optional `--camera-ids ...`); `--plan` remains offline. The actual reviewer is required for live collection; wait a minute between collector runs because each starts a new local rate limiter. This training-data selection does not change Edmonton routing coverage.
 
