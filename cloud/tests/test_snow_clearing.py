@@ -356,15 +356,12 @@ def test_multiline_error_message_is_kept_and_logged_as_one_line(caplog):
     assert "\n" not in outcomes[0]
 
 
-def test_shared_contract_when_available(completed):
-    schemas = pytest.importorskip(
-        "cloud.app.schemas", reason="OP-101 is not merged yet"
-    )
-    service = SnowClearingAdapter(
-        None, item_factory=schemas.Obstruction, verified_service_time=lambda row: NOW
-    )
-    assert isinstance(service, schemas.SourceAdapter)
+def test_default_factory_uses_shared_contract(completed):
+    from cloud.app.schemas import Obstruction, SourceAdapter
+
+    service = SnowClearingAdapter(None, verified_service_time=lambda row: NOW)
+    assert isinstance(service, SourceAdapter)
     item = service.normalize([completed], NOW)[0]
-    assert isinstance(item, schemas.Obstruction)
+    assert isinstance(item, Obstruction)
     assert item.geometry.type == "MultiLineString"
     assert item.effect == "caution"

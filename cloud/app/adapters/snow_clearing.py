@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 if TYPE_CHECKING:
-    from ..schemas import Obstruction
+    from cloud.app.schemas import Obstruction
 
 DATASET = "8pdx-hfxi"
 API_URL = f"https://data.edmonton.ca/resource/{DATASET}.json"
@@ -79,7 +79,7 @@ def road_geometry(row: Row) -> dict[str, Any]:
 
 def build_obstruction(**fields: Any) -> Obstruction:
     """Use OP-101's shared model once it is available on this branch."""
-    from ..schemas import Obstruction
+    from cloud.app.schemas import Obstruction
 
     return Obstruction(**fields)
 

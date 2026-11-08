@@ -62,7 +62,7 @@ successful snapshot; operators can inspect their logged IDs and reasons.
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/python -m pip install -r cloud/requirements-snow-clearing.txt
+.venv/bin/python -m pip install -r cloud/requirements.txt -r cloud/requirements-snow-clearing.txt
 .venv/bin/python -m cloud.tools.preview_snow_clearing
 .venv/bin/python -m cloud.tools.preview_snow_clearing --live
 ```
@@ -84,13 +84,12 @@ Files:
 
 ## Tests and lint
 
-Runtime requirements contain no test tools. Install them separately, including
-OP-104's runtime packages for the rebased walking-network suite:
+Runtime requirements contain no test tools. The shared setup installs runtime
+and development requirements along with the web dependencies:
 
 ```bash
-.venv/bin/python -m pip install pytest ruff==0.17.4
-.venv/bin/python -m pip install -r cloud/requirements-network.txt
-.venv/bin/python -m pytest cloud/tests -q
+make setup
+make test
 .venv/bin/ruff check --fix .
 .venv/bin/ruff format .
 .venv/bin/ruff check .
@@ -100,9 +99,9 @@ OP-104's runtime packages for the rebased walking-network suite:
 Run Ruff at the repository root without rule-selection overrides, as CI does.
 Tests never call live APIs. Completed-status rows and verified service times are
 explicitly controlled test inputs, not recorded observations of plow activity.
-An integration test runs automatically when OP-101's shared schema is available;
-until then it skips. The current proposed OP-101 protocol/model was also checked
-independently against a City MultiLineString caution with controlled evidence.
+The shared OP-101 schema is now present. The integration test exercises the
+adapter's default factory against the real SourceAdapter and Obstruction model,
+including the City's MultiLineString shape. It no longer skips.
 
 ## Shared-app handoff
 
@@ -110,8 +109,8 @@ Use OP-101's shared Obstruction model and source interface, OP-103's scheduler
 and freshness reporting, and OP-206's line-to-crossing matching. The adapter's
 default factory imports the shared model only when it constructs an eligible
 caution. Tests inject a dictionary factory for isolated checks. No shared schema,
-configuration or API has been changed. Consolidate runtime dependencies, run
-shared `make test` once OP-102 adds the Makefile, and verify the preview deploy.
+configuration or API has been changed. The shared Makefile and application are
+now present; run `make test` and verify the preview deploy.
 The task-specific notes remain here; AGENTS.md and README have no branch-only
 OP-111 instructions.
 
