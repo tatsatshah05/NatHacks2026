@@ -1,0 +1,71 @@
+[
+  {
+    "Id": 9001,
+    "Source": "SAMPLE",
+    "SourceId": "sample-henday-whitemud",
+    "Roadway": "Anthony Henday Dr",
+    "Direction": "Northbound",
+    "Latitude": 53.4815,
+    "Longitude": -113.6302,
+    "Location": "Sample camera A (inside Edmonton)",
+    "SortOrder": 1,
+    "Views": [
+      {"Id": 1, "Url": "https://511.alberta.ca/map/Cctv/1", "Status": "Enabled", "Description": "Road"},
+      {"Id": 2, "Url": "https://511.alberta.ca/map/Cctv/2", "Status": "Disabled", "Description": "Road"}
+    ]
+  },
+  {
+    "Id": 9002,
+    "Source": "SAMPLE",
+    "SourceId": "sample-yellowhead-149",
+    "Roadway": "Yellowhead Trail",
+    "Direction": "Eastbound",
+    "Latitude": 53.5768,
+    "Longitude": -113.5776,
+    "Location": "Sample camera B (inside Edmonton)",
+    "SortOrder": 2,
+    "Views": [
+      {"Id": 3, "Url": "https://511.alberta.ca/map/Cctv/3", "Status": "Enabled", "Description": "Road"}
+    ]
+  },
+  {
+    "Id": 9003,
+    "Source": "SAMPLE",
+    "SourceId": "sample-hwy2-calgary",
+    "Roadway": "Hwy 2",
+    "Direction": "Southbound",
+    "Latitude": 51.0447,
+    "Longitude": -114.0719,
+    "Location": "Sample camera C (far outside Edmonton)",
+    "SortOrder": 3,
+    "Views": [
+      {"Id": 4, "Url": "https://511.alberta.ca/map/Cctv/4", "Status": "Enabled", "Description": "Road"}
+    ]
+  },
+  {
+    "Id": 9004,
+    "Source": "SAMPLE",
+    "SourceId": "sample-north-of-city",
+    "Roadway": "Sample Rd",
+    "Direction": "Unknown",
+    "Latitude": 53.6600,
+    "Longitude": -113.6250,
+    "Location": "Sample camera D (inside the bounding box, outside the test boundary)",
+    "SortOrder": 4,
+    "Views": [
+      {"Id": 5, "Url": "https://511.alberta.ca/map/Cctv/5", "Status": "Enabled", "Description": "Road"}
+    ]
+  },
+  {
+    "Id": 9005,
+    "Source": "SAMPLE",
+    "SourceId": "sample-east-of-city",
+    "Roadway": "Sample Hwy",
+    "Direction": "Westbound",
+    "Latitude": 53.5550,
+    "Longitude": -113.3100,
+    "Location": "Sample camera E (inside the bounding box, outside the test boundary)",
+    "SortOrder": 5,
+    "Views": []
+  }
+]
