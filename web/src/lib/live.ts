@@ -4,8 +4,10 @@
 //
 // - Connects to NEXT_PUBLIC_WS_URL (or the API URL with /ws, or this host's /ws).
 // - Reconnects by itself: 1 s, 2 s, 4 s ... up to 30 s between attempts, with
-//   jitter so many phones do not reconnect at the same moment. It also reconnects
-//   at once when the browser comes back online or the tab becomes visible again.
+//   jitter so many phones do not reconnect at the same moment. The delay starts
+//   again at 1 s only after a connection has stayed up for 10 s, so a server that
+//   accepts and then drops connections is not retried every second. It also
+//   reconnects at once when the browser comes back online or the tab is shown again.
 // - Treats a connection with no message for 2.5 heartbeats as dead and reconnects.
 // - Subscribes the route on every (re)connect and whenever the route changes.
 // - Status: "live" (connected), "reconnecting" (connecting or waiting to retry) or
@@ -29,6 +31,7 @@ export type LiveStatus = "live" | "reconnecting" | "offline";
 
 export const RECONNECT_MIN_MS = 1_000;
 export const RECONNECT_MAX_MS = 30_000;
+const STABLE_MS = 10_000; // a connection this old resets the reconnect delay
 const DEFAULT_HEARTBEAT_S = 25; // until the server's hello says otherwise
 const MISSED_HEARTBEATS = 2.5;
 
@@ -49,7 +52,7 @@ export type LiveUpdates = {
   sources: Record<string, SourceStatusEvent>;
   /** The server's last `error` message (for example, a point too far from any path). */
   error: string | null;
-  /** Failed connection attempts since the last successful one. */
+  /** Reconnect attempts since the last connection that stayed up for 10 s. */
   reconnectAttempts: number;
 };
 
@@ -159,6 +162,7 @@ export function useLiveUpdates({ route, enabled = true, onEvent }: UseLiveUpdate
     let retry: ReturnType<typeof setTimeout> | undefined;
     let watchdog: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
+    let openedAt = 0;
     let stopped = false;
     let heartbeatMs = DEFAULT_HEARTBEAT_S * 1000;
 
@@ -240,8 +244,7 @@ export function useLiveUpdates({ route, enabled = true, onEvent }: UseLiveUpdate
       socketRef.current = next;
       next.onopen = () => {
         if (socket !== next) return;
-        attempt = 0;
-        setReconnectAttempts(0);
+        openedAt = Date.now();
         setConnection("live");
         armWatchdog(next);
         send(next, subscription(routeRef.current));
@@ -260,6 +263,11 @@ export function useLiveUpdates({ route, enabled = true, onEvent }: UseLiveUpdate
         socket = null;
         socketRef.current = null;
         clearTimeout(watchdog);
+        if (openedAt && Date.now() - openedAt >= STABLE_MS) {
+          attempt = 0; // it was a good connection: start again at 1 s
+          setReconnectAttempts(0);
+        }
+        openedAt = 0;
         scheduleRetry();
       };
     }
