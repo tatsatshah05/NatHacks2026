@@ -25,7 +25,7 @@ from cloud.app.weather_service import WeatherService
 
 
 def stored_camera_payload(row: object) -> object:
-    """OP-213 rows omit the constant source column; restore it in a local view.
+    """Accept older projections without source; preserve explicit source and credit.
 
     Keep explicit source values if supplied, so another source cannot silently
     become camera evidence. Other columns remain subject to evidence validation.
@@ -43,6 +43,7 @@ def stored_camera_payload(row: object) -> object:
         "observed_at",
         "expires_at",
         "mode",
+        "attribution",
     )
     data = {name: getattr(row, name) for name in fields if hasattr(row, name)}
     return {"source": getattr(row, "source", "camera_model"), **data}
@@ -131,11 +132,8 @@ class CameraIceHazardProvider:
                 for edge, items in (self.base(now).items() if self.base else [])
             }
             hazards = {edge: items for edge, items in hazards.items() if items}
-            for risk in self.latest.risks:
-                item = risk.obstruction
-                hazard = EdgeHazard(item.id, item.effect, item.confidence, item.title)
-                for edge in sorted(risk.edge_indices):
-                    existing = hazards.setdefault(edge, [])
-                    if not any(previous.item_id == item.id for previous in existing):
-                        existing.append(hazard)
+            for edge, items in self.latest.hazards().items():
+                existing = hazards.setdefault(edge, [])
+                known = {previous.item_id for previous in existing}
+                existing.extend(item for item in items if item.item_id not in known)
             return hazards

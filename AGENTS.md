@@ -19,17 +19,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
-- **OP-205 on this branch:** `cloud/app/camera_ice.py` evaluates confirmed camera
-  evidence plus OP-109's weather watch and matches medium-confidence `ice_risk`
-  only to crossing polylines within 50 m. The weather-service wrapper honours
-  stale cached watches. Results distinguish explicit clear evidence from
-  uncertainty and preserve original observation/expiry times. Camera-ingest and
-  OP-206/207 production integration remains pending; see [docs/OP-205.md](docs/OP-205.md).
-  Shared schemas, API routes, source configuration and routing weights are unchanged.
-  `camera_ice_routing.py` now adapts OP-213 rows to the existing hazard-provider
-  hook and preserves uncertain evidence only to original expiry. A combined
-  synthetic worker/ingest/matcher/router check passes without external requests
-  or stored images; production bootstrap and trained-model validation are pending.
+- **OP-205:** Camera/weather ice risks use exact crossing matches and the existing routing hook.
+  Store-row validation and offline checks are ready; see [docs/OP-205.md](docs/OP-205.md).
 
 - **November 7, 2026:** Phase 1 is in progress. OP-104's walking network is merged through PR #97. OP-101 (contracts), OP-102 (skeleton) and OP-103 (scheduler) remain integration dependencies on this branch.
 - **OP-107 on this branch:** the construction adapter and recorded preview isolate malformed/amended rows and use only a short line near the official permit point. Broad corridors fall back to the point. Shared API/store/scheduler integration remains pending; see [docs/OP-107.md](docs/OP-107.md). OP-103 owns hourly cadence, retries and cooldowns; every adapter call performs one fetch, with no internal sleeps or poll gate.
@@ -242,27 +233,7 @@ Use `--live` instead of `--fixtures` for one official City API read, with option
 `--at` is replay-only and requires a timezone; `--local-timezone` defaults to
 `America/Edmonton`. This preview prints output and does not write to the store.
 
-OP-205 offline rule/matching checks:
-
-```bash
-python -m pytest cloud/tests/test_camera_ice.py -q
-python -m pytest cloud/tests/test_camera_ice_routing.py -q
-```
-
-Build `CrossingIndex` once per walking network. `match_service_camera_ice()`
-consumes confirmed OP-204 readings and OP-109's `WeatherService`. Its exact
-crossing indices must be used by OP-206/207, not generic Point buffering.
-Apply only explicit `clear_refs` to the corresponding local records; uncertainty
-and missing readings never imply clearing all camera hazards. Production
-bootstrap waits on OP-204/206/213 merges and API-owner review; see
-[docs/OP-205.md](docs/OP-205.md).
-
-In a local checkout containing OP-204/205/206/213 and the worker test dependencies,
-`python scripts/check_camera_pipeline.py` verifies synthetic frames through CPU
-ONNX, authenticated ingest, stored readings and four profile routes/reports.
-It makes no external requests and saves no images. Its test route changes from
-200 m to a 280 m detour and back after recovery. This does not validate the
-trained model or activate any production wiring; see docs/OP-205.md.
+OP-205 checks: `python -m pytest cloud/tests/test_camera_ice.py cloud/tests/test_camera_ice_routing.py cloud/tests/test_camera_ice_review.py -q`.
 
 ## Environment Variables
 

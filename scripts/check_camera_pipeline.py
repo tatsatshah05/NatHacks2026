@@ -141,9 +141,9 @@ def run_check() -> dict[str, object]:
             20, 240, (80, 100, 3), dtype=np.uint8
         )
         buffer = io.BytesIO()
-        Image.fromarray(pixels).save(buffer, format="PNG")
+        Image.fromarray(pixels).save(buffer, format="JPEG")
         return httpx.Response(
-            200, content=buffer.getvalue(), headers={"content-type": "image/png"}
+            200, content=buffer.getvalue(), headers={"content-type": "image/jpeg"}
         )
 
     async def weather_readings(now: datetime) -> dict[str, object]:

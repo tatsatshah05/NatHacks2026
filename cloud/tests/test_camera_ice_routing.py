@@ -1,7 +1,7 @@
 """OP-205: stored camera readings change real OP-207 routes on exact crossings.
 
 Verify the hazard-provider handoff, profile effects and last-good expiry without
-the pending API branch, a trained model or external requests.
+a trained model or external requests.
 """
 
 from __future__ import annotations

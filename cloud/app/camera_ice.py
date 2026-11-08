@@ -8,9 +8,11 @@ schemas, the camera-ingest API, source configuration or routing weights.
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
+from threading import Lock
 from typing import Literal
 
 import numpy as np
@@ -23,12 +25,15 @@ from pydantic import (
     model_validator,
 )
 
-from cloud.app.adapters.weather import MAX_OBSERVATION_AGE
+from cloud.app.adapters.weather import CLOCK_SKEW, MAX_OBSERVATION_AGE
 from cloud.app.network import EARTH_RADIUS_M, EDGE_CROSSING, WalkNetwork
+from cloud.app.routing import EdgeHazard, HazardMap
 from cloud.app.schemas import Confidence, Effect, Geometry, Kind, Obstruction, as_utc
-from cloud.app.weather_service import WeatherResponse, WeatherService
+from cloud.app.weather_service import REFRESH_SECONDS, WeatherResponse, WeatherService
 
 CROSSING_RADIUS_M = 50.0
+POSITION_CACHE_SIZE = 512
+WEATHER_CREDIT = "Weather: Environment and Climate Change Canada, Open-Meteo"
 Mode = Literal["live", "replay"]
 
 
@@ -43,16 +48,17 @@ class CameraEvidence(BaseModel):
     model_config = ConfigDict(
         extra="ignore", from_attributes=True, frozen=True, allow_inf_nan=False
     )
-    source: Literal["camera_model"]
+    source: Literal["camera_model"] = "camera_model"
     source_ref: str = Field(min_length=1, max_length=190)
-    label: Literal[
-        "dry", "wet", "snow_partial", "snow_covered", "ice", "unknown", "unusable"
-    ]
+    label: Literal["dry", "wet", "snow_partial", "snow_covered", "ice", "unknown"]
     latitude: float = Field(ge=-90, le=90, strict=True)
     longitude: float = Field(ge=-180, le=180, strict=True)
     observed_at: datetime
     expires_at: datetime
     mode: Mode
+    attribution: str = Field(
+        default="Road camera data: 511 Alberta, Government of Alberta", max_length=200
+    )
 
     @field_validator("source_ref")
     @classmethod
@@ -91,8 +97,8 @@ def evaluate_camera_ice(
 ) -> IceDecision:
     """Apply PLAN.md 7.4 without treating unavailable evidence as clear weather.
 
-    Pass WeatherService.stale separately: the public weather response deliberately
-    has no stale field. Weather age also uses OP-109's existing observation limit.
+    Pass age-based weather freshness separately; one failed refresh does not
+    invalidate the last good watch. OP-109 also bounds observation age.
     Camera timestamps are never refreshed by this calculation.
     """
     now = as_utc(now)
@@ -102,7 +108,7 @@ def evaluate_camera_ice(
         return IceDecision(
             False, "Camera mode differs from application mode.", uncertain=True
         )
-    if camera.observed_at > now or camera.expires_at <= now:
+    if camera.observed_at > now + CLOCK_SKEW or camera.expires_at <= now:
         return IceDecision(
             False, "Camera reading is future-dated or expired.", uncertain=True
         )
@@ -112,7 +118,7 @@ def evaluate_camera_ice(
             "Camera indicates an icy surface; ice risk at nearby crossings.",
             camera.expires_at,
         )
-    if camera.label in {"unknown", "unusable"}:
+    if camera.label == "unknown":
         return IceDecision(False, "Camera conditions are unavailable.", uncertain=True)
     if camera.label != "wet":
         return IceDecision(False, "Camera does not indicate wet or icy conditions.")
@@ -123,7 +129,10 @@ def evaluate_camera_ice(
     if (
         weather_stale
         or watch.mode != mode
-        or not (watch.observed_at <= now < watch.observed_at + MAX_OBSERVATION_AGE)
+        or not (
+            watch.observed_at <= now + CLOCK_SKEW
+            and now < watch.observed_at + MAX_OBSERVATION_AGE
+        )
     ):
         return IceDecision(
             False,
@@ -139,7 +148,7 @@ def evaluate_camera_ice(
             False, "Wet surface without an active freezing-weather watch."
         )
     if watch.air_c > 0 and watch.ground_c > 0:
-        # Defend against an inconsistent cached/persisted watch; wet is not ice.
+        # Consistency guard for malformed cached watches, not a second ice rule.
         return IceDecision(
             False,
             "Active watch has no freezing air or ground temperature.",
@@ -177,6 +186,8 @@ class CrossingIndex:
             if len(crossings)
             else np.array([], dtype=np.intp)
         )
+        self._cache: OrderedDict[tuple[float, float], frozenset[int]] = OrderedDict()
+        self._cache_lock = Lock()
         self._edges = np.repeat(crossings, counts)
         self._first = network.geom_coords[starts].astype(np.float64)
         self._second = network.geom_coords[starts + 1].astype(np.float64)
@@ -191,6 +202,23 @@ class CrossingIndex:
             or not -180 <= longitude <= 180
         ):
             raise ValueError("Invalid camera coordinates")
+        position = (latitude, longitude)
+        with self._cache_lock:
+            cached = self._cache.get(position)
+            if cached is not None:
+                self._cache.move_to_end(position)
+                return cached
+        matches = self._nearby_uncached(latitude=latitude, longitude=longitude)
+        with self._cache_lock:
+            self._cache[position] = matches
+            self._cache.move_to_end(position)
+            if len(self._cache) > POSITION_CACHE_SIZE:
+                self._cache.popitem(last=False)
+        return matches
+
+    def _nearby_uncached(self, *, latitude: float, longitude: float) -> frozenset[int]:
+        # Static camera positions reuse matches, including empty results. The
+        # bounded cache belongs to this graph and is discarded with the index.
         scale = np.radians([1, 1]) * EARTH_RADIUS_M
         scale[0] *= np.cos(np.radians(latitude))
         origin = np.array([longitude, latitude])
@@ -232,6 +260,15 @@ class CameraIceResult:
             for edge in sorted(risk.edge_indices):
                 grouped.setdefault(edge, []).append(risk.obstruction)
         return {edge: tuple(items) for edge, items in sorted(grouped.items())}
+
+    def hazards(self) -> HazardMap:
+        """Use the existing routing contract with the exact crossing matches."""
+        return {
+            edge: tuple(
+                EdgeHazard(o.id, o.effect, o.confidence, o.title) for o in items
+            )
+            for edge, items in self.by_edge().items()
+        }
 
 
 def match_camera_ice(
@@ -293,28 +330,30 @@ def match_camera_ice(
                 f"{ref}: ice-risk evidence has no mapped crossing within 50 m."
             )
             continue
+        attribution = camera.attribution
+        detail = decision.reason
+        if camera.label == "wet":
+            combined = f"{attribution}; {WEATHER_CREDIT}"
+            if len(combined) <= 200:
+                attribution = combined
+            else:
+                # Preserve the complete upstream credit within the shared limit.
+                detail += f" {WEATHER_CREDIT}."
         obstruction = Obstruction(
             source="camera_model",
             source_ref=f"{ref}:ice_risk",
-            category="sidewalk",
+            category="weather",
             kind=Kind.ICE_RISK,
             effect=Effect.ICE_RISK,
             confidence=Confidence.MEDIUM,
             title="Ice risk at nearby crossings",
-            detail=decision.reason,
+            detail=detail,
             geometry=Geometry(
                 type="Point", coordinates=[camera.longitude, camera.latitude]
             ),
             observed_at=camera.observed_at,
             expires_at=decision.expires_at,
-            attribution=(
-                "Road camera data: 511 Alberta, Government of Alberta"
-                + (
-                    "; Weather: Environment and Climate Change Canada, Open-Meteo"
-                    if camera.label == "wet"
-                    else ""
-                )
-            ),
+            attribution=attribution,
         )
         risks.append(MatchedIceRisk(obstruction, edges))
     return CameraIceResult(
@@ -341,5 +380,10 @@ def match_service_camera_ice(
         crossings,
         now=now,
         mode=mode,
-        weather_stale=weather is None or weather.stale,
+        weather_stale=(
+            weather is None
+            or weather.last_success is None
+            or as_utc(now) - weather.last_success
+            > timedelta(seconds=3 * REFRESH_SECONDS)
+        ),
     )

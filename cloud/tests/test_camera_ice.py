@@ -168,7 +168,7 @@ def test_weather_watch_alone_never_creates_local_ice_risk(label: str) -> None:
     assert not evaluate_camera_ice(evidence(label=label), watch(), now=NOW).active
 
 
-@pytest.mark.parametrize("label", ["unknown", "unusable"])
+@pytest.mark.parametrize("label", ["unknown"])
 def test_unusable_camera_is_uncertain_instead_of_clear(label: str) -> None:
     decision = evaluate_camera_ice(evidence(label=label), watch(), now=NOW)
     assert not decision.active and decision.uncertain
@@ -193,7 +193,7 @@ def test_wet_with_missing_weather_is_uncertain(weather: WeatherResponse | None) 
     "update",
     [
         {"observed_at": NOW - timedelta(hours=2)},
-        {"observed_at": NOW + timedelta(seconds=1)},
+        {"observed_at": NOW + timedelta(seconds=6)},
         {"mode": "replay"},
     ],
 )
@@ -214,7 +214,7 @@ def test_service_stale_flag_prevents_using_a_recent_cached_watch() -> None:
     "update",
     [
         {"expires_at": NOW},
-        {"observed_at": NOW + timedelta(seconds=1)},
+        {"observed_at": NOW + timedelta(seconds=6)},
         {"mode": "replay"},
     ],
 )
@@ -433,9 +433,9 @@ def test_weather_service_wrapper_honours_refresh_failure_and_recovery(
     assert match_service_camera_ice(cameras, service, crossings, now=NOW).risks
     fail = True
     assert not asyncio.run(service.refresh())
-    assert service.last_good.active is True  # retained cache is not fresh evidence
+    assert service.last_good.active is True  # a failed request preserves valid evidence
     failed = match_service_camera_ice(cameras, service, crossings, now=NOW)
-    assert not failed.risks and failed.warnings
+    assert failed.risks and not failed.warnings
     assert match_service_camera_ice([evidence()], service, crossings, now=NOW).risks
     fail = False
     assert asyncio.run(service.refresh())
