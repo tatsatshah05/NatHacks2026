@@ -53,3 +53,7 @@
 .save :global(.status-line) {
   margin: 0;
 }
+
+.save :global(.status-line:not(:empty)) {
+  margin-top: 8px;
+}

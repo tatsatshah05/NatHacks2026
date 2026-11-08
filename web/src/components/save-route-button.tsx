@@ -273,9 +273,11 @@ export default function SaveRouteButton({ query, rank }: Props) {
             Cancel
           </Button>
         </div>
-        {saveError && <p className={styles.error}>{saveError}</p>}
       </form>
-      <StatusLine>{saving ? `Saving ${cleanName(name)}.` : ""}</StatusLine>
+      {/* One live line for progress and for a failed save, so both are announced. */}
+      <StatusLine className={saveError && !saving ? styles.error : undefined}>
+        {saving ? `Saving ${cleanName(name)}.` : saveError}
+      </StatusLine>
     </div>
   );
 }
