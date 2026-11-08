@@ -138,7 +138,10 @@ Headings use letter-spacing 0. Lines never run past 70ch. Use sentence case ever
 | `LiveStatus` | The live connection on a page with a route | One quiet line, not a badge: a circle that is filled (live), half filled (reconnecting) or hollow (offline), and the word. Then the speech switch and the assertive region for route changes, which is always in the page. |
 | `RouteFailure`, `NoRoute` (`route-problem.tsx`) | A route request that failed or found nothing | An ink rule on the left, a short heading that says what happened, one sentence that says what to do, then "Try again" (and "Show demo routes instead" when the service cannot be reached). A refused request offers no retry: it needs new places. |
 | `CityWideConditions` | Conditions that cover the whole city | One line each, shown once above the routes: "Ice-risk watch is on for the whole city." They are never stops on a line. The route report still lists them under Weather and ice. |
-| `SaveRouteButton` (`save-route-button.tsx`, OP-306) | "Save this route" in each route's actions | One tap opens an inline form (name, filled with the destination). When alerts can be turned on, the form's main button is "Save and turn on alerts" (the permission request starts inside that press) with "Save without alerts" beside it; otherwise "Save route" plus a note saying why alerts are not offered. The result takes focus and says what happens: "Saved. You'll get an alert if this route closes or gets 20% slower." Saved without alerts, it offers "Turn on alerts for this route". The open form sits between two `--line` rules. |
+| `SaveRouteButton` (`save-route-button.tsx`, OP-306) | "Save this route" in each walking route's actions, right after "View route report" (a walk and LRT trip has none: a saved route has no mode, so the API watches the walking route) | One tap opens an inline form (name, filled with the destination). When alerts can be turned on, the form's main button is "Save and turn on alerts" (the permission request starts inside that press) with "Save without alerts" beside it; otherwise "Save route" plus a note saying why alerts are not offered. The result takes focus and says what happens: "Saved. You'll get an alert if this route closes or gets 20% slower." Saved without alerts, it offers "Turn on alerts for this route". The open form sits between two `--line` rules. |
+| `OfflineLine` (OP-410) | Inside `SiteHeader` (automatic) | One `role="status"` line under the header rule: "You are offline. Showing what was loaded before." when `navigator.onLine` is false, empty otherwise. Its height is reserved, so it moves nothing (section 10). |
+| `LazyMount` (OP-410) | Around each map | Mounts its children when its place comes within 400 px of the viewport; the placeholder has the children's size. On a laptop the maps mount at once; on a phone, when scrolled to. |
+| Not-found and error pages (`app/not-found.tsx`, `app/error.tsx`, OP-410) | A missing page; a page that threw | The problem block alone (section 11): what happened, what to do, "Plan a route" and, on the error page, "Try again". |
 | Alerts page (`alerts-page.tsx`, OP-306) | `/alerts` | Saved routes first (no route, then changed, then clear), as plain rows, then one panel "Alerts on this device" with the state in words. Remove asks first ("Keep it" takes focus, Escape keeps), then a status line with Undo, which saves the trip again. |
 
 **City-wide items.** The API marks an item that covers the whole city only through its note (`cloud/app/report.py` `NOTES["citywide"]`), so `isCityWide()` in `lib/report-format.ts` tests that note. If `ReportItemOut` gains an `everywhere` flag, test that instead.
@@ -147,7 +150,7 @@ Headings use letter-spacing 0. Lines never run past 70ch. Use sentence case ever
 
 **Saved route status.** A saved route's status uses the hazard shapes with words: `ok` is the clear circle, "Clear, about 12 min"; `changed` is the caution triangle, "Changed: now 16 min (+4)" (whole minutes, as the push message counts them); `impossible` is the blocked square, "No route right now".
 
-**App icon.** `scripts/build_icons.py` draws the icons from coordinates: the wordmark's start and end circles joined by a line that jogs at 45 degrees, as the route line kinks around a barrier, in white on `--action`. The maskable icon keeps the glyph inside the central 40% safe circle.
+**App icon.** `scripts/build_icons.py` draws the icons from coordinates: the wordmark's start and end circles joined by a line that jogs at 45 degrees, as the route line kinks around a barrier, in white on `--action`. The maskable icon keeps the glyph inside the central 40% safe circle. `scripts/make_icons.py` (OP-411) runs it and adds the browser favicon `web/src/app/icon.svg` from the same geometry, with a light and a dark variant: a `prefers-color-scheme` rule inside the SVG swaps the tile and glyph between each theme's `--action` and `--on-action`, so the mark keeps its contrast on a dark tab bar. Launcher icons cannot carry that rule, so `web/public/icons/icon.svg` stays single-coloured.
 
 **City map markers.** Markers are pointer shortcuts only. The list beside the map is the keyboard and screen-reader path and selects the same items, so markers are hidden from assistive technology and stay out of the tab order.
 
@@ -236,3 +239,84 @@ The route line alone is only 2.2:1 (light) and 2.0:1 (dark) against the roads it
 
 **Changes after the first screenshots ("remove one accessory").** The reading lists had lost their markers to Tailwind's preflight; they are back. A credit that already ended in a full stop got a second one; credits are now quoted exactly. The long "What OpenPath uses it for" column name became "Used for". Numbers and units are joined by non-breaking spaces so "30 m" never splits across lines. The explanation above the speech switches was cut to two short sentences.
 
+## 10. Judge page and launch assets (OP-411)
+
+**Subject, audience, job.** `/demo` is the hand-off. A judge sits across a table from a laptop, or looks at a projector, and has seconds: get the app onto their own phone, then tell them one trip to try. The page is read from a distance, so it is one screen at 1280 × 800, quiet and large. On a phone it is the same page in one column.
+
+**Direction: one square, one sentence, one trip.** The QR code is the one bold element here; the route line is the system's bold element everywhere else, and the two are never on the same screen. Everything around the square is the system's own type, left aligned, with no panel, rule or drawing to compete with the three finder squares. The square sits in the right column, where other screens put the map, and the words sit in the left column at a 52ch measure (the planner's 44ch made the trip's description wrap past the fold at 800 px): the page keeps the grid people already know.
+
+```
+Desktop (1280 x 800)                                   Phone (390)
++----------------------------------------------------+  +--------------------------+
+| o-o OpenPath [Replay]   Plan City Alerts ... About |  | o-o OpenPath [Replay]    |
++----------------------------------------------------+  | Plan City Alerts ...     |
+| OpenPath                    +------------------+   |  +--------------------------+
+| Accessible routes across    |                  |   |  | OpenPath                 |
+| Edmonton, with every known  |   [QR code]      |   |  | Accessible routes ...    |
+| barrier between A and B.    |                  |   |  | +----------------------+ |
+|                             |                  |   |  | |      [QR code]       | |
+| Try this trip               +------------------+   |  | +----------------------+ |
+| Edmonton Convention Centre  openpath-lyart.        |  | openpath-lyart.vercel.app|
+| to the Alberta Legislature, vercel.app             |  | Try this trip            |
+| for a wheelchair.                                  |  | ...                      |
+| Three routes, drawn as ...                         |  | Then                     |
+|                                                    |  | ...                      |
+| Then                                               |  +--------------------------+
+| Switch the profile. ...                            |
+| Open the route report ...                          |
+| Save the route and turn on alerts. ...             |
++----------------------------------------------------+
+| Conditions come from public data ...  Data sources  Privacy |
++----------------------------------------------------+
+```
+
+**Colour.** Ink on snow, as everywhere. The QR code is the one exception to the theme tokens: its modules are always `#0D1F2D` on a `#FFFFFF` tile, in dark mode too, because many phone cameras refuse an inverted code and the page has one job. The tile is the code's quiet zone (four modules on every side) made visible. The address under it is a link in `--action`.
+
+**Type.** The system's scale, one step up where a judge reads from a distance: h1 31 for the name, the pitch and the address at 25 (400 and 700), the trip link and the "then" lines at 18 (the lead size), the trip's detail at 16. Nothing is tracked or capitalised. The address drops its `https://`, as people read it.
+
+**Layout.** One column with 16 px gutters; from 900 px, `minmax(0, 52ch)` of words on the left and the square on the right, left aligned in its column, never centred. The square's side is `clamp(240px, 100vh - 360px, 520px)`, so the whole page, header and footer included, fits 800 px without scrolling and the square stays the largest thing on the screen. On a phone the square is the full column width. The DOM order is name, pitch, square and address, trip, then, in every layout.
+
+**Copy.** The pitch is PLAN.md's one sentence. The trip is a real pair from `config/places.json`, written as a link that opens the planner pre-filled (`lib/route-link.ts`, the same `from`, `from_name`, `to`, `to_name` and `profile` parameters a shared route uses), and what the judge will see is stated from the replay data and labelled as such: live, the page shows today's conditions. The three "then" lines are plain verbs, not a numbered sequence.
+
+**Principles.**
+
+1. The square is the hero. Nothing else on the page is drawn.
+2. Readable at three metres: the name, the address and the trip are the three things a judge needs, and each is one glance.
+3. One screen. Header, square, words and footer fit 1280 × 800.
+4. Honest. The Replay badge shows as on every page, and the trip's description says which conditions are recorded and which are live.
+
+**Review against the usual tells.** A "scan me" poster centres the code and sets the address under it in a monospace face; this page keeps the system's left-aligned grid and one typeface. A "try this" list is usually numbered; these lines are not a sequence, so they take plain markers. A first draft put the square in a `Panel`: its 2 px ink top rule read as a fourth finder mark, so the square sits on the page with no frame. A caption that said "Scan with your phone's camera" was cut: the address beneath the square says what it is, and the alt text names the URL. The product name stays at the system's h1 size rather than a display size: the page has one bold element, and the square is it.
+
+**The QR code.** `lib/qr.ts` is a dependency-free encoder written for this project from ISO/IEC 18004 (byte mode, versions 1 to 40, levels L to H, mask by the standard's penalty rules). It runs on the server, so the page carries one inline SVG path and no script. The production address encodes at version 3, level M (29 modules). Verified on November 8, 2026: the module matrices match the Python `qrcode` package for 211 of 216 combinations of six texts, four levels and all eight masks (the five differences are automatic mask choice only, where both masks are valid), and OpenCV's `QRCodeDetector` decodes the rendered page's screenshot to the production URL. `?url=` overrides the target for local testing (http or https only).
+
+**Social preview and favicon.** `app/opengraph-image.tsx` renders the mark, the name, the pitch and the address at 1200 × 630 in the light tokens, with Atkinson Hyperlegible fetched when the image is built and the renderer's default sans serif when that fetch fails (a preview in the wrong face beats a failed build). Twitter cards fall back to the same image, so there is no second file. The icons Next links from every page are files beside the layout, because an `icons` field in the metadata export would replace them: `app/icon.svg` (the favicon with its light and dark variants, section 5, "App icon"), `app/icon1.png` (64 px, for browsers that ignore SVG favicons) and `app/apple-icon.png` (180 px). `scripts/make_icons.py` writes all three.
+
+## 11. States and the map surface (OP-410)
+
+**Plan.** Three things were missing or inconsistent before Phase 4: what a page says when it fails or does not exist, what the site says when the device is offline, and how the map looks in the dark theme. The plan adds nothing new to the chrome: one problem block for every failure, one offline sentence in one place, and the map as its own surface.
+
+| Element | Choice |
+| --- | --- |
+| Problem block | The shape `RouteFailure` already has: an ink rule on the left, a heading that says what happened, one sentence that says what to do, then the action. On the not-found and error pages it is the whole page (`.page-problem`). No illustration, no "oops", no exclamation mark. |
+| Offline line | One sentence under the header rule: "You are offline. Showing what was loaded before." It is a `role="status"` line that is always in the page, pulled up into the page's top padding with a negative margin, so it moves nothing when it appears or clears. Fetches that fail while offline say so and keep the last good data on screen. |
+| Offline page | `public/offline.html`, which the service worker serves only when a navigation fails: the wordmark, "You are offline.", what to do and "Try again". It reloads itself when the connection returns. The worker never caches API responses or pages, so a stale route can never be shown as current. |
+| Map surface | The liberty basemap and the high-contrast light style are light in both page themes, and the high-contrast dark style is dark. Everything drawn inside a map (condition markers, camera tags, Start and End tags, the zoom controls, the focus ring) therefore takes the map's palette, not the page's: `.map-light` and `.map-dark` redefine the tokens for the map frame, and the map components choose one from the settings. Nothing outside the frame (the key, the detail, the problem sentence) is inside the scope. |
+| Zoom controls | 44 x 44 CSS px, the ink border, and the project's focus ring drawn 4 px inside the control, on both maps. |
+
+**Review against the tells.** The not-found and error pages invite a centred illustration with a joke: refused; they are the problem block, left aligned, in the type scale. The offline line could be a coloured banner: it is one sentence in ink on the page background. The map markers could grow a label strip: they keep the shape on a disc, and the words stay in the list, which is the keyboard and screen-reader path.
+
+**Measured contrast** (WCAG relative luminance, computed November 8, 2026 with a script; the same pairs appear as comments in `globals.css`). The light map applies on the liberty basemap, whose land is `#F1EFE9`, and on the high-contrast light style; the dark map is the high-contrast dark style.
+
+| Pair | Light map | Dark map |
+| --- | --- | --- |
+| Blocked shape on the marker disc | `#B3261E` on `#FFFFFF`, 6.5:1 | `#FF9A8F` on `#16293A`, 7.3:1 |
+| Ice-risk shape on the disc | `#0B6F80` on `#FFFFFF`, 5.8:1 | `#5FD4E8` on `#16293A`, 8.6:1 |
+| Snow shape on the disc | `#5B4FCF` on `#FFFFFF`, 6.1:1 | `#C2B8FF` on `#16293A`, 8.2:1 |
+| Caution shape on the disc | `#8A5300` on `#FFFFFF`, 6.3:1 | `#F4B860` on `#16293A`, 8.4:1 |
+| Disc border on the land | `#0D1F2D` on `#F1EFE9`, 14.6:1 | `#F2F6F9` on `#0D1F2D`, 15.5:1 |
+| Camera reading and Start/End words on their tag | `#0D1F2D` on `#FFFFFF`, 16.8:1 | `#F2F6F9` on `#16293A`, 13.7:1 |
+| Selected ring on its gap and on the land | `#1450A3` on `#FFFFFF`, 7.8:1; on `#F1EFE9`, 6.8:1 | `#8DB8FF` on `#16293A`, 7.4:1; on `#0D1F2D`, 8.3:1 |
+| Focus ring on the controls | `#E06F00` on `#FFFFFF`, 3.3:1 | `#FFB454` on `#16293A`, 8.4:1 |
+| Zoom icons (MapLibre's grey, inverted on the dark map) | MapLibre's `#333333` on `#FFFFFF`, 12.6:1 | `#CCCCCC` on `#16293A`, 9.3:1 |
+
+Before this change, the city markers took the page's tokens, so in the dark theme on the light basemap the disc border was 1.06:1 against the land and the selected ring 1.75:1, below the 3:1 that a meaningful graphic needs (issue #118).

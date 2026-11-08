@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import ModeBadge from "./mode-badge";
+import OfflineLine from "./offline-line";
 
 /** The page a header is on. Sources and privacy belong to the About section. */
 export type Section = "plan" | "city" | "alerts" | "settings" | "about" | "sources" | "privacy";
@@ -23,7 +24,7 @@ function currentFor(link: (typeof LINKS)[number], current: Section | undefined):
   return link.also?.includes(current) ? "true" : undefined;
 }
 
-/** Skip link, wordmark, the main links and the mode badge. Same on every page. */
+/** Skip link, wordmark, the main links, the mode badge and the offline line. Same on every page. */
 export default function SiteHeader({ current, badge = <ModeBadge /> }: Props) {
   return (
     <>
@@ -48,6 +49,7 @@ export default function SiteHeader({ current, badge = <ModeBadge /> }: Props) {
           ))}
         </nav>
       </header>
+      <OfflineLine />
     </>
   );
 }

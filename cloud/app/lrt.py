@@ -88,7 +88,6 @@ from .routing import (
     Step,
     _polyline,
     _steps,
-    profile_weights,
 )
 from .schemas import Confidence, Kind
 
@@ -596,8 +595,8 @@ class LrtPlanner:
         if origin_node == destination_node:
             return plan
 
-        weights = profile_weights(self.network, profile, hazards)
-        matrix = self.network.length_matrix(weights)
+        entry = self.router.weights(profile, hazards)  # cached per map (OP-404)
+        weights, matrix = entry.weights, entry.matrix()
         from_start, pred_start = dijkstra(
             matrix,
             directed=True,

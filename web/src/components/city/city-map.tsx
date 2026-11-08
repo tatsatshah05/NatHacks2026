@@ -1,23 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import * as maplibregl from "maplibre-gl";
-import { LngLatBounds, Map, Marker, NavigationControl } from "maplibre-gl";
+import { useEffect, useRef, useState } from "react";
+import type { Map, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { PriorityItem } from "@/lib/city";
 import { readingShort } from "@/lib/city";
+import { useMapSurface } from "@/lib/map-surface";
+import maplibregl from "@/lib/maplibre";
 import { effectLabel } from "@/lib/report-format";
+import { prefersReducedMotion } from "@/lib/settings";
 import { effectShape, hazardShapeSvg } from "../ui/hazard-shapes";
 import { cameraGlyphSvg } from "./camera-glyph";
 import type { CameraGroup } from "./cameras";
 import styles from "./city-dashboard.module.css";
 
 const EDMONTON: [number, number] = [-113.4938, 53.5461];
-
-// MapLibre 6 loads its tile worker from a file next to its own module, which the Next
-// bundle does not copy. Point it at the package's worker so the bundler emits it as an
-// asset; without this the base map never draws (only the DOM markers do).
-maplibregl.setWorkerUrl(new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).toString());
 
 type Props = {
   items: readonly PriorityItem[];
@@ -29,7 +26,13 @@ type Props = {
 // Markers are pointer shortcuts only (docs/design/DESIGN.md, City map markers). The
 // list and the "Road cameras" section are the keyboard and screen-reader path and
 // select the same things, so markers are hidden from assistive technology and stay
-// out of the tab order.
+// out of the tab order. The markers are built from the data alone and the selection
+// only toggles a class, so choosing an item never replaces an element (#119).
+//
+// The style follows the settings and the theme (OP-307, wired in OP-410), and the
+// frame carries the map's palette (lib/map-surface.ts), so the markers keep their
+// contrast on either basemap. If WebGL is missing, a sentence says so and the lists
+// still hold everything.
 export default function CityMap({ items, cameras, selectedId, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
@@ -37,6 +40,9 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
   const fittedRef = useRef(false);
   const onSelectRef = useRef(onSelect);
   const jumpedRef = useRef<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  const surface = useMapSurface();
+  const styleKeyRef = useRef(surface.styleKey);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -44,22 +50,43 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: "https://tiles.openfreemap.org/styles/liberty",
-      center: EDMONTON,
-      zoom: 10.5,
-      // Respect reduced motion in the library too, not only in CSS.
-      fadeDuration: reduce ? 0 : 300
+    let map: Map;
+    try {
+      map = new maplibregl.Map({
+        container: containerRef.current,
+        style: surface.style,
+        center: EDMONTON,
+        zoom: 10.5,
+        // Respect reduced motion in the library too, not only in CSS.
+        fadeDuration: prefersReducedMotion() ? 0 : 300,
+        attributionControl: { compact: true }
+      });
+    } catch {
+      setProblem("The map cannot be drawn in this browser. The lists on this page have everything it would show.");
+      return;
+    }
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.on("error", () => {
+      if (!map.isStyleLoaded()) {
+        setProblem("The map background did not load. The lists on this page have everything it would show.");
+      }
     });
-    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     mapRef.current = map;
     return () => {
       map.remove();
       mapRef.current = null;
     };
+    // The surface at creation time only; changes go through setStyle below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The style follows the high-contrast setting, the theme and the text size.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || styleKeyRef.current === surface.styleKey) return;
+    styleKeyRef.current = surface.styleKey;
+    map.setStyle(surface.style);
+  }, [surface.styleKey, surface.style]);
 
   // Rebuild the markers when the data changes; selection only toggles a class.
   useEffect(() => {
@@ -76,7 +103,7 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
       element.innerHTML = hazardShapeSvg(effectShape(item.effect), 24, `city-${index}`);
       element.addEventListener("click", () => onSelectRef.current(item.id));
       elements.set(item.id, element);
-      markers.push(new Marker({ element, anchor: "center" }).setLngLat([item.lng, item.lat]).addTo(map));
+      markers.push(new maplibregl.Marker({ element, anchor: "center" }).setLngLat([item.lng, item.lat]).addTo(map));
     });
     cameras.forEach((camera) => {
       const element = document.createElement("div");
@@ -89,12 +116,12 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
       element.appendChild(word);
       element.addEventListener("click", () => onSelectRef.current(camera.id));
       elements.set(camera.id, element);
-      markers.push(new Marker({ element, anchor: "center" }).setLngLat([camera.lng, camera.lat]).addTo(map));
+      markers.push(new maplibregl.Marker({ element, anchor: "center" }).setLngLat([camera.lng, camera.lat]).addTo(map));
     });
     markersRef.current = elements;
     if (!fittedRef.current && (items.length || cameras.length)) {
       // Once: frame everything we know about, without animation.
-      const bounds = new LngLatBounds();
+      const bounds = new maplibregl.LngLatBounds();
       for (const item of items) bounds.extend([item.lng, item.lat]);
       for (const camera of cameras) bounds.extend([camera.lng, camera.lat]);
       map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });
@@ -123,13 +150,14 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
   }, [selectedId, items, cameras]);
 
   return (
-    <div className="map-frame">
+    <div className={`map-frame ${surface.surfaceClass}`}>
       <div
         ref={containerRef}
         className={`map-canvas ${styles.mapCanvas}`}
         role="region"
         aria-label="Map of barriers and road cameras. The lists on this page hold everything it shows."
       />
+      {problem && <p className={styles.problem}>{problem}</p>}
     </div>
   );
 }

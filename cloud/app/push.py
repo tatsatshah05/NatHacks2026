@@ -56,7 +56,7 @@ from pywebpush import WebPushException, webpush
 from sqlalchemy.engine import Engine
 from sqlmodel import Field, Session, SQLModel, col, select
 
-from .routing import HazardMap, Route, Router, profile_weights
+from .routing import HazardMap, Route, Router
 from .saved_routes import (
     Notice,
     RouteState,
@@ -644,7 +644,7 @@ class RouteWatcher:
         if not row.baseline_edge_ids:
             return None
         profile = self.router.config.profile(row.profile)
-        weights = profile_weights(self.router.network, profile, hazards)
+        weights = self.router.weights(profile, hazards).weights  # cached (OP-404)
         used = weights[[int(edge) for edge in row.baseline_edge_ids]]
         if bool((used <= 0).any()):
             return Usual(blocked=True, eta_min=None)

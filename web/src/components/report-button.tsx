@@ -16,12 +16,10 @@ import { HazardShape, HazardShapeIcon } from "./ui/hazard-mark";
 import SegmentedChoice from "./ui/segmented-choice";
 import styles from "./report-button.module.css";
 
-// `photo.checked_by` is additive in the API (branch op-308-photo-check-both, not yet in
-// api-types.ts): the checks that answered, in order. Optional until `make types` picks
-// it up after that merge; then this widening can go.
-type CheckName = "model" | "claude";
-type PhotoResult = components["schemas"]["PhotoResult"] & { checked_by?: CheckName[] };
-type ReportResult = Omit<components["schemas"]["ReportResult"], "photo"> & { photo: PhotoResult };
+// `photo.checked_by` lists the checks that answered, in order (#158).
+type PhotoResult = components["schemas"]["PhotoResult"];
+type CheckName = PhotoResult["checked_by"][number];
+type ReportResult = components["schemas"]["ReportResult"];
 type ValidationErrorBody = components["schemas"]["HTTPValidationError"];
 type ReportForm =
   operations["post_report_api_reports_post"]["requestBody"]["content"]["multipart/form-data"];

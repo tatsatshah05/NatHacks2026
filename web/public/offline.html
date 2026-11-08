@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline | OpenPath</title>
+    <meta name="color-scheme" content="light dark" />
+    <!-- OP-410: served by sw.js when a navigation fails offline. The same tokens as
+         globals.css; the system font, because the web font is not cached. -->
+    <style>
+      :root {
+        --snow: #f5f8fa;
+        --card: #ffffff;
+        --ink: #0d1f2d;
+        --muted: #4a5b6a;
+        --line: #b9c6d1;
+        --action: #1450a3;
+        --on-action: #ffffff;
+        --focus: #e06f00;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --snow: #0d1f2d;
+          --card: #16293a;
+          --ink: #f2f6f9;
+          --muted: #a9b8c6;
+          --line: #3c5063;
+          --action: #8db8ff;
+          --on-action: #0d1f2d;
+          --focus: #ffb454;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme="dark"] {
+        --snow: #0d1f2d;
+        --card: #16293a;
+        --ink: #f2f6f9;
+        --muted: #a9b8c6;
+        --line: #3c5063;
+        --action: #8db8ff;
+        --on-action: #0d1f2d;
+        --focus: #ffb454;
+        color-scheme: dark;
+      }
+      :root[data-text="large"] {
+        font-size: 125%;
+      }
+      :root[data-text="larger"] {
+        font-size: 150%;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--snow);
+        color: var(--ink);
+        font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+        font-size: 1rem;
+        line-height: 1.5;
+        margin: 0;
+      }
+      .shell {
+        margin: 0 auto;
+        max-width: 1200px;
+        padding: 0 16px;
+      }
+      header {
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        min-height: 64px;
+        padding: 6px 0;
+      }
+      .wordmark {
+        align-items: center;
+        display: inline-flex;
+        font-size: 1.25rem;
+        font-weight: 700;
+        gap: 10px;
+        min-height: 44px;
+      }
+      .wordmark svg {
+        color: var(--action);
+        height: 14px;
+        width: 30px;
+      }
+      main {
+        max-width: 70ch;
+        padding: 24px 0 48px;
+      }
+      .problem {
+        border-left: 4px solid var(--ink);
+        padding: 2px 0 2px 14px;
+      }
+      h1 {
+        font-size: 1.9375rem;
+        line-height: 1.2;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0 0 8px;
+      }
+      .lead {
+        font-size: 1.125rem;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      button {
+        align-items: center;
+        background: var(--action);
+        border: 2px solid var(--action);
+        border-radius: 6px;
+        color: var(--on-action);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 700;
+        justify-content: center;
+        margin-top: 16px;
+        min-height: 44px;
+        padding: 8px 18px;
+      }
+      button:hover {
+        text-decoration: underline;
+      }
+      :focus-visible {
+        box-shadow: 0 0 0 2px var(--card);
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+    </style>
+    <script>
+      // The same choices the app applies before its first paint (lib/settings-boot.ts).
+      (function () {
+        try {
+          var d = document.documentElement;
+          var s = JSON.parse(localStorage.getItem("openpath.settings") || "{}") || {};
+          if (s.textSize === "large" || s.textSize === "larger") d.setAttribute("data-text", s.textSize);
+          if (s.theme === "light" || s.theme === "dark") d.setAttribute("data-theme", s.theme);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <span class="wordmark">
+          <svg viewBox="0 0 30 14" aria-hidden="true" focusable="false">
+            <path d="M5 7h20" stroke="currentColor" stroke-width="3" />
+            <circle cx="5" cy="7" r="4.5" fill="currentColor" />
+            <circle cx="25" cy="7" r="4.5" fill="currentColor" />
+          </svg>
+          OpenPath
+        </span>
+      </header>
+      <main id="main">
+        <div class="problem" role="alert">
+          <h1>You are offline.</h1>
+          <p class="lead">OpenPath needs a connection to plan routes and show current conditions.</p>
+          <p>Reconnect, then try again. This page reloads by itself when the connection returns.</p>
+          <button type="button" onclick="location.reload()">Try again</button>
+        </div>
+      </main>
+    </div>
+    <script>
+      window.addEventListener("online", function () {
+        location.reload();
+      });
+    </script>
+  </body>
+</html>

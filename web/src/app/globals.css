@@ -260,6 +260,18 @@ main > .page-title,
     margin-left: -8px;
   }
 }
+/* OP-410: "You are offline. Showing what was loaded before." Always in the page
+   (role="status"), one line tall, and pulled up into the page's top padding by its
+   negative margin, so the sentence appearing or clearing moves nothing below it. */
+.site-status {
+  color: var(--ink);
+  line-height: 1.5;
+  margin: 0 0 -1.5rem;
+  min-height: 1.5rem;
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
+}
 
 /* Buttons: primary filled action, secondary outlined ink, text for quiet actions. */
 .button {
@@ -345,22 +357,6 @@ main > .page-title,
 .control-input:focus-visible {
   box-shadow: none;
   outline: none;
-}
-.control-trailing {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 4px;
-  color: var(--action);
-  cursor: pointer;
-  display: inline-flex;
-  height: 44px;
-  justify-content: center;
-  margin-right: 2px;
-  width: 44px;
-}
-.control-trailing:focus-visible {
-  outline-offset: -3px;
 }
 .field-help,
 .field-error,
@@ -538,6 +534,11 @@ main > .page-title,
   color: var(--ink);
   margin: 0 0 12px;
 }
+/* OP-410: while a page's main content loads, keep what follows it (the map on a phone,
+   the footer) below the fold, so the content arriving moves nothing that is visible. */
+.loading-space {
+  min-height: 70vh;
+}
 .status-line:empty {
   margin: 0;
 }
@@ -570,10 +571,6 @@ main > .page-title,
 }
 .route-reason {
   margin-bottom: 4px;
-}
-.route-rank {
-  color: var(--muted);
-  margin-bottom: 0;
 }
 .route-line {
   list-style: none;
@@ -718,9 +715,6 @@ main > .page-title,
 .results {
   margin-top: 36px;
 }
-.results-heading {
-  margin-bottom: 12px;
-}
 .routes {
   display: grid;
   gap: 20px;
@@ -823,66 +817,11 @@ main > .page-title,
 }
 
 /* City */
-.city-list {
-  display: grid;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-/* Rows, not cards: decorative rules between them; the pressed row gets an action bar. */
-.city-list > li + li {
-  border-top: 1px solid var(--line);
-}
-.list-button .hazard-mark {
-  align-items: flex-start;
-}
-.list-button .hazard-shape {
-  margin-top: 2px;
-}
-.count-row {
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 16px;
-}
-.count-row .status-line {
-  margin: 0;
-}
-.count-row a {
-  align-items: center;
-  display: inline-flex;
-  min-height: 44px;
-}
-.list-button {
-  background: transparent;
-  border: 0;
-  position: relative;
-  border-left: 4px solid transparent;
-  cursor: pointer;
-  display: grid;
-  gap: 2px;
-  min-height: 56px;
-  padding: 12px 8px 12px 12px;
-  text-align: left;
-  width: 100%;
-}
-.list-button[aria-pressed="true"] {
-  background: var(--card);
-  border-left-color: var(--action);
-}
-.list-button p {
-  margin: 0;
-}
-.list-button .item-title {
-  overflow-wrap: anywhere;
-}
-.list-button:focus-visible {
-  outline-offset: -3px;
-}
 .map-frame {
   position: relative;
 }
 .map-canvas {
+  background: var(--map-land, #f1efe9); /* the basemap's land colour, shown while tiles load */
   border: 1px solid var(--line);
   border-radius: 6px;
   height: 60vh;
@@ -894,16 +833,52 @@ main > .page-title,
     height: calc(100vh - 160px);
   }
 }
-.map-status {
-  background: var(--card);
-  border: 1px solid var(--muted);
-  border-radius: 4px;
-  bottom: 12px;
-  left: 12px;
-  margin: 0;
-  padding: 4px 10px;
-  position: absolute;
+
+/*
+  The map is its own surface (OP-410, DESIGN.md section 10). The liberty basemap and
+  the high-contrast light style are light in both page themes, and the high-contrast
+  dark style is dark, so everything drawn inside a map (markers, tags, controls, the
+  focus ring) takes the map's palette, not the page's. The map components put one of
+  these two classes on the element that holds the canvas, and nothing else.
+  Measured: every hazard shape is at least 5.8:1 on the disc, the selected ring 6.8:1
+  on the liberty land (#F1EFE9) and the focus ring 3.3:1 on the white controls.
+  Before, the dark theme put its light tokens on the light basemap: the disc border was
+  1.06:1 against the land and the selected ring 1.75:1 (#118).
+*/
+.map-light {
+  --snow: #f5f8fa;
+  --card: #ffffff;
+  --ink: #0d1f2d;
+  --muted: #4a5b6a;
+  --line: #b9c6d1;
+  --action: #1450a3;
+  --on-action: #ffffff;
+  --focus: #e06f00;
+  --blocked: #b3261e;
+  --ice: #0b6f80;
+  --snow-hazard: #5b4fcf;
+  --caution: #8a5300;
+  --clear: #1e6b3a;
+  --map-land: #f1efe9;
 }
+.map-dark {
+  --snow: #0d1f2d;
+  --card: #16293a;
+  --ink: #f2f6f9;
+  --muted: #a9b8c6;
+  --line: #3c5063;
+  --action: #8db8ff;
+  --on-action: #0d1f2d;
+  --focus: #ffb454;
+  --blocked: #ff9a8f;
+  --ice: #5fd4e8;
+  --snow-hazard: #c2b8ff;
+  --caution: #f4b860;
+  --clear: #7fd39a;
+  --map-land: #0d1f2d;
+}
+/* A condition on the map: its hazard shape on a disc. A pointer shortcut only; the list
+   beside the map is the keyboard and screen-reader path. */
 .map-marker {
   align-items: center;
   background: var(--card);
@@ -916,22 +891,55 @@ main > .page-title,
   padding: 0;
   width: 44px;
 }
+/* Chosen in the list: a card gap, then a ring in the action colour. */
 .map-marker.is-selected {
   border-width: 3px;
-  box-shadow: 0 0 0 2px var(--card), 0 0 0 5px var(--action);
+  box-shadow:
+    0 0 0 2px var(--card),
+    0 0 0 5px var(--action);
   z-index: 2;
 }
-.maplibregl-ctrl-group {
+/* MapLibre's controls: 44 x 44 CSS px targets (#120), the ink border, and the project's
+   focus ring drawn inside the control, where the map's clipped frame cannot hide it.
+   MapLibre's stylesheet arrives with the map chunk, after this file, and sets 29 px and
+   a blue glow; these selectors outweigh its. */
+.maplibregl-map .maplibregl-ctrl-group {
+  background: var(--card);
   border: 2px solid var(--ink);
   border-radius: 6px;
   box-shadow: none;
 }
-.maplibregl-ctrl-group button {
+.maplibregl-map .maplibregl-ctrl-group button {
   height: 44px;
   width: 44px;
 }
-.maplibregl-ctrl-group button + button {
+.maplibregl-map .maplibregl-ctrl-group button + button {
   border-top: 2px solid var(--ink);
+}
+.maplibregl-map .maplibregl-canvas:focus-visible,
+.maplibregl-map .maplibregl-ctrl-group button:focus-visible,
+.maplibregl-map .maplibregl-ctrl-attrib-button:focus-visible,
+.maplibregl-map .maplibregl-ctrl-attrib a:focus-visible {
+  box-shadow: none;
+  outline: 3px solid var(--focus);
+  outline-offset: -4px;
+}
+.maplibregl-map .maplibregl-ctrl-group button:focus:not(:focus-visible),
+.maplibregl-map .maplibregl-ctrl-attrib-button:focus:not(:focus-visible) {
+  box-shadow: none;
+  outline: none;
+}
+/* On the dark style the controls take the dark card; MapLibre's grey icons (#333) are
+   inverted to #CCC, 9.3:1 on the card. */
+.map-dark .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+.map-dark .maplibregl-ctrl-attrib {
+  background: var(--card);
+  color: var(--ink);
+}
+.map-dark .maplibregl-ctrl-attrib a {
+  color: var(--action);
 }
 .alert {
   border: 2px solid var(--ink);
@@ -953,11 +961,6 @@ main > .page-title,
 .freshness p {
   margin: 0;
 }
-.selected-detail {
-  border-top: 2px solid var(--ink);
-  margin-top: 20px;
-  padding-top: 12px;
-}
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -973,7 +976,7 @@ main > .page-title,
 /* Report */
 .report-intro {
   max-width: 70ch;
-  padding-top: 16px;
+  padding-top: 24px;
 }
 .report-intro h1 {
   margin-top: 4px;
@@ -1000,6 +1003,29 @@ main > .page-title,
 }
 .item .hazard-mark {
   margin-bottom: 2px;
+}
+
+/* OP-410: a page that does not exist or has stopped working. The problem block alone:
+   an ink rule on the left, what happened, what to do, then the action. */
+.page-problem {
+  max-width: 70ch;
+  padding: 24px 0 48px;
+}
+.problem-block {
+  border-left: 4px solid var(--ink);
+  padding: 2px 0 2px 14px;
+}
+.problem-block h1 {
+  margin-bottom: 8px;
+}
+.problem-block p {
+  margin: 0 0 8px;
+}
+.problem-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 /* Footer */

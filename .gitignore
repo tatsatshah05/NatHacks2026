@@ -39,9 +39,18 @@ web/.vercel/
 web/.env.local
 web/*.tsbuildinfo
 
+# Playwright end-to-end output (OP-406): traces, screenshots and reports
+web/test-results/
+web/playwright-report/
+web/blob-report/
+web/playwright/.cache/
+
 # Local agent worktrees (Claude Code); never part of the repository
 .claude/worktrees/
 
 # Replay snapshots from `make record` (OP-305). A full one is over CI's 5 MB file
 # limit, so snapshots stay on the laptop; see docs/OP-305.md.
 snapshots/
+
+# Database backups from scripts/db_backup.py (OP-405); never committed
+backups/

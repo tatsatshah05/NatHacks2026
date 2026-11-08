@@ -17,13 +17,27 @@ export type CameraReading = Schemas["CameraProperties"];
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 async function getJson<T>(path: string, what: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`${apiBase}${path}`, {
-    signal,
-    headers: { Accept: "application/json" },
-    cache: "no-store"
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBase}${path}`, {
+      signal,
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    // The page shows this sentence, so it says what to do, not what the browser said.
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+    throw new Error(
+      offline ? `This device is offline, so the ${what} could not be checked.` : `The ${what} service did not answer. Check your connection.`
+    );
+  }
   if (!response.ok) throw new Error(`The ${what} service answered ${response.status}.`);
-  return (await response.json()) as T;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new Error(`The ${what} service sent an unexpected answer.`);
+  }
 }
 
 /** GET /api/priority: every barrier, ranked clear-first. */

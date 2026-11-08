@@ -15,9 +15,11 @@ import ReportButton from "./report-button";
 import LiveStatus from "./live-status";
 import { NoRoute, RouteFailure } from "./route-problem";
 import RouteResult from "./route-result";
+import SaveRouteButton from "./save-route-button";
 import Button from "./ui/button";
 import CheckField from "./ui/check-field";
 import CityWideConditions from "./ui/city-wide-conditions";
+import LazyMount from "./ui/lazy-mount";
 import Panel from "./ui/panel";
 import { cityWideItems, stopId } from "./ui/route-line";
 import SegmentedChoice from "./ui/segmented-choice";
@@ -42,7 +44,8 @@ import { isCityWide, plural } from "@/lib/report-format";
 import { parseTripParams, plannerHref, reportHref } from "@/lib/route-link";
 import styles from "./planner-page.module.css";
 
-// MapLibre is large and needs the browser; load it after the form is usable.
+// MapLibre is large and needs the browser; load it after the form is usable, and only
+// once the map's place comes near the viewport (on a phone it sits below the form).
 const PlannerMap = dynamic(() => import("./planner-map"), {
   ssr: false,
   loading: () => <div className={styles.mapLoading}>Loading the map.</div>
@@ -64,13 +67,13 @@ type Result = { query: PlannerQuery; response: RouteResponse; now: Date; demo: b
 type Pending = { query: PlannerQuery; slow: boolean };
 
 /**
- * The slot for each route's "Save this route" button. OP-306 returns its
- * `<SaveRouteButton route={route} query={query} />` here; until then there is none.
+ * Each route's "Save this route" button (OP-306). A saved route (OP-304) has no mode,
+ * so the API watches the trip's walking route; a walk and LRT trip offers no Save
+ * rather than promise alerts for a route the API does not watch.
  */
 function saveAction(route: RouteOut, query: PlannerQuery): ReactNode {
-  void route;
-  void query;
-  return null;
+  if (route.lrt) return null;
+  return <SaveRouteButton query={query} rank={route.rank} />;
 }
 
 function reducedMotion(): boolean {
@@ -455,15 +458,17 @@ export default function PlannerPage() {
             <h2 className="sr-only" id="planner-map-title">
               Map
             </h2>
-            <PlannerMap
-              routes={routes}
-              selectedRank={selected?.rank ?? null}
-              from={places.from}
-              to={places.to}
-              conditions={conditions}
-              onCondition={jumpToCondition}
-              centreRef={centreRef}
-            />
+            <LazyMount placeholder={<div className={styles.mapLoading}>Loading the map.</div>}>
+              <PlannerMap
+                routes={routes}
+                selectedRank={selected?.rank ?? null}
+                from={places.from}
+                to={places.to}
+                conditions={conditions}
+                onCondition={jumpToCondition}
+                centreRef={centreRef}
+              />
+            </LazyMount>
             {routes.length > 0 && (
               <p className={styles.mapNote}>The list has everything the map shows, in words.</p>
             )}

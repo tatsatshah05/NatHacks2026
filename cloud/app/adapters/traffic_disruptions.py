@@ -41,6 +41,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+from cloud.app.adapters._quality import RowQuality
 from cloud.app.adapters._text import clip_detail
 from cloud.app.schemas import Category, Confidence, Effect, Kind, Obstruction
 
@@ -63,6 +64,29 @@ CLOSURE_IMPACTS = {
 }
 
 LOGGER = logging.getLogger(__name__)
+
+# The dataset's columns as recorded in cloud/tests/fixtures/traffic_disruptions
+# (OP-407). A row with any other name is reported on /api/status, not rejected.
+EXPECTED_FIELDS = frozenset(
+    {
+        "activity_type",
+        "date_issued",
+        "description",
+        "details",
+        "disruption_id",
+        "duration",
+        "finish_date",
+        "from_street",
+        "impact",
+        "infrastructure",
+        "on_street",
+        "point",
+        "start_date",
+        "status",
+        "to_street",
+        "traffic_district",
+    }
+)
 
 Row = dict[str, Any]
 
@@ -188,18 +212,25 @@ def _detail(row: Row) -> str:
 
 
 def normalize(
-    rows: Sequence[Row], now: datetime, *, zone: tzinfo = EDMONTON
+    rows: Sequence[Row],
+    now: datetime,
+    *,
+    zone: tzinfo = EDMONTON,
+    quality: RowQuality | None = None,
 ) -> tuple[list[Obstruction], list[str]]:
     """Turn City rows into obstructions. Returns the items and one note per skipped row.
 
     A bad row never fails the whole refresh: it is skipped and reported, so one
-    data-entry mistake at the City cannot empty the map.
+    data-entry mistake at the City cannot empty the map. ``quality`` (OP-407)
+    also counts the skips and notes field names this adapter does not know.
     """
     if now.tzinfo is None:
         raise ValueError("now must be timezone-aware")
     items: list[Obstruction] = []
     skipped: list[str] = []
     for row in rows:
+        if quality is not None:
+            quality.see(row)
         ref = _text(row, "disruption_id")
         try:
             if not ref:
@@ -241,6 +272,8 @@ def normalize(
         except (ValueError, TypeError) as error:
             note = f"disruption {ref or '?'}: {error}"
             skipped.append(note)
+            if quality is not None:
+                quality.reject(note)
             LOGGER.warning("SKIP %s %s", SOURCE, note)
     items.sort(key=lambda item: item.source_ref)
     return items, skipped
@@ -260,6 +293,7 @@ class TrafficDisruptionsAdapter:
         self.last_success: datetime | None = None
         self.last_error: str | None = None
         self.skipped: list[str] = []
+        self.quality = RowQuality(EXPECTED_FIELDS)  # OP-407, read by the scheduler
 
     def fetch(self, now: datetime | None = None) -> list[Obstruction]:
         """Read the whole feed once and return every active closure.
@@ -267,13 +301,14 @@ class TrafficDisruptionsAdapter:
         Raises when the feed cannot be read, so the store keeps its last snapshot.
         """
         now = (now or datetime.now(UTC)).astimezone(UTC)
+        self.quality.start()
         try:
             rows = self.reader.read()
         except (httpx.HTTPError, OSError, ValueError) as error:
             self.last_error = f"{type(error).__name__}: {error}"
             LOGGER.warning("REFRESH %s failed: %s", SOURCE, self.last_error)
             raise
-        items, skipped = normalize(rows, now, zone=self.zone)
+        items, skipped = normalize(rows, now, zone=self.zone, quality=self.quality)
         self.last_good = items
         self.skipped = skipped
         self.last_success = now
