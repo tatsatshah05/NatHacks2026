@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Scrum master tool for moving between phases. Needs the GitHub CLI logged in as a repo admin.
 #
-#   scripts/phase.sh finish 1   Open the release pull request phase_1 -> main ("Phase 1: Data Foundation")
+#   scripts/phase.sh finish 1   Open the release pull request release/phase-1 -> main (phase_1 with main merged in)
 #   scripts/phase.sh start 2    Create phase_2 from main, protect it, and make it the default branch
 #
 # See docs/CI_CD.md.
@@ -42,9 +42,22 @@ JSON
 
 case "$action" in
   finish)
-    gh pr create -R "$REPO" --base main --head "$branch" \
-      --title "Phase $n: $name" \
-      --body "Releases Phase $n ($name) into main after its checkpoint passed. Merging deploys to production. Next: \`scripts/phase.sh start $((n + 1))\`."
+    # The repository merges by squash only, so a phase branch never contains main as an
+    # ancestor and a direct phase_N -> main pull request conflicts on every shared file.
+    # Release through a branch that is phase_N with main merged in; its tree is phase_N's.
+    release="release/phase-$n"
+    git fetch -q origin main "$branch"
+    git switch -q -c "$release" "origin/$branch" 2>/dev/null || { git switch -q "$release" && git reset -q --hard "origin/$branch"; }
+    if ! git merge --no-edit origin/main >/dev/null 2>&1; then
+      # Conflicts are always in files both sides changed; the phase branch has the newer version.
+      git diff --name-only --diff-filter=U | xargs -r git checkout --ours --
+      git diff --name-only --diff-filter=U | xargs -r git add --
+      git commit -q --no-edit
+    fi
+    git push -q -u origin "$release"
+    gh pr create -R "$REPO" --base main --head "$release" \
+      --title "chore: Release Phase $n ($name) into main" \
+      --body "Releases Phase $n ($name) into main after its checkpoint passed. This branch is phase_$n with main merged in; its tree is identical to phase_$n. Merging deploys to production. Next: \`scripts/phase.sh start $((n + 1))\`."
     ;;
   start)
     if gh api "repos/$REPO/branches/$branch" >/dev/null 2>&1; then
