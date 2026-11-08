@@ -197,6 +197,12 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 
 ## Commands
 
+OP-201 dataset audit: `python -m vision.tools.dataset --images vision/data/raw --labels vision/data/labels_estella.csv --out vision/data/dataset`; see the [dataset workflow](docs/ESTELLA_OP201.md) for blind second labelling and source permissions.
+
+OP-201 collection after team source clearance: `python -m vision.tools.collect --limit 6 --reviewer Estella` previews each image in memory; only `k` retains a privacy-reviewed frame in ignored `vision/data/raw/`. `--plan` lists cached camera IDs offline. The UTC filename timestamp is retrieval time, not verified capture time.
+
+Issue #44 permits additional provincial snow/ice training examples: `python -m vision.tools.collect --scope alberta --limit 20` (optional `--camera-ids ...`); `--plan` remains offline. This training-data selection does not change Edmonton routing coverage.
+
 OP-109's standalone weather app: `.venv/bin/python -m uvicorn cloud.app.weather_app:create_app --factory --port 8001`; replay requires `DATA_MODE=replay` and `REPLAY_SNAPSHOT` pointing to the snapshot described in [Estella's weather guide](docs/ESTELLA_PHASE1.md).
 
 These live in the root Makefile and are available after OP-102.

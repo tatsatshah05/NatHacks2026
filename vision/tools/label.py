@@ -210,6 +210,7 @@ class LabelSession:
         out_csv: Path,
         labeller: str,
         now: Callable[[], datetime] | None = None,
+        selected_images: set[str] | None = None,
     ) -> None:
         if not labeller.strip():
             raise ValueError("labeller must not be empty")
@@ -219,6 +220,15 @@ class LabelSession:
         self._now = now or (lambda: datetime.now(UTC))
         self._rows: dict[str, LabelRow] = read_labels(out_csv)
         all_images = list_images(images_dir)
+        if selected_images is not None:
+            available = {self._key(path) for path in all_images}
+            if selected_images - available:
+                raise ValueError(
+                    "Selection contains missing images or paths outside the image folder"
+                )
+            all_images = [
+                path for path in all_images if self._key(path) in selected_images
+            ]
         self._queue: list[Path] = [
             p for p in all_images if self._key(p) not in self._rows
         ]
@@ -490,6 +500,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--labeller", required=True, help="Your name, written into every row."
     )
     parser.add_argument(
+        "--only",
+        type=Path,
+        help="Only show images listed in a blind sample CSV (image column).",
+    )
+    parser.add_argument(
         "--max-side",
         type=int,
         default=1280,
@@ -502,8 +517,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"{args.images} is not a folder.", file=sys.stderr)
         return 2
     try:
-        session = LabelSession(args.images, args.out, args.labeller)
-    except ValueError as exc:
+        selection = None
+        if args.only is not None:
+            with args.only.open(newline="", encoding="utf-8") as handle:
+                reader = csv.DictReader(handle)
+                if not reader.fieldnames or "image" not in reader.fieldnames:
+                    raise ValueError("Selection CSV needs an image column")
+                selection = {row["image"] for row in reader}
+        session = LabelSession(
+            args.images, args.out, args.labeller, selected_images=selection
+        )
+    except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 
