@@ -33,6 +33,7 @@ from pydantic import BaseModel
 from cloud.app import (
     ingest_api,
     obstructions_api,
+    reports_api,
     routing_api,
     sources,
     status,
@@ -155,6 +156,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     camera_store.create_tables()
     camera_store.purge_expired(utcnow())  # drop readings that expired over a week ago
     app.state.camera_store = camera_store
+    app.state.photo_checker = reports_api.build_photo_checker()  # OP-308
     mode: str = app.state.mode
     snapshot_raw = os.environ.get("REPLAY_SNAPSHOT")
     snapshot = Path(snapshot_raw) if snapshot_raw else None
@@ -234,6 +236,7 @@ def create_app() -> FastAPI:
     app.include_router(routing_api.router)
     app.include_router(weather_service.router)
     app.include_router(ingest_api.router)
+    app.include_router(reports_api.router)
 
     @app.get("/health", tags=["ops"])
     def health() -> Health:
