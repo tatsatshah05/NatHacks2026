@@ -495,6 +495,11 @@ export interface components {
             label: string | null;
             /** Note */
             note: string;
+            /**
+             * Checked By
+             * @description The checks that answered for this photo, in the order they ran: 'model' (the ONNX road-condition model) and 'claude'. Empty when no check answered. Medium confidence with both is the decided setup.
+             */
+            checked_by: ("model" | "claude")[];
         };
         /** ReportGroupOut */
         ReportGroupOut: {

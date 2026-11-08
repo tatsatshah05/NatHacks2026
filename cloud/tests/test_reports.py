@@ -28,6 +28,7 @@ from cloud.app.reports import (
     CLASS_TO_TYPE,
     KINDS,
     PHOTO_CLASSES,
+    PhotoChecks,
     ReportCounter,
     ReportFields,
     ReportsConfig,
@@ -70,6 +71,28 @@ class FakeChecker:
         return self.label
 
 
+class FakeClaude(FakeChecker):
+    """The Claude check: a fixed label, a fixed blocked answer, and call counts."""
+
+    name = "claude:fake"
+
+    def __init__(
+        self,
+        label: str = "ice",
+        blocked: str = "yes",
+        error: Exception | None = None,
+    ) -> None:
+        super().__init__(label, error)
+        self.answer = blocked
+        self.blocked_sizes: list[int] = []
+
+    def blocked(self, photo: bytes) -> str:
+        self.blocked_sizes.append(len(photo))
+        if self.error is not None:
+            raise self.error
+        return self.answer
+
+
 def report(**overrides: Any) -> dict[str, Any]:
     body: dict[str, Any] = {"client_id": CLIENT, "type": "ice", "lat": LAT, "lng": LNG}
     body.update(overrides)
@@ -86,9 +109,14 @@ def make_app(
     config: ReportsConfig = CONFIG,
     now: datetime = NOW,
 ) -> FastAPI:
-    """Only the obstructions and reports routers, on the test store, at a frozen time."""
+    """Only the obstructions and reports routers, on the test store, at a frozen time.
+
+    ``checker`` is a ``PhotoChecks``; a single fake checker stands for the model alone.
+    """
     app = FastAPI()
     app.state.store = store
+    if checker is not None and not isinstance(checker, PhotoChecks):
+        checker = PhotoChecks(model=checker)
     app.state.photo_checker = checker
     app.include_router(obstructions_api.router)
     app.include_router(reports_api.router)
@@ -434,8 +462,8 @@ def database_values(store: ObstructionStore) -> list[tuple[str, str, Any]]:
 def test_the_photo_is_classified_in_memory_and_never_kept(
     store, disk_writes, caplog, as_json: bool
 ) -> None:
-    checker = FakeChecker("ice")
-    client = TestClient(make_app(store, checker))
+    checker, claude = FakeChecker("ice"), FakeClaude("ice")
+    client = TestClient(make_app(store, PhotoChecks(checker, claude)))
     encoded = base64.b64encode(JPEG).decode()
     note = "Black glare by the bench"
     caplog.set_level(logging.INFO, logger="openpath.reports")
@@ -448,12 +476,14 @@ def test_the_photo_is_classified_in_memory_and_never_kept(
             files={"photo": ("IMG_0001.jpg", JPEG, "image/jpeg")},
         )
     assert response.status_code == 201, response.text
-    assert checker.sizes == [len(JPEG)]  # the checker saw the exact bytes
+    assert checker.sizes == [len(JPEG)]  # the model saw the exact bytes
+    assert claude.sizes == [len(JPEG)]  # and so did Claude, once
     assert disk_writes == []  # no file, temporary file or spool was written
 
     body = response.json()
     assert body["confidence"] == "medium"
     assert body["photo"]["received"] and body["photo"]["checked"]
+    assert body["photo"]["checked_by"] == ["model", "claude"]
     assert "discarded" in body["photo"]["note"]
     assert "photo" not in store.get(body["id"]).model_dump()  # type: ignore[union-attr]
 
@@ -467,9 +497,96 @@ def test_the_photo_is_classified_in_memory_and_never_kept(
     (line,) = [
         r.getMessage() for r in caplog.records if r.getMessage().startswith("REPORT")
     ]
-    assert f"photo={len(JPEG)} bytes class=ice" in line
+    assert f"photo={len(JPEG)} bytes class=ice outcome=agrees by=model+claude" in line
     assert encoded[:40] not in caplog.text and MARKER.decode() not in caplog.text
     assert note not in caplog.text and CLIENT not in caplog.text
+
+
+def real_jpeg() -> bytes:
+    """A real JPEG (Pillow opens it, as ClaudeCheck does) that also carries MARKER.
+
+    A gradient, so it passes the model's brightness and contrast gate.
+    """
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    image = Image.linear_gradient("L").resize((48, 32)).convert("RGB")
+    image.save(buffer, format="JPEG")
+    return buffer.getvalue() + MARKER  # trailing bytes after EOI are ignored
+
+
+class FakeAnthropic:
+    """Stands in for anthropic.Anthropic: records requests, answers with fixed JSON."""
+
+    def __init__(self, answer: dict[str, str]) -> None:
+        self.answer = answer
+        self.requests: list[dict[str, Any]] = []
+        self.messages = self
+        self.beta = type("Beta", (), {"messages": self})()
+
+    def create(self, **request: Any) -> Any:
+        import json
+        from types import SimpleNamespace
+
+        self.requests.append(request)
+        usage = SimpleNamespace(
+            input_tokens=900,
+            cache_read_input_tokens=0,
+            cache_creation_input_tokens=0,
+            output_tokens=30,
+        )
+        text = SimpleNamespace(type="text", text=json.dumps(self.answer))
+        return SimpleNamespace(
+            stop_reason="end_turn", content=[text], usage=usage, model=None
+        )
+
+
+@pytest.mark.parametrize(
+    ("report_type", "answer", "question"),
+    [
+        ("ice", {"label": "ice", "reason": "Frozen sheen."}, "Label this photo."),
+        (
+            "blocked",
+            {"blocked": "yes", "reason": "A fence crosses the path."},
+            "Is the walking path in this photo blocked?",
+        ),
+    ],
+)
+def test_the_real_claude_check_sends_the_photo_in_memory_only(
+    store, disk_writes, caplog, report_type, answer, question
+) -> None:
+    """The decided setup end to end, with the real ClaudeCheck and a fake API client."""
+    from vision.ai_check import ClaudeCheck, _report_photo_prompt
+
+    api = FakeAnthropic(answer)
+    claude = reports.ClaudePhotoChecker(
+        ClaudeCheck("claude-haiku-5-5", client=api, subject="report_photo")  # type: ignore[arg-type]
+    )
+    model = FakeChecker("ice")
+    client = TestClient(make_app(store, PhotoChecks(model, claude)))
+    photo = real_jpeg()
+    caplog.set_level(logging.INFO)
+    response = client.post(
+        "/api/reports",
+        data=form(type=report_type),
+        files={"photo": ("IMG_0002.jpg", photo, "image/jpeg")},
+    )
+    assert response.status_code == 201, response.text
+    assert disk_writes == []
+    body = response.json()
+    assert body["confidence"] == "medium"
+    assert body["photo"]["checked_by"] == ["model", "claude"]
+
+    (request,) = api.requests
+    assert request["model"] == "claude-haiku-5-5" and "fallbacks" not in request
+    assert request["system"][0]["text"] == _report_photo_prompt()
+    image, text = request["messages"][0]["content"]
+    assert base64.b64decode(image["source"]["data"]) == photo
+    assert text == {"type": "text", "text": question}
+    for _, _, value in database_values(store):
+        assert MARKER.decode() not in str(value)
+    assert MARKER.decode() not in caplog.text
+    assert image["source"]["data"][:40] not in caplog.text
 
 
 def test_a_png_and_a_data_url_are_accepted(store) -> None:
@@ -547,17 +664,18 @@ def test_an_empty_file_input_counts_as_no_photo(store) -> None:
 def test_confidence_from_the_photo_check(
     report_type, label, confidence, outcome
 ) -> None:
-    level, result = check_photo(JPEG, report_type, FakeChecker(label))
+    level, result = check_photo(JPEG, report_type, PhotoChecks(FakeChecker(label)))
     assert (level.value, result.outcome) == (confidence, outcome)
     assert result.received and "discarded" in result.note
+    assert result.checked_by == ["model"]  # the model alone answered
 
 
 def test_no_photo_or_no_checker_is_low() -> None:
-    level, result = check_photo(None, "ice", FakeChecker("ice"))
+    level, result = check_photo(None, "ice", PhotoChecks(FakeChecker("ice")))
     assert level == Confidence.LOW and result.outcome == "none" and not result.received
     level, result = check_photo(JPEG, "ice", None)
     assert level == Confidence.LOW and result.outcome == "unavailable"
-    assert result.received and not result.checked
+    assert result.received and not result.checked and result.checked_by == []
 
 
 def test_a_disagreement_keeps_the_type_and_says_so(store) -> None:
@@ -583,6 +701,185 @@ def test_a_failing_checker_still_accepts_the_report(store, caplog) -> None:
     assert len(store.active(NOW)) == 1
 
 
+# ------------------------------------- the decided setup: the model and Claude
+
+
+def both(model_label: str, claude_label: str = "ice", blocked: str = "yes") -> Any:
+    return FakeChecker(model_label), FakeClaude(claude_label, blocked)
+
+
+@pytest.mark.parametrize(
+    ("report_type", "model_label", "claude_label", "label"),
+    [
+        ("ice", "ice", "ice", "ice"),
+        ("snow", "snow_partial", "snow_covered", "snow_partial"),  # both mean snow
+        ("snow", "snow_covered", "snow_covered", "snow_covered"),
+    ],
+)
+def test_both_checks_agree_is_medium(
+    report_type, model_label, claude_label, label
+) -> None:
+    model, claude = both(model_label, claude_label)
+    level, result = check_photo(JPEG, report_type, PhotoChecks(model, claude))
+    assert level == Confidence.MEDIUM
+    assert (result.outcome, result.label, result.checked) == ("agrees", label, True)
+    assert result.checked_by == ["model", "claude"]
+    assert "the road-condition model and by Claude, and both show" in result.note
+    assert model.sizes == claude.sizes == [len(JPEG)]
+    assert claude.blocked_sizes == []  # snow and ice never ask the blocked question
+
+
+@pytest.mark.parametrize("claude_label", ["wet", "dry", "snow_partial"])
+def test_model_agrees_claude_disagrees_is_low(claude_label: str) -> None:
+    model, claude = both("ice", claude_label)
+    level, result = check_photo(JPEG, "ice", PhotoChecks(model, claude))
+    assert level == Confidence.LOW
+    assert (result.outcome, result.label) == ("disagrees", claude_label)
+    assert result.checked_by == ["model", "claude"]
+    assert "Both checks must agree" in result.note
+    assert "kept as an icy sidewalk with low confidence" in result.note
+
+
+@pytest.mark.parametrize(
+    ("model_label", "outcome"),
+    [
+        ("unusable", "unusable"),
+        ("unknown", "unusable"),  # dark, unreadable or unsure
+        ("dry", "disagrees"),  # the model already says no: low either way
+    ],
+)
+def test_the_model_saying_no_skips_the_claude_call(model_label, outcome) -> None:
+    model, claude = both(model_label)
+    level, result = check_photo(JPEG, "ice", PhotoChecks(model, claude))
+    assert level == Confidence.LOW and result.outcome == outcome
+    assert result.checked_by == ["model"]
+    assert claude.sizes == [] and claude.blocked_sizes == []  # saves an API call
+
+
+@pytest.mark.parametrize(
+    "claude",
+    [FakeClaude("unknown"), FakeClaude(error=RuntimeError("API down"))],
+    ids=["no answer", "raises"],
+)
+def test_claude_unavailable_is_low_with_the_model_only(claude: FakeClaude) -> None:
+    level, result = check_photo(JPEG, "ice", PhotoChecks(FakeChecker("ice"), claude))
+    assert level == Confidence.LOW
+    assert (result.outcome, result.label) == ("unavailable", "ice")
+    assert result.checked_by == ["model"]
+    assert "the second check (Claude) was unavailable" in result.note
+
+
+def test_claude_unusable_after_the_model_is_low() -> None:
+    model, claude = both("ice", "unusable")
+    level, result = check_photo(JPEG, "ice", PhotoChecks(model, claude))
+    assert level == Confidence.LOW and result.outcome == "unusable"
+    assert result.checked_by == ["model", "claude"]
+    assert "Claude could not read the photo" in result.note
+
+
+def test_a_failing_model_is_low_and_claude_is_not_asked() -> None:
+    model = FakeChecker(error=RuntimeError("onnx crashed"))
+    claude = FakeClaude("ice")
+    level, result = check_photo(JPEG, "ice", PhotoChecks(model, claude))
+    assert level == Confidence.LOW and result.outcome == "unavailable"
+    assert result.checked_by == [] and claude.sizes == []
+
+
+@pytest.mark.parametrize(
+    ("report_type", "claude_label", "confidence", "outcome"),
+    [
+        ("ice", "ice", "medium", "agrees"),
+        ("snow", "snow_partial", "medium", "agrees"),
+        ("ice", "wet", "low", "disagrees"),
+        ("ice", "unusable", "low", "unusable"),
+        ("ice", "unknown", "low", "unavailable"),
+    ],
+)
+def test_only_claude_configured(report_type, claude_label, confidence, outcome) -> None:
+    claude = FakeClaude(claude_label)
+    level, result = check_photo(JPEG, report_type, PhotoChecks(claude=claude))
+    assert (level.value, result.outcome) == (confidence, outcome)
+    expected_by = [] if outcome == "unavailable" else ["claude"]
+    assert result.checked_by == expected_by
+    if confidence == "medium":
+        assert result.note.startswith("The photo was checked by Claude and shows")
+
+
+def test_blocked_with_claude_yes_is_medium() -> None:
+    model, claude = both("dry", blocked="yes")
+    level, result = check_photo(JPEG, "blocked", PhotoChecks(model, claude))
+    assert level == Confidence.MEDIUM
+    assert (result.outcome, result.label) == ("agrees", "dry")
+    assert result.checked_by == ["model", "claude"]
+    assert "Claude checked the photo and sees a blocked path" in result.note
+    assert claude.blocked_sizes == [len(JPEG)] and claude.sizes == []
+
+
+@pytest.mark.parametrize("model_label", ["unusable", "unknown"])
+def test_blocked_with_the_model_unusable_is_low(model_label: str) -> None:
+    model, claude = both(model_label, blocked="yes")
+    level, result = check_photo(JPEG, "blocked", PhotoChecks(model, claude))
+    assert level == Confidence.LOW and result.outcome == "unusable"
+    assert result.checked_by == ["model"]
+    assert claude.blocked_sizes == []  # Claude is not asked about an unreadable photo
+
+
+@pytest.mark.parametrize(
+    ("answer", "outcome", "checked_by"),
+    [
+        ("no", "disagrees", ["model", "claude"]),
+        ("unclear", "unusable", ["model", "claude"]),
+        ("unknown", "unavailable", ["model"]),
+    ],
+)
+def test_blocked_without_a_yes_is_low(answer, outcome, checked_by) -> None:
+    model, claude = both("snow_partial", blocked=answer)
+    level, result = check_photo(JPEG, "blocked", PhotoChecks(model, claude))
+    assert level == Confidence.LOW and result.outcome == outcome
+    assert result.checked_by == checked_by
+    assert "discarded" in result.note
+
+
+def test_blocked_with_claude_only() -> None:
+    claude = FakeClaude(blocked="yes")
+    level, result = check_photo(JPEG, "blocked", PhotoChecks(claude=claude))
+    assert level == Confidence.MEDIUM and result.checked_by == ["claude"]
+    assert result.label is None  # no model class without the model
+    level, result = check_photo(
+        JPEG, "blocked", PhotoChecks(claude=FakeClaude(blocked="no"))
+    )
+    assert level == Confidence.LOW and result.outcome == "disagrees"
+
+
+def test_blocked_with_the_model_only_cannot_be_confirmed() -> None:
+    level, result = check_photo(JPEG, "blocked", PhotoChecks(FakeChecker("dry")))
+    assert level == Confidence.LOW and result.outcome == "unverifiable"
+    assert result.checked_by == ["model"]
+    assert "cannot confirm a blocked sidewalk" in result.note
+
+
+def test_the_response_lists_the_checks_and_explains_a_disagreement(store) -> None:
+    model, claude = both("ice", "wet")
+    client = TestClient(make_app(store, PhotoChecks(model, claude)))
+    body = client.post(
+        "/api/reports", data=form(), files={"photo": ("p.jpg", JPEG, "image/jpeg")}
+    ).json()
+    assert body["kind"] == "ice_risk" and body["confidence"] == "low"
+    photo = body["photo"]
+    assert photo["outcome"] == "disagrees" and photo["label"] == "wet"
+    assert photo["checked_by"] == ["model", "claude"]
+    assert "the road-condition model saw ice, but Claude saw a wet surface" in (
+        body["message"].replace("The road", "the road")
+    )
+
+
+def test_checked_by_is_documented_in_the_openapi_schema() -> None:
+    schema = create_app().openapi()["components"]["schemas"]["PhotoResult"]
+    field = schema["properties"]["checked_by"]
+    assert field["items"]["enum"] == ["model", "claude"]
+    assert "decided setup" in field["description"]
+
+
 # --------------------------------------------------------------- photo checkers
 
 
@@ -590,20 +887,41 @@ def test_no_environment_means_no_checker() -> None:
     assert build_photo_checker({}) is None
 
 
-def test_a_model_without_labels_falls_back_without_raising(monkeypatch) -> None:
-    claude = FakeChecker("ice")
+def test_a_model_without_labels_falls_back_without_raising(monkeypatch, caplog) -> None:
+    claude = FakeClaude("ice")
     monkeypatch.setattr(reports, "_claude_checker", lambda env: claude)
     assert build_photo_checker({"MODEL_URL": "https://example.invalid/m.onnx"}) is None
     env = {"MODEL_URL": "https://example.invalid/m.onnx", "ANTHROPIC_API_KEY": "k"}
-    assert build_photo_checker(env) is claude
+    with caplog.at_level(logging.WARNING, logger="openpath.reports"):
+        checks = build_photo_checker(env)
+    assert checks == PhotoChecks(model=None, claude=claude)
+    assert "the ONNX model is not available (ValueError)" in caplog.text
+    assert "only claude:fake is running" in caplog.text
+    assert "decided setup is the ONNX model and Claude together" in caplog.text
 
 
-def test_the_model_is_preferred_over_claude(monkeypatch) -> None:
-    model, claude = FakeChecker("ice"), FakeChecker("dry")
+def test_the_model_and_claude_are_used_together(monkeypatch, caplog) -> None:
+    model, claude = FakeChecker("ice"), FakeClaude("ice")
     monkeypatch.setattr(reports, "_model_checker", lambda env, f, u: model)
     monkeypatch.setattr(reports, "_claude_checker", lambda env: claude)
     env = {"MODEL_FILE": "m.onnx", "ANTHROPIC_API_KEY": "k"}
-    assert build_photo_checker(env) is model
+    with caplog.at_level(logging.INFO, logger="openpath.reports"):
+        checks = build_photo_checker(env)
+    assert checks == PhotoChecks(model=model, claude=claude)
+    assert "fake + claude:fake; medium confidence needs both to agree" in caplog.text
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+def test_only_the_model_logs_a_warning_about_the_decided_setup(
+    monkeypatch, caplog
+) -> None:
+    model = FakeChecker("ice")
+    monkeypatch.setattr(reports, "_model_checker", lambda env, f, u: model)
+    with caplog.at_level(logging.WARNING, logger="openpath.reports"):
+        checks = build_photo_checker({"MODEL_FILE": "m.onnx"})
+    assert checks == PhotoChecks(model=model, claude=None)
+    (warning,) = [r.getMessage() for r in caplog.records]
+    assert "only fake is running" in warning and "ANTHROPIC_API_KEY" in warning
 
 
 def test_a_claude_checker_that_cannot_load_means_no_checker(monkeypatch) -> None:
@@ -630,13 +948,182 @@ def test_the_adapters_wrap_the_vision_classifier_and_claude() -> None:
         def label(self, frame: bytes) -> Any:
             return self.answer
 
+        def blocked(self, frame: bytes) -> Any:
+            return self.answer
+
     model = reports.ModelPhotoChecker(Classifier())
     assert model.classify(JPEG) == "snow_partial" and model.name == "onnx:ffffffffffff"
-    answered = reports.ClaudePhotoChecker(Check(type("A", (), {"label": "ice"})()))
+    answer = type("A", (), {"label": "ice", "blocked": "yes"})()
+    answered = reports.ClaudePhotoChecker(Check(answer))
     assert (
         answered.classify(JPEG) == "ice" and answered.name == "claude:claude-haiku-5-5"
     )
+    assert answered.blocked(JPEG) == "yes"
     assert reports.ClaudePhotoChecker(Check(None)).classify(JPEG) == "unknown"
+    assert reports.ClaudePhotoChecker(Check(None)).blocked(JPEG) == "unknown"
+
+
+# ----------------------------------------------- model files (Render, OP-308)
+
+RELEASE = "https://github.com/tatsatshah05/NatHacks2026/releases/download/camera-model-night-v1"
+SHA_A, SHA_B = "a" * 64, "b" * 64
+
+
+def manifest(sha256: str, size_px: int = 8) -> dict[str, Any]:
+    from vision.model_contract import labels_manifest
+
+    return labels_manifest(size_px, sha256)
+
+
+def release_client(files: dict[str, bytes], seen: list[str]) -> Any:
+    """An httpx client for a fake GitHub release: each asset redirects to a CDN URL."""
+    import httpx
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        seen.append(url)
+        if url.startswith(RELEASE):
+            name = url.rsplit("/", 1)[1]
+            return httpx.Response(
+                302, headers={"Location": f"https://objects.example.org/{name}"}
+            )
+        name = url.rsplit("/", 1)[1]
+        if name in files:
+            return httpx.Response(200, content=files[name])
+        return httpx.Response(404)
+
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def tiny_onnx(size_px: int = 8) -> bytes:
+    """A real ONNX graph that always answers ``ice`` (in the labels.json class order)."""
+    onnx = pytest.importorskip("onnx")
+    from vision.tools.label import LABELS
+
+    logits = [20.0 if label == "ice" else 0.0 for label in LABELS]
+    graph = onnx.helper.make_graph(
+        [
+            onnx.helper.make_node(
+                "Constant",
+                [],
+                ["logits"],
+                value=onnx.helper.make_tensor(
+                    "values", onnx.TensorProto.FLOAT, [1, 6], logits
+                ),
+            )
+        ],
+        "tiny",
+        [
+            onnx.helper.make_tensor_value_info(
+                "image", onnx.TensorProto.FLOAT, [1, 3, size_px, size_px]
+            )
+        ],
+        [onnx.helper.make_tensor_value_info("logits", onnx.TensorProto.FLOAT, [1, 6])],
+    )
+    model = onnx.helper.make_model(
+        graph, opset_imports=[onnx.helper.make_opsetid("", 17)], ir_version=9
+    )
+    return model.SerializeToString()
+
+
+def test_model_and_labels_load_from_release_urls() -> None:
+    import hashlib
+    import json
+
+    pytest.importorskip("onnxruntime")
+    model = tiny_onnx()
+    sha = hashlib.sha256(model).hexdigest()
+    files = {"model.onnx": model, "labels.json": json.dumps(manifest(sha)).encode()}
+    seen: list[str] = []
+    env = {"MODEL_LABELS": f"{RELEASE}/labels.json", "MODEL_SHA256": f" {sha}\n"}
+    checker = reports._model_checker(
+        env, None, f"{RELEASE}/model.onnx", client=release_client(files, seen)
+    )
+    assert checker.name == f"onnx:{sha[:12]}"
+    assert checker.classify(real_jpeg()) == "ice"
+    # labels.json first, so a wrong one is refused before the model is downloaded.
+    assert [url.rsplit("/", 1)[1] for url in seen] == [
+        "labels.json",
+        "labels.json",
+        "model.onnx",
+        "model.onnx",
+    ]
+
+
+def test_a_labels_json_for_another_model_is_refused(tmp_path, caplog) -> None:
+    import json
+
+    labels = tmp_path / "labels.json"
+    labels.write_text(json.dumps(manifest(SHA_A)), encoding="utf-8")
+    seen: list[str] = []
+    env = {"MODEL_LABELS": str(labels), "MODEL_SHA256": SHA_B}
+    with pytest.raises(ValueError, match="does not belong to the model"):
+        reports._model_checker(
+            env, None, f"{RELEASE}/model.onnx", client=release_client({}, seen)
+        )
+    assert seen == []  # the model was never downloaded
+
+    env |= {"MODEL_URL": f"{RELEASE}/model.onnx"}
+    with caplog.at_level(logging.WARNING, logger="openpath.reports"):
+        assert build_photo_checker(env) is None
+    assert "the ONNX model is not available (ValueError)" in caplog.text
+    assert str(tmp_path) not in caplog.text  # never the path or a URL
+
+
+def test_a_labels_json_without_a_sha256_is_refused(tmp_path) -> None:
+    import json
+
+    data = manifest(SHA_A)
+    del data["sha256"]
+    labels = tmp_path / "labels.json"
+    labels.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(ValueError, match="does not belong"):
+        reports._model_checker(
+            {"MODEL_LABELS": str(labels), "MODEL_SHA256": SHA_A},
+            str(tmp_path / "model.onnx"),
+            None,
+        )
+
+
+@pytest.mark.parametrize(
+    ("ref", "files", "error"),
+    [
+        ("http://example.org/labels.json", {}, "HTTPS"),
+        (f"{RELEASE}/labels.json", {"labels.json": b"x" * (64 * 1024 + 1)}, "64 KiB"),
+        (f"{RELEASE}/labels.json", {"labels.json": b"[1, 2]"}, "JSON object"),
+    ],
+)
+def test_labels_must_be_a_small_json_object_over_https(ref, files, error) -> None:
+    with pytest.raises((ValueError, TypeError), match=error):
+        reports.read_model_labels(release_client(files, []), ref)
+
+
+def test_a_missing_labels_asset_is_an_http_error() -> None:
+    import httpx
+
+    with pytest.raises(httpx.HTTPStatusError):
+        reports.read_model_labels(release_client({}, []), f"{RELEASE}/labels.json")
+
+
+def test_labels_still_load_from_a_local_path(tmp_path) -> None:
+    import json
+
+    labels = tmp_path / "labels.json"
+    labels.write_text(json.dumps(manifest(SHA_A)), encoding="utf-8")
+    assert reports.read_model_labels(None, str(labels))["sha256"] == SHA_A
+
+
+def test_claude_checks_report_photos_with_haiku_by_default(monkeypatch) -> None:
+    from vision import ai_check
+
+    monkeypatch.setattr(ai_check.anthropic, "Anthropic", lambda **kwargs: object())
+    checker = reports._claude_checker({})
+    assert checker.name == "claude:claude-haiku-5-5"
+    check = checker.check  # type: ignore[attr-defined]
+    assert check.subject == "report_photo"
+    assert check.system[0]["text"] == ai_check._report_photo_prompt()
+    chosen = reports._claude_checker({"REPORTS_AI_MODEL": "claude-sonnet-5-5"})
+    assert chosen.name == "claude:claude-sonnet-5-5"
 
 
 def test_the_real_app_starts_without_a_checker(monkeypatch) -> None:
@@ -769,3 +1256,29 @@ def test_a_report_changes_routes_per_profile(
     else:
         assert best.distance_m == pytest.approx(200, abs=1)
         assert [h.item_id for h in best.hazards_on_route] == [body["id"]]
+
+
+# -------------------------------------------------------------------- Render
+
+
+def test_render_installs_only_the_photo_check_extras() -> None:
+    """Render gets onnxruntime, Pillow and anthropic, never torch or opencv (OP-308)."""
+    root = pathlib.Path(__file__).resolve().parents[2]
+    render = (root / "render.yaml").read_text(encoding="utf-8")
+    assert (
+        "buildCommand: pip install -r cloud/requirements.txt "
+        "-r cloud/requirements-photo-check.txt"
+    ) in render
+
+    def requirements(path: str) -> dict[str, str]:
+        lines = (root / path).read_text(encoding="utf-8").splitlines()
+        specs = [line.strip() for line in lines if line.strip()[:1].isalpha()]
+        return {
+            spec.split(">")[0].split("=")[0].split("<")[0].lower(): spec
+            for spec in specs
+        }
+
+    extras = requirements("cloud/requirements-photo-check.txt")
+    assert sorted(extras) == ["anthropic", "onnxruntime", "pillow"]
+    vision = requirements("vision/requirements.txt")
+    assert all(extras[name] == vision[name] for name in extras)  # the same ranges

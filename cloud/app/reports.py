@@ -7,9 +7,9 @@ What this module does
 - Turns a validated report into an ``Obstruction`` for the shared store, so routing,
   the map and the route report treat it like any other barrier (source
   ``community_report``, category ``sidewalk``, a Point).
-- Decides the report's confidence from the optional photo: ``medium`` when a photo
-  checker looked at the photo and it agrees with the reported type, ``low`` in every
-  other case (no photo, no checker, an unusable photo, a disagreement).
+- Decides the report's confidence from the optional photo: ``medium`` when the photo
+  checks agree with the reported type, ``low`` in every other case (no photo, no
+  check, a check unavailable or failing, an unusable photo, a disagreement).
 - Counts reports per client and in total in the database (``community_report_log``),
   so the rate limit survives a restart.
 
@@ -21,21 +21,33 @@ database or to a log (AGENTS.md, Vision Rules). ``reports_api`` parses the reque
 body itself for the same reason: Starlette's form parser spools large uploads to a
 temporary file.
 
-Photo checkers
---------------
-``PhotoChecker`` is a small protocol (``classify(photo) -> label``) so the API can run
-with the ONNX road-condition model, with Claude, or with no check at all, and tests
-can use a fake. ``build_photo_checker`` picks one from the environment:
+Photo checks (lead decision, November 8)
+----------------------------------------
+A report photo is checked by both the ONNX road-condition model and Claude, with the
+agree rule the camera worker uses (``vision.ai_check.AgreeingClassifier``): the model
+runs first, and Claude is asked only when the model's class confirms the reported
+type. Medium confidence needs both: for snow or ice, Claude's class must mean the
+same type; for a blocked path, which none of the six classes can confirm, Claude must
+answer yes to "Is the walking path in this photo blocked?" and the model's class must
+not be ``unusable``. So blocked confirmation rests on Claude alone. Anything else is
+``low``, the reported type is kept, and ``photo.note`` says why.
 
-- ``MODEL_FILE`` (a local ``.onnx``) or ``MODEL_URL`` (an HTTPS release asset), with
-  ``MODEL_LABELS`` (the training ``labels.json``) and ``MODEL_SHA256``; optional
-  ``MODEL_MIN_SCORE`` (default 0.5). Needs ``vision/requirements.txt`` installed.
-- else ``ANTHROPIC_API_KEY``: ``vision.ai_check.ClaudeCheck`` with ``REPORTS_AI_MODEL``
-  (default ``claude-haiku-5-5``).
-- else no checker: every report gets ``low`` confidence and the response says so.
+``build_photo_checker`` reads the environment once at startup:
 
-Any problem building a checker is logged and leaves the API without one. A report
-is never refused because the photo check is unavailable.
+- the model: ``MODEL_FILE`` (a local ``.onnx``) or ``MODEL_URL`` (an HTTPS release
+  asset), with ``MODEL_LABELS`` (the training ``labels.json``, a path or an HTTPS
+  URL) and ``MODEL_SHA256``; optional ``MODEL_MIN_SCORE`` (default 0.5). A
+  ``labels.json`` whose ``sha256`` is not ``MODEL_SHA256`` is refused, and so is a
+  model that does not hash to it.
+- Claude: ``ANTHROPIC_API_KEY``, with ``REPORTS_AI_MODEL`` (default
+  ``claude-haiku-5-5``) and the report-photo prompt (``subject="report_photo"``).
+
+Both need ``cloud/requirements-photo-check.txt`` (onnxruntime, Pillow, anthropic).
+With only one of them the API checks with that one alone, logs a warning that the
+decided setup is both, and every response lists the checks that answered in
+``photo.checked_by``. With neither, every report gets ``low`` confidence. Any problem
+building a check is logged and leaves it out; a report is never refused because a
+photo check is unavailable.
 """
 
 from __future__ import annotations
@@ -46,6 +58,7 @@ import os
 import secrets
 import threading
 from collections.abc import Callable, Mapping
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -263,12 +276,27 @@ def photo_format(photo: bytes) -> PhotoFormat | None:
     return None
 
 
+CheckName = Literal["model", "claude"]
+# The classes that say something about the surface; ``unusable`` and ``unknown`` do not.
+USABLE_CLASSES = frozenset(PHOTO_CLASSES) - {"unusable"}
+DISCARDED = "The photo was discarded."
+MAX_LABELS_BYTES = 64 * 1024  # labels.json is about half a kilobyte
+
+
 class PhotoChecker(Protocol):
     """Classifies one photo held in memory. Returns a PHOTO_CLASSES label or ``unknown``."""
 
     name: str
 
     def classify(self, photo: bytes) -> str: ...
+
+
+class BlockedChecker(PhotoChecker, Protocol):
+    """A PhotoChecker that also answers whether the path in a photo is blocked (Claude)."""
+
+    def blocked(self, photo: bytes) -> str:
+        """``yes``, ``no`` or ``unclear``; ``unknown`` when there is no answer."""
+        ...
 
 
 class ModelPhotoChecker:
@@ -283,87 +311,163 @@ class ModelPhotoChecker:
 
 
 class ClaudePhotoChecker:
-    """``vision.ai_check.ClaudeCheck`` as a PhotoChecker. No answer means ``unknown``."""
+    """``vision.ai_check.ClaudeCheck`` as a BlockedChecker. No answer means ``unknown``."""
 
     def __init__(self, check: Any) -> None:
-        self.check = check
+        self.check = check  # vision.ai_check.ClaudeCheck(..., subject="report_photo")
         self.name = f"claude:{getattr(check, 'model', 'unknown')}"
 
     def classify(self, photo: bytes) -> str:
         result = self.check.label(photo)
         return "unknown" if result is None else str(result.label)
 
+    def blocked(self, photo: bytes) -> str:
+        result = self.check.blocked(photo)
+        return "unknown" if result is None else str(result.blocked)
+
+
+@dataclass(frozen=True)
+class PhotoChecks:
+    """The photo checks this server runs: the ONNX model, Claude, or both.
+
+    Both is the decided setup (lead, November 8): a report gets medium confidence only
+    when the two agree. With one of them the API keeps working with that one alone,
+    and every response names the checks that answered (``photo.checked_by``).
+    """
+
+    model: PhotoChecker | None = None
+    claude: BlockedChecker | None = None
+
+    @property
+    def name(self) -> str:
+        names = [checker.name for checker in (self.model, self.claude) if checker]
+        return " + ".join(names) or "none"
+
 
 def build_photo_checker(
     env: Mapping[str, str] | None = None,
-) -> PhotoChecker | None:
-    """The checker the environment asks for, or None. Never raises."""
+) -> PhotoChecks | None:
+    """The checks the environment asks for, or None when there are none. Never raises."""
     env = os.environ if env is None else env
+    model: PhotoChecker | None = None
+    claude: BlockedChecker | None = None
     model_file, model_url = env.get("MODEL_FILE"), env.get("MODEL_URL")
     if model_file or model_url:
         try:
-            checker = _model_checker(env, model_file, model_url)
+            model = _model_checker(env, model_file, model_url)
         except Exception as error:  # noqa: BLE001 - any failure means "no model check"
             # The type only: the message could repeat a URL or a path.
             log.warning(
                 "REPORT photo check: the ONNX model is not available (%s)",
                 type(error).__name__,
             )
-        else:
-            log.info("REPORT photo check: %s", checker.name)
-            return checker
     if env.get("ANTHROPIC_API_KEY"):
         try:
-            checker = _claude_checker(env)
-        except Exception as error:  # noqa: BLE001 - same: fall back to no check
+            claude = _claude_checker(env)
+        except Exception as error:  # noqa: BLE001 - same: run without Claude
             log.warning(
                 "REPORT photo check: Claude is not available (%s)", type(error).__name__
             )
-        else:
-            log.info("REPORT photo check: %s", checker.name)
-            return checker
-    log.info("REPORT photo check: none configured; every report gets low confidence")
-    return None
+    if model is None and claude is None:
+        log.info(
+            "REPORT photo check: none configured; every report gets low confidence"
+        )
+        return None
+    checks = PhotoChecks(model, claude)
+    if model is not None and claude is not None:
+        log.info(
+            "REPORT photo check: %s; medium confidence needs both to agree",
+            checks.name,
+        )
+    else:
+        missing = (
+            "ANTHROPIC_API_KEY"
+            if claude is None
+            else "MODEL_URL, MODEL_LABELS and MODEL_SHA256"
+        )
+        log.warning(
+            "REPORT photo check: only %s is running; the decided setup is the ONNX "
+            "model and Claude together (check %s)",
+            checks.name,
+            missing,
+        )
+    return checks
+
+
+def read_model_labels(client: Any, ref: str) -> dict[str, Any]:
+    """The training ``labels.json`` from a local path or an HTTPS URL (a release asset)."""
+    if ref.startswith("https://"):
+        chunks: list[bytes] = []
+        size = 0
+        with client.stream("GET", ref, timeout=30, follow_redirects=True) as response:
+            response.raise_for_status()
+            for chunk in response.iter_bytes():
+                size += len(chunk)
+                if size > MAX_LABELS_BYTES:
+                    raise ValueError("labels.json is larger than 64 KiB")
+                chunks.append(chunk)
+        raw = b"".join(chunks)
+    elif "://" in ref:
+        raise ValueError("MODEL_LABELS must be a local path or an HTTPS URL")
+    else:
+        raw = Path(ref).read_bytes()
+    manifest = json.loads(raw)
+    if not isinstance(manifest, dict):
+        raise TypeError("labels.json must be a JSON object")
+    return manifest
 
 
 def _model_checker(
-    env: Mapping[str, str], model_file: str | None, model_url: str | None
+    env: Mapping[str, str],
+    model_file: str | None,
+    model_url: str | None,
+    client: Any = None,
 ) -> PhotoChecker:
+    """Load the model once at startup. ``client`` is an ``httpx.Client`` (tests pass one)."""
     import httpx
 
     from vision.inference import ModelSpec, OnnxClassifier, download_model
 
-    labels_path, sha256 = env.get("MODEL_LABELS"), env.get("MODEL_SHA256")
-    if not labels_path or not sha256:
+    labels_ref = (env.get("MODEL_LABELS") or "").strip()
+    sha256 = (env.get("MODEL_SHA256") or "").strip()
+    if not labels_ref or not sha256:
         raise ValueError("MODEL_LABELS and MODEL_SHA256 are required with a model")
-    spec = ModelSpec.from_training_labels(
-        json.loads(Path(labels_path).read_text(encoding="utf-8")),
-        sha256=sha256,
-        min_score=float(env.get("MODEL_MIN_SCORE") or 0.5),
-    )
-    if model_file:
-        model = Path(model_file).read_bytes()
-    else:
-        with httpx.Client(timeout=30) as client:
-            model = download_model(client, str(model_url))
+    with httpx.Client(timeout=30) if client is None else nullcontext(client) as http:
+        manifest = read_model_labels(http, labels_ref)
+        # train.py writes the model's SHA-256 into labels.json (OP-202): labels from
+        # another run would describe another model's classes or preprocessing.
+        if manifest.get("sha256") != sha256:
+            raise ValueError("labels.json does not belong to the model in MODEL_SHA256")
+        spec = ModelSpec.from_training_labels(
+            manifest,
+            sha256=sha256,
+            min_score=float(env.get("MODEL_MIN_SCORE") or 0.5),
+        )
+        if model_file:
+            model = Path(model_file).read_bytes()
+        else:
+            model = download_model(http, str(model_url))
+    # OnnxClassifier.load refuses a model whose SHA-256 is not MODEL_SHA256.
     return ModelPhotoChecker(OnnxClassifier.load(model, spec))
 
 
-def _claude_checker(env: Mapping[str, str]) -> PhotoChecker:
+def _claude_checker(env: Mapping[str, str]) -> BlockedChecker:
     from vision.ai_check import ClaudeCheck
 
     return ClaudePhotoChecker(
-        ClaudeCheck(env.get("REPORTS_AI_MODEL") or "claude-haiku-5-5")
+        ClaudeCheck(
+            env.get("REPORTS_AI_MODEL") or "claude-haiku-5-5", subject="report_photo"
+        )
     )
 
 
 PhotoOutcome = Literal[
     "none",  # no photo was sent
-    "agrees",  # the photo shows the reported type: medium confidence
-    "disagrees",  # the photo shows something else: kept as reported, low confidence
-    "unusable",  # the checker could not read the photo
-    "unverifiable",  # no class can confirm this type (a blocked path)
-    "unavailable",  # no checker on this server, or the check failed
+    "agrees",  # every check that ran confirms the reported type: medium confidence
+    "disagrees",  # a check saw something else: kept as reported, low confidence
+    "unusable",  # a check could not read the photo (or could not tell if it is blocked)
+    "unverifiable",  # no check on this server can confirm this type (blocked, model only)
+    "unavailable",  # no check on this server, or a check failed or did not answer
 ]
 
 
@@ -371,17 +475,54 @@ class PhotoResult(BaseModel):
     """What happened to the photo, for the response. Never the photo itself."""
 
     received: bool
-    checked: bool  # True when a checker returned a class for the photo
+    checked: bool  # True when a check gave a usable answer about the photo
     outcome: PhotoOutcome
-    label: str | None  # the class the checker saw, when it ran
+    label: str | None  # the class the outcome rests on, when a check saw one
     note: str  # one plain sentence for the person
+    checked_by: list[CheckName] = Field(
+        description="The checks that answered for this photo, in the order they ran: "
+        "'model' (the ONNX road-condition model) and 'claude'. Empty when no check "
+        "answered. Medium confidence with both is the decided setup.",
+    )
+
+
+def _ask(call: Callable[[bytes], str], photo: bytes, name: str) -> str | None:
+    """One check's answer, or None when it raised (a failing check never refuses a report)."""
+    try:
+        return str(call(photo))
+    except Exception:
+        log.exception("REPORT photo check failed (%s)", name)
+        return None
+
+
+def _low(
+    outcome: PhotoOutcome,
+    note: str,
+    checked_by: list[CheckName],
+    label: str | None = None,
+    checked: bool = False,
+) -> tuple[Confidence, PhotoResult]:
+    return Confidence.LOW, PhotoResult(
+        received=True,
+        checked=checked,
+        outcome=outcome,
+        label=label,
+        note=f"{note} {DISCARDED}",
+        checked_by=checked_by,
+    )
 
 
 def check_photo(
-    photo: bytes | None, report_type: ReportType, checker: PhotoChecker | None
+    photo: bytes | None, report_type: ReportType, checks: PhotoChecks | None
 ) -> tuple[Confidence, PhotoResult]:
-    """Apply the confidence rules: medium only when a checked photo agrees."""
-    kind = KINDS[report_type]
+    """Apply the confidence rules: medium only when every check that ran agrees.
+
+    The model runs first. A photo it cannot read, or a class that is not the reported
+    type, is low straight away, so Claude is not asked (as in the camera worker's
+    ``AgreeingClassifier``). Otherwise Claude must agree as well: for snow or ice its
+    class must mean the same type, and for a blocked path, which no model class can
+    confirm, it must answer yes to "Is the walking path in this photo blocked?".
+    """
     if photo is None:
         return Confidence.LOW, PhotoResult(
             received=False,
@@ -389,60 +530,176 @@ def check_photo(
             outcome="none",
             label=None,
             note="No photo was sent, so the report has low confidence.",
+            checked_by=[],
         )
-    discarded = "The photo was discarded."
-    if checker is None:
-        return Confidence.LOW, PhotoResult(
-            received=True,
-            checked=False,
-            outcome="unavailable",
-            label=None,
-            note=f"This server cannot check photos, so the report has low confidence. {discarded}",
+    if checks is None or (checks.model is None and checks.claude is None):
+        return _low(
+            "unavailable",
+            "This server cannot check photos, so the report has low confidence.",
+            [],
         )
-    try:
-        label = checker.classify(photo)
-    except Exception:  # a failing checker must not refuse the report
-        log.exception("REPORT photo check failed (%s)", checker.name)
-        return Confidence.LOW, PhotoResult(
-            received=True,
-            checked=False,
-            outcome="unavailable",
-            label=None,
-            note=f"The photo check was unavailable, so the report has low confidence. {discarded}",
+    kind = KINDS[report_type]
+    checked_by: list[CheckName] = []
+    model_label: str | None = None
+    if checks.model is not None:
+        seen = _ask(checks.model.classify, photo, checks.model.name)
+        if seen is None:
+            return _low(
+                "unavailable",
+                "The photo check was unavailable, so the report has low confidence.",
+                checked_by,
+            )
+        checked_by.append("model")
+        if seen not in USABLE_CLASSES:
+            return _low(
+                "unusable",
+                "The photo could not be read, so the report has low confidence.",
+                checked_by,
+            )
+        model_label = seen
+        if report_type != "blocked" and seen not in kind.agreeing_classes:
+            return _low(
+                "disagrees",
+                f"The photo was checked by the road-condition model and shows "
+                f"{CLASS_WORDS[seen]}, not {kind.noun}. Your report is kept as "
+                f"{kind.noun} with low confidence.",
+                checked_by,
+                seen,
+                True,
+            )
+        if checks.claude is None:
+            if report_type == "blocked":
+                return _low(
+                    "unverifiable",
+                    f"The road-condition model cannot confirm {kind.noun}, so the "
+                    "report has low confidence.",
+                    checked_by,
+                    seen,
+                    True,
+                )
+            return Confidence.MEDIUM, PhotoResult(
+                received=True,
+                checked=True,
+                outcome="agrees",
+                label=seen,
+                note=f"The photo was checked by the road-condition model and shows "
+                f"{CLASS_WORDS[seen]}, so the report has medium confidence. {DISCARDED}",
+                checked_by=checked_by,
+            )
+    claude = checks.claude
+    if claude is None:  # unreachable: the model returned above; kept for type checkers
+        return _low(
+            "unavailable",
+            "The photo check was unavailable, so the report has low confidence.",
+            checked_by,
         )
-    if label not in PHOTO_CLASSES or label == "unusable":
-        return Confidence.LOW, PhotoResult(
-            received=True,
-            checked=False,
-            outcome="unusable",
-            label=None,
-            note=f"The photo could not be read, so the report has low confidence. {discarded}",
+    if report_type == "blocked":
+        return _claude_blocked(claude, photo, kind, checked_by, model_label)
+    return _claude_label(claude, photo, report_type, kind, checked_by, model_label)
+
+
+def _claude_label(
+    claude: BlockedChecker,
+    photo: bytes,
+    report_type: ReportType,
+    kind: ReportKind,
+    checked_by: list[CheckName],
+    model_label: str | None,
+) -> tuple[Confidence, PhotoResult]:
+    """Snow or ice: Claude's class must mean the reported type too."""
+    model_words = CLASS_WORDS[model_label] if model_label else None
+    seen = _ask(claude.classify, photo, claude.name)
+    if seen is None or seen == "unknown":
+        note = (
+            f"The road-condition model saw {model_words}, but the second check "
+            "(Claude) was unavailable, so the report has low confidence."
+            if model_words
+            else "The photo check was unavailable, so the report has low confidence."
         )
-    if not kind.agreeing_classes:
-        return Confidence.LOW, PhotoResult(
-            received=True,
-            checked=True,
-            outcome="unverifiable",
-            label=label,
-            note=f"A photo check cannot confirm {kind.noun}, so the report has low confidence. {discarded}",
+        return _low("unavailable", note, checked_by, model_label, bool(model_label))
+    checked_by.append("claude")
+    if seen not in USABLE_CLASSES:
+        note = (
+            f"The road-condition model saw {model_words}, but Claude could not read "
+            "the photo, so the report has low confidence."
+            if model_words
+            else "The photo could not be read, so the report has low confidence."
         )
-    if label in kind.agreeing_classes:
-        return Confidence.MEDIUM, PhotoResult(
-            received=True,
-            checked=True,
-            outcome="agrees",
-            label=label,
-            note=f"The photo was checked and shows {CLASS_WORDS[label]}, so the report has medium confidence. {discarded}",
+        return _low("unusable", note, checked_by, model_label, bool(model_label))
+    if CLASS_TO_TYPE.get(seen) != report_type:
+        note = (
+            f"The road-condition model saw {model_words}, but Claude saw "
+            f"{CLASS_WORDS[seen]}. Both checks must agree, so your report is kept as "
+            f"{kind.noun} with low confidence."
+            if model_words
+            else f"The photo was checked by Claude and shows {CLASS_WORDS[seen]}, not "
+            f"{kind.noun}. Your report is kept as {kind.noun} with low confidence."
         )
-    return Confidence.LOW, PhotoResult(
+        return _low("disagrees", note, checked_by, seen, True)
+    note = (
+        f"The photo was checked by the road-condition model and by Claude, and both "
+        f"show {kind.noun}, so the report has medium confidence."
+        if model_words
+        else f"The photo was checked by Claude and shows {CLASS_WORDS[seen]}, so the "
+        "report has medium confidence."
+    )
+    return Confidence.MEDIUM, PhotoResult(
         received=True,
         checked=True,
-        outcome="disagrees",
-        label=label,
-        note=(
-            f"The photo was checked and shows {CLASS_WORDS[label]}, not {kind.noun}. "
-            f"Your report is kept as {kind.noun} with low confidence. {discarded}"
-        ),
+        outcome="agrees",
+        label=model_label or seen,
+        note=f"{note} {DISCARDED}",
+        checked_by=checked_by,
+    )
+
+
+def _claude_blocked(
+    claude: BlockedChecker,
+    photo: bytes,
+    kind: ReportKind,
+    checked_by: list[CheckName],
+    model_label: str | None,
+) -> tuple[Confidence, PhotoResult]:
+    """A blocked path: Claude alone can confirm it (the model has no blocked class)."""
+    after_model = (
+        ", and the road-condition model could read the photo" if model_label else ""
+    )
+    answer = _ask(claude.blocked, photo, claude.name)
+    if answer is None or answer not in ("yes", "no", "unclear"):
+        note = (
+            "The road-condition model could read the photo, but Claude, which checks "
+            "for a blocked path, was unavailable, so the report has low confidence."
+            if model_label
+            else "The photo check was unavailable, so the report has low confidence."
+        )
+        return _low("unavailable", note, checked_by, model_label, bool(model_label))
+    checked_by.append("claude")
+    if answer == "unclear":
+        return _low(
+            "unusable",
+            "Claude could not tell from the photo whether the path is blocked, so the "
+            "report has low confidence.",
+            checked_by,
+            model_label,
+            bool(model_label),
+        )
+    if answer == "no":
+        return _low(
+            "disagrees",
+            f"Claude checked the photo and does not see a blocked path. Your report is "
+            f"kept as {kind.noun} with low confidence.",
+            checked_by,
+            model_label,
+            True,
+        )
+    return Confidence.MEDIUM, PhotoResult(
+        received=True,
+        checked=True,
+        outcome="agrees",
+        label=model_label,
+        note=f"Claude checked the photo and sees a blocked path{after_model}, so the "
+        f"report has medium confidence. {DISCARDED}",
+        checked_by=checked_by,
     )
 
 
@@ -603,7 +860,7 @@ def submit_report(
     store: ObstructionStore,
     counter: ReportCounter,
     config: ReportsConfig,
-    checker: PhotoChecker | None,
+    checker: PhotoChecks | None,
     now: datetime,
 ) -> ReportResult:
     """Rate-limit, check the photo, store the obstruction, log one line. Drops the photo.
@@ -623,7 +880,8 @@ def submit_report(
     photo_text = (
         "none"
         if photo is None
-        else f"{len(photo)} bytes class={result.label or result.outcome}"
+        else f"{len(photo)} bytes class={result.label or result.outcome} "
+        f"outcome={result.outcome} by={'+'.join(result.checked_by) or 'none'}"
     )
     # Size and class only: never the photo, the note or the client id.
     log.info(
