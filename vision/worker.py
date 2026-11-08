@@ -469,6 +469,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error(
             "--live requires --model-labels, --model-sha256, --min-score, ALBERTA_511_KEY and MODEL_URL or --model-file"
         )
+    if args.ai_check and not os.environ.get("ANTHROPIC_API_KEY"):
+        parser.error("--ai-check requires ANTHROPIC_API_KEY")
     try:
         spec = ModelSpec.from_training_labels(
             json.loads(args.model_labels.read_text("utf-8")),

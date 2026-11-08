@@ -99,7 +99,7 @@ def fake_client(response):
     ), messages
 
 
-def response(text: str, stop: str = "end_turn"):
+def response(text: str, stop: str = "end_turn", model: str | None = None):
     usage = SimpleNamespace(
         input_tokens=500,
         cache_read_input_tokens=4000,
@@ -107,7 +107,10 @@ def response(text: str, stop: str = "end_turn"):
         output_tokens=60,
     )
     return SimpleNamespace(
-        stop_reason=stop, content=[SimpleNamespace(type="text", text=text)], usage=usage
+        stop_reason=stop,
+        content=[SimpleNamespace(type="text", text=text)],
+        usage=usage,
+        model=model,
     )
 
 
@@ -178,3 +181,102 @@ def test_non_image_bytes_give_none_without_a_call() -> None:
 def test_unknown_model_is_rejected() -> None:
     with pytest.raises(ValueError):
         ClaudeCheck("claude-unknown", client=SimpleNamespace())
+
+
+def connection_error():
+    import anthropic
+    import httpx2
+
+    return anthropic.APIConnectionError(
+        request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+    )
+
+
+class FakeClock:
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+def test_the_default_client_keeps_one_frame_short(monkeypatch) -> None:
+    from vision import ai_check
+
+    made: list[dict] = []
+    monkeypatch.setattr(ai_check.anthropic, "Anthropic", lambda **kw: made.append(kw))
+    ClaudeCheck("claude-haiku-5-5")
+    assert made == [{"timeout": 10.0, "max_retries": 1}]
+
+
+def test_three_api_failures_in_a_row_pause_the_check() -> None:
+    clock = FakeClock()
+    client, messages = fake_client(connection_error())
+    check = ClaudeCheck("claude-haiku-5-5", client=client, clock=clock)
+    for _ in range(3):
+        assert check.label(jpeg()) is None
+    assert len(messages.requests) == 3
+    assert check.label(jpeg()) is None  # paused: no call, so the pass is not held up
+    assert len(messages.requests) == 3
+
+    clock.now += 301  # after the pause one more failure pauses again straight away
+    assert check.label(jpeg()) is None
+    assert len(messages.requests) == 4
+    assert check.label(jpeg()) is None
+    assert len(messages.requests) == 4
+
+    clock.now += 301  # an answer ends the pause and resets the count
+    messages.response = response(json.dumps({"label": "dry", "reason": "Matte."}))
+    assert check.label(jpeg()).label == "dry"
+    messages.response = connection_error()
+    assert check.label(jpeg()) is None
+    assert check.label(jpeg()) is None
+    assert len(messages.requests) == 7  # two failures since the answer: not paused
+
+
+def test_refusals_and_non_images_do_not_count_toward_the_pause() -> None:
+    clock = FakeClock()
+    client, messages = fake_client(
+        response(json.dumps({"label": "dry"}), stop="refusal")
+    )
+    check = ClaudeCheck("claude-haiku-5-5", client=client, clock=clock)
+    for _ in range(4):
+        assert check.label(jpeg()) is None
+        assert check.label(b"not an image") is None
+    assert len(messages.requests) == 4
+
+
+def test_an_answer_cut_short_is_logged_and_gives_none(caplog) -> None:
+    client, _ = fake_client(response("", stop="max_tokens"))
+    with caplog.at_level("WARNING", logger="openpath.vision.ai_check"):
+        assert ClaudeCheck("claude-haiku-5-5", client=client).label(jpeg()) is None
+    assert "stopped early: max_tokens" in caplog.text
+
+
+def test_the_model_that_answered_is_recorded_and_priced() -> None:
+    answer = json.dumps({"label": "wet", "reason": "Streaks."})
+    client, _ = fake_client(response(answer, model="claude-sonnet-5-5"))
+    got = ClaudeCheck("claude-opus-5-5", client=client).label(jpeg())
+    assert got is not None and got.model == "claude-sonnet-5-5"
+    assert got.cost_usd == pytest.approx(
+        (500 * 2.00 + 4000 * 0.20 + 60 * 10.00) / 1_000_000
+    )
+
+    client, _ = fake_client(
+        response(answer)
+    )  # no model on the response: the requested one
+    got = ClaudeCheck("claude-haiku-5-5", client=client).label(jpeg())
+    assert got is not None and got.model == "claude-haiku-5-5"
+
+
+def test_disagreements_name_the_model_that_answered(caplog) -> None:
+    check = FakeCheck(AiLabel("wet", "streaks", model="claude-haiku-5-5"))
+    with caplog.at_level("INFO", logger="openpath.vision.ai_check"):
+        AgreeingClassifier(FakeModel("dry"), check).predict(b"frame")
+    assert "Claude claude-haiku-5-5 wet" in caplog.text
+
+
+def test_labels_come_from_the_label_tool() -> None:
+    from vision.tools import label
+
+    assert LABELS is label.LABELS

@@ -50,6 +50,7 @@ One section per source. Each adapter's owner keeps their section current: what t
 - Any frame with an identifiable person or a readable plate is deleted, not labelled.
 - Everything is deleted after the event, including `op201_handoff.zip`, `op201_blind_review.zip` and any other copies.
 - Live app and worker frames are still processed in memory and discarded. The decision does not allow re-hosting camera images in the app.
+- **Third-party processing.** With the agree check on (`--ai-check`, decided November 8), the worker also sends each frame the model would post to the Anthropic API, so Claude can check the label. We send it in memory and store nothing; Anthropic processes it under its API terms. The training labels were also made with Claude's help, as the model card says. The `/sources` and privacy pages must say both when they are built.
 
 **Update cadence and limits.** The camera list is meant to refresh daily; the scheduling arrives with the worker (OP-204). 511 Alberta allows 10 calls every 60 seconds; one shared `RateLimiter` enforces that for every request, including the image requests OP-204 will add.
 

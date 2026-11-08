@@ -390,6 +390,37 @@ def test_live_command_cannot_override_replay_environment(
     assert error.value.code == 2
 
 
+def test_ai_check_without_its_key_stops_at_startup(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.delenv("DATA_MODE", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("ALBERTA_511_KEY", "test")
+    model = tmp_path / "model.onnx"
+    model.write_bytes(b"x")
+    argv = [
+        "--live",
+        "--model-file",
+        str(model),
+        "--model-labels",
+        str(tmp_path / "labels.json"),
+    ]
+    argv += [
+        "--model-sha256",
+        "a" * 64,
+        "--min-score",
+        "0.5",
+        "--ai-check",
+        "claude-haiku-5-5",
+    ]
+    with pytest.raises(SystemExit) as error:
+        worker.main(argv)
+    assert error.value.code == 2
+    assert "--ai-check requires ANTHROPIC_API_KEY" in capsys.readouterr().err
+
+
 def test_no_camera_image_is_written(monkeypatch: pytest.MonkeyPatch) -> None:
     def forbidden(*args: object, **kwargs: object) -> None:
         raise AssertionError("The worker must not store frames")

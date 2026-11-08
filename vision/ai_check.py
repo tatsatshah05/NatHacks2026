@@ -5,6 +5,10 @@ Claude looks at the same frame with the team's label guide. The worker posts the
 reading only when both agree; any disagreement, refusal, error or timeout becomes
 `unknown`, so a disagreement can never turn into a false `dry`.
 
+A slow or failing API never stalls the worker for long: each call has a 10 s timeout
+and one retry, and after 3 API failures in a row the check pauses for 5 minutes
+(every frame it would have checked posts `unknown`), then tries again.
+
 Frames are sent to the Anthropic API in memory and never stored by us. The key is
 ANTHROPIC_API_KEY on the worker laptop only; the API on Render never needs it, and
 `make dev` and the tests run without it.
@@ -16,6 +20,8 @@ import base64
 import io
 import json
 import logging
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -24,10 +30,10 @@ import anthropic
 from PIL import Image
 
 from vision.inference import Classifier, Prediction
+from vision.tools.label import LABELS
 
 log = logging.getLogger("openpath.vision.ai_check")
 
-LABELS = ("dry", "wet", "snow_partial", "snow_covered", "ice", "unusable")
 GUIDE_PATH = Path(__file__).resolve().parent / "LABELS.md"
 
 # Prices per million tokens (input, cache read, output), from the Claude API reference
@@ -39,6 +45,11 @@ PRICES = {
 }
 # Server-side refusal fallbacks exist for Opus 5.5 and Sonnet 5.5, not Haiku 5.5.
 FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5"}
+
+TIMEOUT_S = 10.0  # per attempt; with one retry a failing frame costs about 20 s at most
+MAX_RETRIES = 1
+FAILURES_BEFORE_PAUSE = 3
+PAUSE_S = 300.0
 
 NIGHT_RULES = """
 Additional rules the team agreed after reviewing night frames:
@@ -77,12 +88,23 @@ def _system_prompt() -> str:
     )
 
 
+def _prices(answered: str, requested: str) -> tuple[float, float, float]:
+    """Prices of the model that answered; the requested model's if it is not in the table."""
+    for name, prices in PRICES.items():
+        if answered.startswith(name):
+            return prices
+    return PRICES[requested]
+
+
 @dataclass
 class AiLabel:
     label: str
     reason: str
     usage: dict[str, int] = field(default_factory=dict)
     cost_usd: float = 0.0
+    model: str = (
+        ""  # the model that answered; differs from the requested one after a fallback
+    )
 
 
 class ClaudeCheck:
@@ -92,12 +114,15 @@ class ClaudeCheck:
         self,
         model: str,
         client: anthropic.Anthropic | None = None,
-        timeout_s: float = 30.0,
+        timeout_s: float = TIMEOUT_S,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         if model not in PRICES:
             raise ValueError(f"Unsupported model for the AI check: {model}")
         self.model = model
-        self.client = client or anthropic.Anthropic(timeout=timeout_s, max_retries=2)
+        self.client = client or anthropic.Anthropic(
+            timeout=timeout_s, max_retries=MAX_RETRIES
+        )
         self.system = [
             {
                 "type": "text",
@@ -105,8 +130,13 @@ class ClaudeCheck:
                 "cache_control": {"type": "ephemeral"},
             }
         ]
+        self._clock = clock
+        self._failures = 0  # API failures in a row; any answer from the API resets it
+        self._paused_until = 0.0
 
     def label(self, frame: bytes) -> AiLabel | None:
+        if self._clock() < self._paused_until:
+            return None
         try:
             with Image.open(io.BytesIO(frame)) as image:
                 media_type = {"JPEG": "image/jpeg", "PNG": "image/png"}.get(
@@ -145,16 +175,27 @@ class ClaudeCheck:
                 response = self.client.messages.create(**request)
         except (anthropic.APIError, OSError, ValueError) as exc:
             log.warning("AI check failed: %s", type(exc).__name__)
+            if isinstance(exc, anthropic.APIError | OSError):
+                self._failed()  # not for ValueError: a frame that is not an image says nothing about the API
             return None
+        self._failures = 0
+        answered = str(getattr(response, "model", None) or self.model)
+        if answered != self.model:
+            log.info("AI check answered by %s instead of %s", answered, self.model)
         if response.stop_reason == "refusal":
-            log.warning("AI check refused")
+            log.warning("AI check refused (%s)", answered)
             return None
+        if response.stop_reason != "end_turn":
+            # For example max_tokens: the answer is cut off and becomes unknown below.
+            log.warning(
+                "AI check stopped early: %s (%s)", response.stop_reason, answered
+            )
         text = next((b.text for b in response.content if b.type == "text"), "")
         try:
             data = json.loads(text)
         except json.JSONDecodeError:
             return None
-        if data.get("label") not in LABELS:
+        if not isinstance(data, dict) or data.get("label") not in LABELS:
             return None
         usage = response.usage
         counts = {
@@ -163,14 +204,28 @@ class ClaudeCheck:
             "cache_write": getattr(usage, "cache_creation_input_tokens", 0) or 0,
             "output": usage.output_tokens or 0,
         }
-        price_in, price_cache, price_out = PRICES[self.model]
+        price_in, price_cache, price_out = _prices(answered, self.model)
         cost = (
             counts["input"] * price_in
             + counts["cache_write"] * price_in * 1.25
             + counts["cache_read"] * price_cache
             + counts["output"] * price_out
         ) / 1_000_000
-        return AiLabel(data["label"], str(data.get("reason", ""))[:200], counts, cost)
+        return AiLabel(
+            data["label"], str(data.get("reason", ""))[:200], counts, cost, answered
+        )
+
+    def _failed(self) -> None:
+        self._failures += 1
+        if self._failures >= FAILURES_BEFORE_PAUSE:
+            # The count stays at the threshold until the API answers again, so one more
+            # failure after the pause starts the next pause straight away.
+            self._paused_until = self._clock() + PAUSE_S
+            log.warning(
+                "AI check paused for %.0f s after %d API failures in a row",
+                PAUSE_S,
+                self._failures,
+            )
 
 
 class AgreeingClassifier:
@@ -192,8 +247,9 @@ class AgreeingClassifier:
             return Prediction("unknown", reason="ai_check_unavailable")
         if second.label != first.label:
             log.info(
-                "AI check disagrees: model %s, Claude %s (%s)",
+                "AI check disagrees: model %s, Claude %s %s (%s)",
                 first.label,
+                second.model,
                 second.label,
                 second.reason,
             )
