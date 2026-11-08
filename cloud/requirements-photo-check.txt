@@ -1,0 +1,10 @@
+# Community report photo check (OP-308; lead decision, November 8): the ONNX road-condition
+# model and Claude check each report photo together. Installed on Render (render.yaml) and by
+# `make setup`. Only these three: never torch or opencv on Render. Ranges match vision/requirements.txt.
+# Pillow 13.0.0 is the first release without open high-severity advisories;
+# CI's dependency review rejects any range that admits an older release.
+pillow>=13,<14
+# CPU inference for the ONNX model (vision/inference.py).
+onnxruntime>=1.23,<2
+# The Claude check (vision/ai_check.py); used only when ANTHROPIC_API_KEY is set.
+anthropic>=2.6,<3

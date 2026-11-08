@@ -14,7 +14,9 @@ services:
     # Off on purpose: CI's "Deploy to production" job calls the deploy hook only
     # after every check passes on main (docs/CI_CD.md).
     autoDeploy: false
-    buildCommand: pip install -r cloud/requirements.txt
+    # requirements-photo-check.txt adds only onnxruntime, Pillow and anthropic for the
+    # report photo check (OP-308; lead decision, November 8). Never torch or opencv here.
+    buildCommand: pip install -r cloud/requirements.txt -r cloud/requirements-photo-check.txt
     startCommand: uvicorn cloud.app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
@@ -46,6 +48,15 @@ services:
       - key: WEATHER_LAT
         sync: false
       - key: WEATHER_LNG
+        sync: false
+      # Report photo check (OP-308): the ONNX model and Claude together (docs/DEPLOY.md, section 6).
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: MODEL_URL
+        sync: false
+      - key: MODEL_LABELS
+        sync: false
+      - key: MODEL_SHA256
         sync: false
 
 databases:
