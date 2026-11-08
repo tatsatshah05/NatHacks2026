@@ -218,7 +218,12 @@ jobs:
     # main deploys to the "production" environment; phase_* branches deploy to "staging".
     # Each environment holds its own RENDER_*_DEPLOY_HOOK secrets and API_URL / WEB_URL variables.
     name: Deploy
-    if: github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'phase_'))
+    # `needs: ci-passed` alone is not enough: on a push the PR-rules job is skipped, and GitHub
+    # then skips every job downstream of it, so this job never ran. Check the gate's result
+    # explicitly instead (it already fails when any check fails).
+    if: >-
+      ${{ !cancelled() && needs.ci-passed.result == 'success' && github.event_name == 'push'
+      && (github.ref_name == 'main' || startsWith(github.ref_name, 'phase_')) }}
     needs: ci-passed
     runs-on: ubuntu-latest
     environment:

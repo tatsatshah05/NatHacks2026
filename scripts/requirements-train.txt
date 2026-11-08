@@ -1,0 +1,11 @@
+# Only for vision/train.py (OP-202), which runs on a laptop or Colab. Never installed
+# on Render or in CI: PyTorch is gigabytes. Install with:
+#   pip install -r vision/requirements.txt -r scripts/requirements-train.txt
+# On Linux without a GPU, add --index-url https://download.pytorch.org/whl/cpu for
+# the much smaller CPU-only build.
+# torch 2.6 is the first release with the torch.load(weights_only) fix (CVE-2025-32434).
+torch>=2.6,<3
+torchvision>=0.21,<1
+onnx>=1.17,<2
+onnxscript>=0.2,<1
+onnxruntime>=1.20,<2

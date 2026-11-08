@@ -26,6 +26,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from cloud.app import matching, routing_api
+from cloud.app.camera_ice_routing import CameraIceHazardProvider
 from cloud.app.main import create_app
 from cloud.app.matching import (
     LINE_BUFFER_M,
@@ -559,10 +560,15 @@ def test_one_odd_item_does_not_stop_the_others(
 
 
 def test_the_app_routes_with_the_matcher(monkeypatch: pytest.MonkeyPatch) -> None:
-    """With the committed network, startup sets ``hazard_provider`` for routing."""
+    """With the committed network, startup routes with the matcher.
+
+    OP-205's camera provider wraps it, adding camera ice risks to its map.
+    """
     monkeypatch.setenv("DATABASE_URL", "sqlite://")
     monkeypatch.setenv("SCHEDULER", "off")
     monkeypatch.delenv("DATA_MODE", raising=False)
     app = create_app()
     with TestClient(app):
-        assert isinstance(app.state.hazard_provider, HazardProvider)
+        provider = app.state.hazard_provider
+        assert isinstance(provider, CameraIceHazardProvider)
+        assert isinstance(provider.base, HazardProvider)
