@@ -11,6 +11,8 @@ export type ReportGroup = Schemas["ReportGroupOut"];
 export type ReportItem = Schemas["ReportItemOut"];
 export type Category = Schemas["Category"];
 export type ItemStatus = Schemas["Status"];
+export type StatusResponse = Schemas["StatusResponse"];
+export type SourceStatus = Schemas["SourceStatus"];
 
 // The profile ids of config/profiles.json and GET /api/route.
 export type TravelProfile = "wheelchair" | "walker_cane" | "low_vision" | "standard";

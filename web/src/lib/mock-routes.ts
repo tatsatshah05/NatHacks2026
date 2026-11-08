@@ -14,6 +14,8 @@ import type {
   ReportItem,
   RouteOut,
   RouteResponse,
+  SourceStatus,
+  StatusResponse,
   TravelProfile
 } from "./planner-types";
 
@@ -357,8 +359,13 @@ const COSTLY: Record<TravelProfile, ReadonlyArray<ReportItem["effect"]>> = {
   standard: ["snow", "ice_risk"]
 };
 
+export type MockOptions = {
+  /** Routes with no known obstructions, to show the report's empty state. */
+  empty?: boolean;
+};
+
 /** A typed demo GET /api/route response. `now` dates the "checked" times. */
-export function getMockRouteResponse(query: PlannerQuery, now: Date): RouteResponse {
+export function getMockRouteResponse(query: PlannerQuery, now: Date, options: MockOptions = {}): RouteResponse {
   const { from, to, profile } = query;
   // The plain shortest route: the straight line plus a typical street-grid detour.
   const plainM = Math.max(400, straightLineM(from.coordinates, to.coordinates) * 1.25);
@@ -368,7 +375,7 @@ export function getMockRouteResponse(query: PlannerQuery, now: Date): RouteRespo
     const distance = round1(plainM * demo.detour);
     const etaMin = round1(distance / speed / 60);
     const extraMin = (distance - plainM) / speed / 60;
-    const entries = demo.mentions.map((mention) => entry(mention, now));
+    const entries = options.empty ? [] : demo.mentions.map((mention) => entry(mention, now));
     const items = entries.map(({ item }) => item);
     const avoided = items.filter((item) => item.status === "avoided");
     avoided.sort((a, b) => Number(a.effect !== "blocked") - Number(b.effect !== "blocked") || a.id.localeCompare(b.id));
@@ -501,4 +508,39 @@ function round1(value: number): number {
 
 function round6(value: number): number {
   return Math.round(value * 1e6) / 1e6;
+}
+
+// Each scheduled source, its dataset and how long ago the demo last read it. Snow
+// clearing is out of date on purpose, so the report shows how a stale source reads.
+const SOURCES: Array<[source: string, url: string, cadenceS: number, ageMin: number, items: number]> = [
+  ["city_lrt_devices", "https://data.edmonton.ca/d/snws-u3zx", 120, 2, 7],
+  ["city_311_snow", "https://data.edmonton.ca/d/9i6v-cqzn", 3600, 41, 12],
+  ["city_trail_closures", "https://data.edmonton.ca/d/k4mi-dkvi", 900, 9, 44],
+  ["city_construction", "https://data.edmonton.ca/d/7wiq-4rgy", 3600, 14, 5],
+  ["city_snow_clearing", "https://data.edmonton.ca/d/8pdx-hfxi", 900, 135, 31],
+  ["city_traffic_disruptions", "https://data.edmonton.ca/d/k4tx-5k8p", 900, 6, 4],
+  ["weather_watch", "https://api.weather.gc.ca/", 900, 16, 1]
+];
+const STALE = new Set(["city_snow_clearing"]);
+
+/** A typed demo GET /api/status response, for source freshness. */
+export function getMockStatus(now: Date): StatusResponse {
+  const sources = SOURCES.map(([source, url, cadenceS, ageMin, items]): SourceStatus => {
+    const stale = STALE.has(source);
+    const lastSuccess = shift(now, -ageMin * 60);
+    return {
+      source,
+      cadence_s: cadenceS,
+      url,
+      last_attempt: stale ? shift(now, -60) : lastSuccess,
+      last_success: lastSuccess,
+      last_error: stale ? "Timed out after 20 s" : null,
+      consecutive_failures: stale ? 3 : 0,
+      item_count: items,
+      skipped_items: 0,
+      stale,
+      age_s: ageMin * 60
+    };
+  });
+  return { mode: "demo", version: "demo", scheduler_running: true, generated_at: now.toISOString(), sources };
 }
