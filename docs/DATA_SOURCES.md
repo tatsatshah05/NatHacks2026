@@ -108,6 +108,13 @@ One section per source. Each adapter's owner keeps their section current: what t
   timestamps, wrong units and negative precipitation.
 - Attribution: Weather data by Open-Meteo.com, CC BY 4.0:
   https://open-meteo.com/en/licence
+- Historical archive (OP-305, replay only): https://archive-api.open-meteo.com/v1/archive
+  (ERA5 reanalysis), hourly `temperature_2m`, `dew_point_2m`, `precipitation` and
+  `soil_temperature_0_to_7cm` in UTC. Recorded by `scripts/record_snapshot.py
+  --weather-archive`; the committed freeze-thaw night is in
+  `cloud/tests/fixtures/weather/freeze_thaw/` (see [OP-305](OP-305.md)). Its soil
+  value is a 0 to 7 cm layer average, not the 0 cm surface value. Attribution adds
+  "Contains modified Copernicus Climate Change Service information".
 
 ## Reliability and recordings
 

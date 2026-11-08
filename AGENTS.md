@@ -19,6 +19,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
+- **Replay mode (OP-305):** `make record` runs `scripts/record_snapshot.py`, which records every source (JSON only, never images, no token written) into `snapshots/<UTC time>/` in the layout `REPLAY_SNAPSHOT` reads, with a `manifest.json`; snapshots are about 9 MB and stay out of git. `REPLAY_CLOCK=running` advances replay time from `REPLAY_AT` or the manifest's `replay_at`; `WEATHER_REPLAY=freeze_thaw` serves a real freeze-thaw night (Edmonton, November 5 to 6, 2025, from Open-Meteo's archive; the watch fires 12:00 to 18:00 UTC). `/health`, `/api/status`, `/api/weather` and `/api/cameras` say `replay`; the web badge reads `/health`. See [docs/OP-305.md](docs/OP-305.md).
+
 - **OP-205:** camera `ice` (or `wet` while the watch is active) becomes `ice_risk` on the crossings within 50 m of the camera. `CameraIceHazardProvider` (`cloud/app/camera_ice_routing.py`) is `app.state.hazard_provider`: it wraps the matcher and adds those exact crossings, so camera risks never meet the matcher's area rule. See [docs/OP-205.md](docs/OP-205.md).
 
 - **OP-204 on this branch:** `vision/worker.py` and `vision/inference.py` run
@@ -237,13 +239,13 @@ These live in the root Makefile and are available after OP-102.
 | `make test` | `pytest` for cloud and vision, plus `npm run lint` and `npm run typecheck` in `web/` |
 | `make graph` | Installs `scripts/requirements-graph.txt`, then rebuilds `cloud/data/network.npz` with OSMnx (local only, then commit). macOS or Linux for now: `scripts/build_graph.py` uses the Unix-only `resource` module |
 | `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` (with `npx openapi-typescript`) |
-| `make record` | Records a replay snapshot of every source (no images) |
+| `make record` | Records a replay snapshot of every source into `snapshots/<UTC time>/` (JSON only, no images; `RECORD_FLAGS="--cameras-from <API URL>"` adds camera readings). See [docs/OP-305.md](docs/OP-305.md) |
 | `make worker` | Runs the vision worker locally |
 | `make lint` | `ruff check`, `ruff format --check` and `npm run lint` (the same lint CI runs) |
 | `make format` | `ruff check --fix`, then `ruff format` |
 | `make build` | Production build of the web app (`npm run build`) |
 
-`make record` prints "not built yet" and exits with an error until OP-305 adds its script. `make worker` now runs a network-free, explicitly synthetic OP-204 replay; see below for live prerequisites. While `web/` is missing, the web steps of `make setup`, `make test` and `make lint` are skipped, `make dev` starts only the API, and `make web`, `make build` and `make types` stop with an error. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux.
+`make record` exits with 1 if any source failed (the others are still written; `manifest.json` lists each source's status). `python scripts/record_snapshot.py --weather-archive YYYY-MM-DD` records a past night from Open-Meteo's archive instead of today's weather. `make worker` now runs a network-free, explicitly synthetic OP-204 replay; see below for live prerequisites. While `web/` is missing, the web steps of `make setup`, `make test` and `make lint` are skipped, `make dev` starts only the API, and `make web`, `make build` and `make types` stop with an error. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux.
 
 `make dev` and `make web` run `scripts/dev.py`. It removes API keys from the environment and sets `DATA_MODE=replay` with `REPLAY_SNAPSHOT=cloud/tests/fixtures`, so adapters must read their fixtures in replay mode. If one server stops (for example because its port is in use), the other is stopped too and `make dev` fails with that server's exit code.
 
@@ -290,11 +292,11 @@ OP-205 checks: `python -m pytest cloud/tests/test_camera_ice.py cloud/tests/test
 
 Never commit values. Keep `.env.example` current. Nothing loads `.env.example` or a `.env` file: Render and Vercel take values from their dashboards, and `make dev` sets its own.
 
-- **cloud:** `DATABASE_URL`, `ADMIN_KEY`, `WORKER_KEY`, `CORS_ORIGINS`, `SOCRATA_APP_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DATA_MODE` (`live` or `replay`), `REPLAY_SNAPSHOT`, `REPLAY_AT`, `WEATHER_LAT`, `WEATHER_LNG`, `LRT_TRIPS`
+- **cloud:** `DATABASE_URL`, `ADMIN_KEY`, `WORKER_KEY`, `CORS_ORIGINS`, `SOCRATA_APP_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DATA_MODE` (`live` or `replay`), `REPLAY_SNAPSHOT`, `REPLAY_AT`, `REPLAY_CLOCK` (`frozen` or `running`), `WEATHER_REPLAY`, `WEATHER_LAT`, `WEATHER_LNG`, `LRT_TRIPS`
 - **vision:** `CLOUD_URL`, `WORKER_KEY`, `ALBERTA_511_KEY`, `MODEL_URL`, `ANTHROPIC_API_KEY` (only for `--ai-check`, on the worker laptop; never on Render, never in CI)
 - **web:** `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. The OP-113 web app currently reads `NEXT_PUBLIC_API_BASE_URL` instead of `NEXT_PUBLIC_API_URL`; `make dev` and docs/DEPLOY.md set both until the two agree.
 
-`REPLAY_SNAPSHOT` is a folder, not a file: one subfolder of recorded responses per source, as in `cloud/tests/fixtures/`. `REPLAY_AT` (replay only, ISO 8601 with a time zone, for example `2026-11-10T18:00:00Z`) freezes the app's clock (`app.state.clock`) so recorded closures stay active: the scheduler, the map (`GET /api/obstructions`) and route hazards all use it. `CORS_ORIGINS` is comma-separated, and a `*` matches part of one host-name label (`https://openpath-*-<team-slug>.vercel.app`). It is not a security boundary; see [docs/DEPLOY.md](docs/DEPLOY.md).
+`REPLAY_SNAPSHOT` is a folder, not a file: one subfolder of recorded responses per source, as in `cloud/tests/fixtures/`. `REPLAY_AT` (replay only, ISO 8601 with a time zone, for example `2026-11-10T18:00:00Z`) freezes the app's clock (`app.state.clock`) so recorded closures stay active: the scheduler, the map (`GET /api/obstructions`), route hazards and `GET /api/cameras` all use it. `REPLAY_CLOCK=running` starts that clock at `REPLAY_AT` (or the snapshot manifest's `replay_at`) and lets it advance in real time; `REPLAY_CLOCK=frozen` freezes it at the manifest's time. `WEATHER_REPLAY=<name>` serves the weather recording in `<snapshot>/weather/<name>/`; `freeze_thaw` is the committed archive night. `CORS_ORIGINS` is comma-separated, and a `*` matches part of one host-name label (`https://openpath-*-<team-slug>.vercel.app`). It is not a security boundary; see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Conventions
 
