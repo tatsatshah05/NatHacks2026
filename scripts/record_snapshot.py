@@ -153,12 +153,25 @@ class Recorder:
     # -- writing -----------------------------------------------------------------
 
     def write_json(
-        self, name: str, data: Any, *, url: str | None, rows: int | None
+        self,
+        name: str,
+        data: Any,
+        *,
+        url: str | None,
+        rows: int | None,
+        readable: bool = False,
     ) -> dict[str, Any]:
-        """Write one recorded file and remember its manifest entry."""
+        """Write one recorded file and remember its manifest entry.
+
+        Recorded responses are compact (the snow-clearing lines alone are megabytes);
+        ``readable`` files, such as manifests, are indented for people.
+        """
         path = self.out / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        text = json.dumps(data, ensure_ascii=False, indent=1) + "\n"
+        if readable:
+            text = json.dumps(data, ensure_ascii=False, indent=1) + "\n"
+        else:
+            text = json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n"
         path.write_text(text, encoding="utf-8")
         entry = {
             "url": url,
@@ -337,6 +350,7 @@ async def record_weather_archive(rec: Recorder, opts: Options) -> dict[str, Any]
         },
         url=None,
         rows=None,
+        readable=True,
     )
     print(
         f"  weather archive: {len(table)} hours checked, watch active for "
@@ -464,6 +478,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--no-check", action="store_true", help="skip the offline replay check"
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="show the adapters' per-row warnings (skipped or unparsed rows)",
+    )
     return parser.parse_args(argv)
 
 
@@ -564,8 +583,11 @@ async def run(
 
 
 def main(argv: list[str] | None = None) -> int:
-    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
-    return asyncio.run(run(parse_args(argv)))
+    args = parse_args(argv)
+    # The adapters log every skipped row; the recorder reports per source instead.
+    level = logging.WARNING if args.verbose else logging.ERROR
+    logging.basicConfig(level=level, format="%(levelname)s %(message)s")
+    return asyncio.run(run(args))
 
 
 if __name__ == "__main__":
