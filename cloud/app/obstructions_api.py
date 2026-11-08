@@ -41,9 +41,17 @@ def get_store(request: Request) -> ObstructionStore:
     return store
 
 
-def get_now() -> datetime:
-    """Dependency: the current time. Tests override this to freeze the clock."""
-    return datetime.now(UTC)
+def get_now(request: Request) -> datetime:
+    """Dependency: the app's current time, from the same clock as the scheduler.
+
+    In replay mode with ``REPLAY_AT`` the scheduler's clock is frozen so recorded
+    closures stay in force; the map and route hazards must ask the store at that
+    time too, or every recorded item looks expired. The app sets ``app.state.clock``
+    at startup; without it (a bare test app) this is the real UTC time. Tests can
+    still override this dependency to freeze the clock.
+    """
+    clock = getattr(request.app.state, "clock", None)
+    return clock() if clock is not None else datetime.now(UTC)
 
 
 def parse_bbox(value: str | None) -> BBox | None:
