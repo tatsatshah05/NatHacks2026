@@ -239,11 +239,11 @@ Use `--live` instead of `--fixtures` for one official City API read, with option
 
 Never commit values. Keep `.env.example` current. Nothing loads `.env.example` or a `.env` file: Render and Vercel take values from their dashboards, and `make dev` sets its own.
 
-- **cloud:** `DATABASE_URL`, `ADMIN_KEY`, `WORKER_KEY`, `CORS_ORIGINS`, `SOCRATA_APP_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DATA_MODE` (`live` or `replay`), `REPLAY_SNAPSHOT`, `WEATHER_LAT`, `WEATHER_LNG`, `LRT_TRIPS`
+- **cloud:** `DATABASE_URL`, `ADMIN_KEY`, `WORKER_KEY`, `CORS_ORIGINS`, `SOCRATA_APP_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DATA_MODE` (`live` or `replay`), `REPLAY_SNAPSHOT`, `REPLAY_AT`, `WEATHER_LAT`, `WEATHER_LNG`, `LRT_TRIPS`
 - **vision:** `CLOUD_URL`, `WORKER_KEY`, `ALBERTA_511_KEY`, `MODEL_URL`
 - **web:** `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. The OP-113 web app currently reads `NEXT_PUBLIC_API_BASE_URL` instead of `NEXT_PUBLIC_API_URL`; `make dev` and docs/DEPLOY.md set both until the two agree.
 
-`REPLAY_SNAPSHOT` is a folder, not a file: one subfolder of recorded responses per source, as in `cloud/tests/fixtures/`. `CORS_ORIGINS` is comma-separated, and a `*` matches part of one host-name label (`https://openpath-*-<team-slug>.vercel.app`). It is not a security boundary; see [docs/DEPLOY.md](docs/DEPLOY.md).
+`REPLAY_SNAPSHOT` is a folder, not a file: one subfolder of recorded responses per source, as in `cloud/tests/fixtures/`. `REPLAY_AT` (replay only, ISO 8601 with a time zone, for example `2026-11-10T18:00:00Z`) freezes the app's clock (`app.state.clock`) so recorded closures stay active: the scheduler, the map (`GET /api/obstructions`) and route hazards all use it. `CORS_ORIGINS` is comma-separated, and a `*` matches part of one host-name label (`https://openpath-*-<team-slug>.vercel.app`). It is not a security boundary; see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Conventions
 
