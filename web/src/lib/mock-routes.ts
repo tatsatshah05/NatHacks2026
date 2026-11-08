@@ -540,6 +540,7 @@ export function getMockStatus(now: Date): StatusResponse {
       consecutive_failures: stale ? 3 : 0,
       item_count: items,
       skipped_items: 0,
+      rejected_rows: 0,
       stale,
       age_s: ageMin * 60
     };

@@ -422,7 +422,9 @@ def best_route_router(router: Router) -> Router:
     """A router on the same network and profiles that stops at the best route."""
     alternates = router.config.alternates.model_copy(update={"max_routes": 1})
     return Router(
-        router.network, router.config.model_copy(update={"alternates": alternates})
+        router.network,
+        router.config.model_copy(update={"alternates": alternates}),
+        cache=router.cache,  # the same weights and matrices as request routing
     )
 
 

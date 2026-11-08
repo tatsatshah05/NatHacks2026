@@ -39,6 +39,12 @@ web/.vercel/
 web/.env.local
 web/*.tsbuildinfo
 
+# Playwright end-to-end output (OP-406): traces, screenshots and reports
+web/test-results/
+web/playwright-report/
+web/blob-report/
+web/playwright/.cache/
+
 # Local agent worktrees (Claude Code); never part of the repository
 .claude/worktrees/
 

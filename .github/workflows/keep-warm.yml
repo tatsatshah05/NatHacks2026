@@ -1,0 +1,72 @@
+# Keep the production API awake and watched (OP-404).
+#
+# Render spins down a free web service after 15 minutes without inbound traffic, and
+# the first request afterwards waits about a minute while it starts again
+# (https://render.com/docs/free, read on November 8, 2026). This workflow calls the
+# API every 10 minutes so nobody meets that wait during judging, and it fails loudly
+# (GitHub emails the person who last changed this file) when /health or /api/status
+# is not HTTP 200, or /health does not report a 40-character commit as its version.
+#
+# It runs from the repository's default branch only, and GitHub may start a scheduled
+# run a few minutes late. The camera worker's posts every 5 minutes keep the instance
+# awake as well while the worker runs (docs/DEPLOY.md, section 4). OP-402's uptime
+# workflow may absorb these two calls later.
+
+name: Keep warm
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Production API answers
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # The production instance (docs/DEPLOY.md, "Current deployment").
+      API_URL: https://openpath-api-w6ql.onrender.com
+    steps:
+      - name: GET /health is 200 with a 40-character commit
+        run: |
+          started=$(date +%s%3N)
+          if ! response="$(curl -sS --max-time 120 -w '\n%{http_code}' "$API_URL/health")"; then
+            echo "::error::$API_URL/health did not answer within 120 s."
+            exit 1
+          fi
+          took=$(( $(date +%s%3N) - started ))
+          code="${response##*$'\n'}"
+          body="${response%$'\n'*}"
+          echo "/health answered HTTP $code in ${took} ms: $body"
+          if [ "$code" != "200" ]; then
+            echo "::error::/health returned HTTP $code."
+            exit 1
+          fi
+          version="$(jq -r '.version // empty' <<<"$body" 2>/dev/null || true)"
+          if ! [[ "$version" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::/health reports version '$version', not a 40-character commit."
+            exit 1
+          fi
+          if [ "$took" -gt 10000 ]; then
+            echo "::warning::/health took ${took} ms; the instance was probably asleep."
+          fi
+      - name: GET /api/status is 200
+        run: |
+          if ! code="$(curl -sS -o status.json --max-time 60 -w '%{http_code}' "$API_URL/api/status")"; then
+            echo "::error::$API_URL/api/status did not answer within 60 s."
+            exit 1
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error::/api/status returned HTTP $code."
+            exit 1
+          fi
+          echo "/api/status answered HTTP 200:"
+          jq -c '.' status.json | head -c 4000
+          echo

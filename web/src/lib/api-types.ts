@@ -117,6 +117,8 @@ export interface paths {
          *
          *     Read at the app's clock, like the map and route hazards, so a replay with a
          *     frozen or running clock (OP-305) shows the recorded readings of that time.
+         *     ``summary`` (OP-412) is the ``cameras`` block of ``GET /api/status``, built
+         *     from the same rows, so one call also says whether the cameras are reporting.
          */
         get: operations["list_cameras_api_cameras_get"];
         put?: never;
@@ -296,6 +298,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Override
+         * @description Store one labelled test obstruction and rebuild the hazard map (testing only).
+         */
+        post: operations["set_override_api_admin_override_post"];
+        /**
+         * Clear Overrides
+         * @description Remove every override (a clean slate after a test run).
+         */
+        delete: operations["clear_overrides_api_admin_override_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/override/{source_ref}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Override
+         * @description Remove one override by its ``source_ref`` (404 when none is active).
+         */
+        delete: operations["remove_override_api_admin_override__source_ref__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -332,6 +378,7 @@ export interface components {
             generated_at: string;
             /** Features */
             features: components["schemas"]["CameraFeature"][];
+            summary?: components["schemas"]["CamerasStatus"] | null;
         };
         /** CameraFeature */
         CameraFeature: {
@@ -452,6 +499,48 @@ export interface components {
             attribution: string;
         };
         /**
+         * CamerasStatus
+         * @description The ``cameras`` block of ``GET /api/status`` and ``summary`` of ``GET /api/cameras``.
+         */
+        CamerasStatus: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "live" | "stale" | "none";
+            /**
+             * Ice Source
+             * @enum {string}
+             */
+            ice_source: "cameras" | "weather_watch";
+            /** Readings */
+            readings: number;
+            /** Usable */
+            usable: number;
+            /** Views Total */
+            views_total: number;
+            /** Newest Observed At */
+            newest_observed_at: string | null;
+            /** Newest Age S */
+            newest_age_s: number | null;
+            /** Oldest Age S */
+            oldest_age_s: number | null;
+            /** Model Versions */
+            model_versions: string[];
+            /** Score Min */
+            score_min: number | null;
+            /** Score Median */
+            score_median: number | null;
+            /** Labels */
+            labels: {
+                [key: string]: number;
+            };
+            /** Watch Active */
+            watch_active: boolean | null;
+            /** Live Within S */
+            live_within_s: number;
+        };
+        /**
          * Category
          * @description Where the barrier is. The route report groups items by category.
          * @enum {string}
@@ -467,6 +556,21 @@ export interface components {
          * @enum {string}
          */
         Confidence: "high" | "medium" | "low";
+        /**
+         * CountChange
+         * @description Today's item count against yesterday's, as ``GET /api/status`` shows it.
+         */
+        CountChange: {
+            /** Today */
+            today: number;
+            /** Yesterday */
+            yesterday?: number | null;
+            /**
+             * Drop
+             * @default false
+             */
+            drop: boolean;
+        };
         /** DeviceOut */
         DeviceOut: {
             /** Device Id */
@@ -728,6 +832,63 @@ export interface components {
          * @enum {string}
          */
         Outcome: "new" | "changed" | "same" | "older";
+        /**
+         * OverrideIn
+         * @description One test obstruction. The same fields as an ``Obstruction``, minus what the
+         *     server fills in (source, id, times, attribution).
+         */
+        OverrideIn: {
+            /**
+             * Source Ref
+             * @example e2e-laptop
+             */
+            source_ref: string;
+            /**
+             * Title
+             * @example Sidewalk closed
+             */
+            title: string;
+            geometry: components["schemas"]["Geometry"];
+            /** @default sidewalk */
+            category: components["schemas"]["Category"];
+            /** @default blocked */
+            kind: components["schemas"]["Kind"];
+            /** @default blocked */
+            effect: components["schemas"]["Effect"];
+            /** @default high */
+            confidence: components["schemas"]["Confidence"];
+            /** Detail */
+            detail?: string | null;
+            /**
+             * Ttl S
+             * @default 600
+             */
+            ttl_s: number;
+        };
+        /** OverrideOut */
+        OverrideOut: {
+            /** Id */
+            id: string;
+            /** Source */
+            source: string;
+            /** Source Ref */
+            source_ref: string;
+            /** Title */
+            title: string;
+            effect: components["schemas"]["Effect"];
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Rebuilt */
+            rebuilt: boolean;
+        };
         /** PedestrianCountsInfo */
         PedestrianCountsInfo: {
             /** Dataset */
@@ -1134,6 +1295,16 @@ export interface components {
             stale: boolean;
             /** Age S */
             age_s?: number | null;
+            /**
+             * Rejected Rows
+             * @default 0
+             */
+            rejected_rows: number;
+            /** Unexpected Fields */
+            unexpected_fields?: string[];
+            /** Last Validation Error */
+            last_validation_error?: string | null;
+            count_change?: components["schemas"]["CountChange"] | null;
         };
         /**
          * StationOut
@@ -1177,6 +1348,7 @@ export interface components {
             generated_at: string;
             /** Sources */
             sources: components["schemas"]["SourceStatus"][];
+            cameras?: components["schemas"]["CamerasStatus"] | null;
         };
         /** StepOut */
         StepOut: {
@@ -1796,6 +1968,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PriorityResponse"];
+                };
+            };
+        };
+    };
+    set_override_api_admin_override_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-admin-key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverrideOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_overrides_api_admin_override_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-admin-key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_override_api_admin_override__source_ref__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-admin-key"?: string | null;
+            };
+            path: {
+                source_ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

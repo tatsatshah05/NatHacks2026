@@ -17,6 +17,8 @@
 - ``SOCRATA_APP_TOKEN``: raises the City open data rate limit. Optional.
 - ``LRT_TRIPS``: ``true`` adds walk and LRT trips to ``/api/route?mode=walk_lrt``
   (OP-311). Off by default; then every route is walking only.
+- ``RATE_LIMIT_PER_MIN``: writes one client may send per minute on the public POST
+  and DELETE routes (OP-401, ``rate_limit.py``; default 30, ``0`` turns it off).
 - ``LOG_FORMAT``: ``text`` (the default) or ``json``, one record per line; ``LOG_LEVEL``
   (default ``INFO``) for the app's own loggers (``logging_setup.py``, OP-402).
 """
@@ -38,6 +40,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from cloud.app import (
+    admin_api,
     ingest_api,
     logging_setup,
     lrt,
@@ -55,12 +58,15 @@ from cloud.app import (
 )
 from cloud.app.camera_ice_routing import CameraIceHazardProvider
 from cloud.app.camera_readings import CameraReadingStore
-from cloud.app.db import make_engine
+from cloud.app.db import ensure_indexes, make_engine
 from cloud.app.matching import HazardProvider
 from cloud.app.network import DEFAULT_NETWORK_PATH, WalkNetwork
 from cloud.app.profiles import load_routing_config
+from cloud.app.quality import DailyCounts
+from cloud.app.rate_limit import RateLimits
 from cloud.app.routing import Router
 from cloud.app.scheduler import Scheduler, utcnow
+from cloud.app.security import SecurityHeadersMiddleware
 from cloud.app.store import ObstructionStore
 
 log = logging.getLogger(__name__)
@@ -213,6 +219,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     camera_store.create_tables()
     camera_store.purge_expired(utcnow())  # drop readings that expired over a week ago
     app.state.camera_store = camera_store
+    # OP-407: one item count per source and UTC day, for the sudden-drop check.
+    counts = DailyCounts(store.engine)
+    counts.create_tables()
+    app.state.daily_counts = counts
     app.state.photo_checker = reports_api.build_photo_checker()  # OP-308
     mode: str = app.state.mode
     snapshot_raw = os.environ.get("REPLAY_SNAPSHOT")
@@ -259,7 +269,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     sync_client=sync_client,
                     weather_service=weather,
                 )
-                scheduler = Scheduler(store, built, clock=clock)
+                scheduler = Scheduler(store, built, clock=clock, counts=counts)
                 app.state.scheduler = scheduler
                 await scheduler.start()
             if app.state.router is not None:
@@ -279,6 +289,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 hazard_clock=clock,
                 run=run_scheduler,
             )
+            # OP-404: every table exists now; add any index declared since a table
+            # was first created (create_all never alters an existing table). A
+            # database error here must not stop the API: the queries still work.
+            try:
+                created = ensure_indexes(store.engine)
+            except Exception:
+                log.exception("DB could not check indexes; starting without them")
+            else:
+                if created:
+                    log.info("DB created %d missing index(es)", len(created))
             app.state.live = ws.attach(app)  # OP-303: WS /ws live updates
             try:
                 yield
@@ -305,6 +325,8 @@ def create_app() -> FastAPI:
     app = FastAPI(title="OpenPath API", version="0.1.0", lifespan=lifespan)
     app.state.mode = mode  # read by the lifespan and by /api/status
     app.state.version = version
+    # OP-401: the per-client limits the public write routes check (rate_limit.py).
+    app.state.rate_limits = RateLimits.from_env(os.environ.get("RATE_LIMIT_PER_MIN"))
 
     origins, origin_regex = cors_settings(os.environ.get("CORS_ORIGINS"))
     app.add_middleware(
@@ -314,6 +336,8 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
     )
+    # Added last, so it is outermost and decorates CORS preflight answers too (OP-401).
+    app.add_middleware(SecurityHeadersMiddleware)
 
     app.include_router(obstructions_api.router)
     app.include_router(status.router)
@@ -326,6 +350,7 @@ def create_app() -> FastAPI:
     app.include_router(reports_api.router)
     app.include_router(ws.router)  # WS /ws (OP-303)
     app.include_router(priority.router)  # GET /api/priority (OP-310)
+    app.include_router(admin_api.router)  # POST /api/admin/override (testing only)
 
     @app.get("/health", tags=["ops"])
     def health() -> Health:
