@@ -165,6 +165,7 @@ OpenPath has no accounts ([ADR 0004](adr/0004-no-user-accounts.md)) and never st
 | Community reports: type, place, optional note (120 characters), times | `obstruction` table, shown without the device id | 2 h (ice), 6 h (blocked), 12 h (snow) | `reports.py`, `config/reports.json` |
 | Report limit log: device id, report id, time | `community_report_log` table | 24 h | `reports.py` (`LOG_KEEP`) |
 | Camera readings: label, score, reason, place, times, model version | `camera_reading` table, one row per view | Unexpired for at most 2 h; rows deleted at startup once expired for over 7 days | `camera_readings.py` |
+| Camera vehicle-incident answer (OP-415): whether a vehicle in view appeared to lose control, one sentence, times | `camera_incident` table, one row per view; display only, accuracy not measured | Expires with the reading that carried it; purged with the readings | `camera_readings.py` |
 | Saved routes: name, start, end, profile, device id, usual route | `saved_route` table | Until the device removes them | `saved_routes.py` |
 | Push subscriptions: endpoint, keys, device id, failure count | `push_subscription` table | Until the push service answers 404 or 410, or after 5 failed deliveries in a row | `push.py` |
 | An open route's two points and profile | Server memory | Until the WebSocket closes | `ws.py` |

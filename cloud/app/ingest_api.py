@@ -81,6 +81,9 @@ def ingest_camera(
             422, "observed_at is in the future; check the worker's clock."
         )
     outcome = store.upsert(reading, now)
+    if reading.incident is not None:
+        # OP-415: its own table, newest observation wins; never changes the outcome.
+        store.upsert_incident(reading)
     return IngestResult(
         stored=outcome is not Outcome.OLDER,
         source_ref=reading.source_ref,
@@ -102,11 +105,14 @@ def list_cameras(
     frozen or running clock (OP-305) shows the recorded readings of that time.
     ``summary`` (OP-412) is the ``cameras`` block of ``GET /api/status``, built
     from the same rows, so one call also says whether the cameras are reporting.
+    Each feature carries its view's unexpired vehicle-incident answer (OP-415) as
+    ``incident``, or null.
     """
     rows = store.latest(now)
+    incidents = store.latest_incidents(now)
     return CameraCollection(
         generated_at=now.isoformat().replace("+00:00", "Z"),
-        features=[to_feature(row, now) for row in rows],
+        features=[to_feature(row, now, incidents.get(row.source_ref)) for row in rows],
         summary=camera_status(
             store,
             getattr(request.app.state, "weather_service", None),

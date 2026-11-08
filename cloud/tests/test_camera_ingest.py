@@ -222,6 +222,10 @@ def test_store_rows_carry_every_payload_field() -> None:
     assert store.upsert(incoming, NOW) is Outcome.NEW
     (row,) = store.latest(NOW)
     for name, value in incoming.model_dump().items():
+        if name == "incident":
+            # OP-415: its own table (camera_incident), never a camera_reading column.
+            assert value is None and not hasattr(row, "incident")
+            continue
         assert getattr(row, name) == value, name
     assert row.observed_at.tzinfo is not None and row.received_at.tzinfo is not None
 

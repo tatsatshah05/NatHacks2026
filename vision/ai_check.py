@@ -13,6 +13,17 @@ Frames are sent to the Anthropic API in memory and never stored by us. The key i
 ANTHROPIC_API_KEY on the worker laptop, and on Render for report photos (below);
 `make dev` and the tests run without it.
 
+Vehicle incidents (OP-415; lead decision, November 8)
+-----------------------------------------------------
+The same camera call also answers whether any vehicle in the frame appears to have
+lost control (skidded, spun, left the road or stopped after a collision), as the
+``incident`` object of the structured answer: ``{"seen": bool, "detail": "<one
+line>"}``. It rides along on ``AiLabel.incident`` and ``Prediction.incident`` so the
+worker can post it with the reading; it never changes the agreement decision, the
+posted label or the number of API calls, and a missing or malformed field is simply
+no incident information (``None``). It is a display-only signal whose accuracy is
+not measured.
+
 Report photos (OP-308; lead decision, November 8)
 -------------------------------------------------
 ``ClaudeCheck(model, subject="report_photo")`` checks a community report photo instead
@@ -31,14 +42,14 @@ import json
 import logging
 import time
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal
 
 import anthropic
 from PIL import Image
 
-from vision.inference import Classifier, Prediction
+from vision.inference import Classifier, Incident, Prediction
 from vision.tools.label import LABELS
 
 log = logging.getLogger("openpath.vision.ai_check")
@@ -73,6 +84,44 @@ Additional rules the team agreed after reviewing night frames:
   or glassy signs; otherwise wet. Unsure whether you can see enough: unusable.
 """
 
+# OP-415: the second question in the same call. Display only; accuracy is not measured.
+INCIDENT_RULES = """
+Vehicle incident (a separate question, answered in the same JSON object as "incident"):
+- Set "seen" to true only when a vehicle in the frame appears to have lost control: it has
+  skidded or spun across the lanes, left the road into a ditch, median or barrier, is on its
+  side or roof, or has stopped after a collision with another vehicle or an object.
+- Normal traffic, a vehicle stopped or parked in a lane or on the shoulder, a plow, a tow truck
+  or a work crew is not an incident. Judge the pixels, never the weather or the place. Unsure,
+  or no vehicle visible: false.
+- "detail" is one short plain sentence: what shows the incident, or that no vehicle appears to
+  have lost control.
+"""
+
+# The incident object of the camera answer (OP-415). Every property is required so
+# the answer always carries it; the parser still treats a missing or malformed field
+# as "no incident information", never as an incident and never as an error.
+INCIDENT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "seen": {
+            "type": "boolean",
+            "description": (
+                "True only when a vehicle in the frame appears to have lost control: "
+                "skidded, spun, left the road or stopped after a collision."
+            ),
+        },
+        "detail": {
+            "type": "string",
+            "description": (
+                "One short sentence: what shows it, or that no vehicle appears to "
+                "have lost control."
+            ),
+        },
+    },
+    "required": ["seen", "detail"],
+    "additionalProperties": False,
+}
+
 SCHEMA = {
     "type": "object",
     "properties": {
@@ -81,10 +130,29 @@ SCHEMA = {
             "type": "string",
             "description": "One short sentence: what on the road shows this.",
         },
+        "incident": INCIDENT_SCHEMA,
     },
-    "required": ["label", "reason"],
+    "required": ["label", "reason", "incident"],
     "additionalProperties": False,
 }
+
+INCIDENT_DETAIL_MAX = 200  # characters; the API stores the same limit (OP-415)
+
+
+def parse_incident(value: Any) -> Incident | None:
+    """The ``incident`` object of an answer, or None when it is missing or malformed.
+
+    Never raises: a wrong type, a missing key or a non-boolean ``seen`` is "no
+    incident information", so a bad field can neither invent an incident nor touch
+    the label the caller decides on. ``detail`` becomes one line of at most 200
+    characters.
+    """
+    if not isinstance(value, dict):
+        return None
+    seen, detail = value.get("seen"), value.get("detail")
+    if not isinstance(seen, bool) or not isinstance(detail, str):
+        return None
+    return Incident(seen, " ".join(detail.split())[:INCIDENT_DETAIL_MAX])
 
 
 # What ClaudeCheck looks at: a road-camera frame (the worker) or a report photo (the API).
@@ -162,7 +230,7 @@ def _system_prompt() -> str:
     return (
         "You label road-camera frames for OpenPath, an accessible route planner in Edmonton. "
         "Give exactly one label for the paved road surface the camera watches, following this guide.\n\n"
-        f"{guide}\n{NIGHT_RULES}\n"
+        f"{guide}\n{NIGHT_RULES}\n{INCIDENT_RULES}\n"
         "Answer with the JSON object only. The reason is one short plain sentence about the road surface."
     )
 
@@ -189,6 +257,9 @@ class AiLabel:
     model: str = (
         ""  # the model that answered; differs from the requested one after a fallback
     )
+    # OP-415: the vehicle-incident answer from the same call; None when the answer
+    # had no usable incident field (always None for report photos).
+    incident: Incident | None = None
 
 
 @dataclass
@@ -249,7 +320,15 @@ class ClaudeCheck:
             return None
         counts, cost = self._measure(response, answered)
         return AiLabel(
-            data["label"], str(data.get("reason", ""))[:200], counts, cost, answered
+            data["label"],
+            str(data.get("reason", ""))[:200],
+            counts,
+            cost,
+            answered,
+            # Only camera frames are asked the incident question (OP-415).
+            incident=parse_incident(data.get("incident"))
+            if self.subject == "camera_frame"
+            else None,
         )
 
     def blocked(self, photo: bytes) -> AiBlocked | None:
@@ -367,7 +446,12 @@ class ClaudeCheck:
 
 
 class AgreeingClassifier:
-    """Posts the model's reading only when Claude agrees; everything else is unknown."""
+    """Posts the model's reading only when Claude agrees; everything else is unknown.
+
+    OP-415: whenever Claude answered, its vehicle-incident answer rides along on the
+    prediction (``Prediction.incident``), whether or not the labels agree. It never
+    changes the label, the reason or the number of calls.
+    """
 
     def __init__(self, model: Classifier, check: ClaudeCheck) -> None:
         self.model = model
@@ -391,5 +475,7 @@ class AgreeingClassifier:
                 second.label,
                 second.reason,
             )
-            return Prediction("unknown", reason="ai_check_disagrees")
-        return first
+            return Prediction(
+                "unknown", reason="ai_check_disagrees", incident=second.incident
+            )
+        return replace(first, incident=second.incident)

@@ -1,9 +1,11 @@
 import { cameraFallback, useCamerasStatus } from "@/lib/camera-status";
 import { CAMERA_VIEWER_URL, cameraName, readingWords, scoreWords } from "@/lib/city";
+import { formatDate, formatTime } from "@/lib/report-format";
+import { HazardShapeIcon } from "../ui/hazard-mark";
 import Panel from "../ui/panel";
 import TimeAgo from "../ui/time-ago";
 import CameraGlyph from "./camera-glyph";
-import type { CameraGroup } from "./cameras";
+import { latestIncident, type CameraGroup } from "./cameras";
 import styles from "./city-dashboard.module.css";
 
 type Props = {
@@ -51,6 +53,8 @@ export default function RoadCameras({ cameras, error, replay, now, selectedId, o
             const name = cameraName({ camera_id: camera.cameraId, view_id: camera.views[0].properties.view_id });
             const pressed = selectedId === camera.id;
             const several = camera.views.length > 1;
+            // OP-415: display only. The caution shape plus the words, never colour alone.
+            const incident = latestIncident(camera);
             return (
               <li key={camera.id} className={pressed ? styles.cameraSelected : undefined}>
                 <h3 className={styles.cameraName} id={`${camera.id}-name`.replace(":", "-")}>
@@ -70,6 +74,18 @@ export default function RoadCameras({ cameras, error, replay, now, selectedId, o
                     );
                   })}
                 </ul>
+                {incident && (
+                  <p className={styles.incident} data-camera-incident="seen">
+                    <HazardShapeIcon shape="caution" size={20} className={styles.incidentIcon} />
+                    <span>
+                      Possible vehicle incident in view at{" "}
+                      <time dateTime={incident.observed_at} title={formatDate(incident.observed_at)}>
+                        {formatTime(incident.observed_at)}
+                      </time>
+                      , unverified.
+                    </span>
+                  </p>
+                )}
                 <p className={styles.meta}>{camera.headline.attribution}.</p>
                 <div className={styles.cameraActions}>
                   <button
