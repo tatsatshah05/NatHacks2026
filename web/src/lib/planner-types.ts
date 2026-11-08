@@ -13,6 +13,12 @@ export type Category = Schemas["Category"];
 export type ItemStatus = Schemas["Status"];
 export type StatusResponse = Schemas["StatusResponse"];
 export type SourceStatus = Schemas["SourceStatus"];
+export type SearchResult = Schemas["SearchResult"];
+// OP-311: a walk and LRT trip's legs and stations (set only with mode=walk_lrt).
+export type LegOut = Schemas["LegOut"];
+export type LrtTripOut = Schemas["LrtTripOut"];
+export type StationOut = Schemas["StationOut"];
+export type RouteMode = NonNullable<RouteResponse["mode"]>;
 
 // The profile ids of config/profiles.json and GET /api/route.
 export type TravelProfile = "wheelchair" | "walker_cane" | "low_vision" | "standard";
@@ -29,6 +35,8 @@ export type PlannerQuery = {
   from: PlannerPlace;
   to: PlannerPlace;
   profile: TravelProfile;
+  /** "walk_lrt" asks GET /api/route for walk and LRT trips too (OP-311). */
+  mode?: RouteMode;
 };
 
 export const travelProfiles: ReadonlyArray<{

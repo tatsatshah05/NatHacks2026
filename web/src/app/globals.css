@@ -729,78 +729,6 @@ main > .page-title,
   padding: 0;
 }
 
-/* Drawn demo map: a quiet stand-in until OP-301 brings the real one. */
-.preview {
-  min-width: 0;
-}
-.preview-map {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  height: 360px;
-  overflow: hidden;
-  position: relative;
-}
-@media (min-width: 900px) {
-  .preview-map {
-    height: 520px;
-  }
-}
-.preview-roads {
-  height: 100%;
-  left: 0;
-  position: absolute;
-  top: 0;
-  width: 100%;
-}
-.map-place {
-  align-items: center;
-  background: var(--card);
-  border: 2px solid var(--muted);
-  border-radius: 6px;
-  color: var(--ink);
-  cursor: pointer;
-  display: flex;
-  gap: 8px;
-  left: 10%;
-  min-height: 44px;
-  padding: 6px 12px 6px 8px;
-  position: absolute;
-  text-align: left;
-  top: 22%;
-  z-index: 1;
-}
-.map-place.place-two {
-  left: auto;
-  right: 10%;
-  top: 62%;
-}
-.map-place.chosen {
-  border-color: var(--ink);
-}
-.map-place strong {
-  display: block;
-}
-.map-place span {
-  display: block;
-  color: var(--muted);
-}
-.map-place-mark {
-  border: 2px solid var(--muted);
-  border-radius: 50%;
-  flex: 0 0 14px;
-  height: 14px;
-  width: 14px;
-}
-.map-place.chosen .map-place-mark {
-  background: var(--ink);
-  border-color: var(--ink);
-}
-.preview-caption {
-  color: var(--muted);
-  margin: 8px 0 0;
-}
-
 /* Route report */
 .report-actions {
   display: flex;
@@ -1089,7 +1017,7 @@ main > .page-title,
 
 /* The line draws once; nothing else moves. OP-307's "Never reduce" setting
    (data-motion="full") opts out of the system preference; "Always reduce"
-   (data-motion="reduce") repeats these rules at the end of this file. */
+   (data-motion="reduce") repeats these rules in the OP-307 section below. */
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-motion="full"]) *,
   :root:not([data-motion="full"]) *::before,
@@ -1125,4 +1053,78 @@ main > .page-title,
 }
 :root[data-motion="reduce"] .route-line.is-revealing {
   animation: none;
+}
+
+/*
+  OP-301: the live planner's additions to the route line.
+  A walk and LRT trip draws walks as the single line, rides as a double line (two
+  3 px rails in action colour with a 6 px gap, centred on the same x = 16) and
+  stations as ink rings. A station row splits its line at the ring, so the double
+  line starts or ends exactly at the station.
+*/
+.stop.leg {
+  min-height: 0;
+}
+.stop.leg .stop-mark {
+  background: transparent;
+  height: 0;
+}
+.stop.leg .stop-body {
+  padding-top: 0;
+}
+.stop.is-ride::before,
+.stop.on-ride::before,
+.stop.is-station.ride-in::before,
+.stop.is-station.ride-out::after {
+  background: transparent;
+  border-left: 3px solid var(--action);
+  border-right: 3px solid var(--action);
+  left: 10px;
+  width: 12px;
+}
+.stop.is-station::before {
+  bottom: auto;
+  height: 16px;
+}
+.stop.is-station::after {
+  background: var(--action);
+  bottom: 0;
+  content: "";
+  left: 14px;
+  position: absolute;
+  top: 16px;
+  width: 4px;
+}
+.station-mark {
+  color: var(--ink);
+}
+/* A condition stop the map jumps to takes focus; the ring sits inside the row. */
+.stop:focus-visible {
+  outline-offset: 2px;
+}
+.route-map-line {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  margin: 0;
+}
+.route-shown {
+  align-items: center;
+  color: var(--ink);
+  display: inline-flex;
+  gap: 8px;
+}
+.route-shown svg {
+  color: var(--action);
+}
+.route-data {
+  color: var(--muted);
+}
+.route-warnings {
+  color: var(--muted);
+  margin-top: 16px;
+}
+.results > .warnings {
+  margin-bottom: 16px;
 }

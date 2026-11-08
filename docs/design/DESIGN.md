@@ -20,7 +20,7 @@ Phone (390 px)                     Desktop (from 900 px)
 | OpenPath  [Replay]     |         | OpenPath [Replay]     Plan  City  Alerts About |
 | Plan City Alerts About |         +----------------------+-------------------------+
 +------------------------+         | Where are you going? |                         |
-| Where are you going?   |         | From [............]  |       demo map          |
+| Where are you going?   |         | From [............]  |       route map         |
 | From [..............]  |         | To   [............]  |   (sticky, secondary)   |
 | To   [..............]  |         | [Wheelchair][Walker] |                         |
 | [Wheelchair][Walker ]  |         | [Low vision][Std   ] |                         |
@@ -73,6 +73,7 @@ Changes made after reviewing the first screenshots ("remove one accessory"):
 - The chosen places on the demo map were solid ink boxes, louder than the route line. They are now outlined, and the drawn roads are thinner.
 - The city list used bordered cards and repeated the kind ("Escalator out") above the title ("Escalator out of service"). It now uses plain rows, with the title as the hazard label.
 - A kind sentence that repeated the title was dropped from each report condition.
+- OP-301, live planner: "Replayed data" is said in full once in the status line and as two words in each route's count line. The sentence under the map ("The list has everything the map shows") appears only when there are routes. The route drawn thick on the map is named in words ("Shown on the map as the thick line") and its panel's top rule thickens to 6 px in the line's colour; nothing else marks it.
 - Lead review: three fully drawn routes made a 5,000 px phone page that was hard to compare. Alternates are now rows with a count and a "Show route 2" disclosure. The ice-risk watch, which sat on every line, is shown once above the routes. Effect codes on stops ("caution") became plain words ("take care"). In dark mode the chosen profile was the same blue as "Find routes"; it now fills with ink, as in light mode.
 
 ## 3. Tokens
@@ -132,6 +133,10 @@ Headings use letter-spacing 0. Lines never run past 70ch. Use sentence case ever
 | `HazardMark` | Any condition in a list, legend or report | Shape plus visible label. `HazardShapeIcon` is the shape alone, only when the words sit right next to it. |
 | `RouteLine` | Any screen that shows a route | Heading sentence, reason, then an ordered list: start, each condition, end. `reveal` draws it once; `compact` drops detail and check times when the full report follows. Its parts are exported: `RouteHeading` (sentence and reason), `RouteStops` (the line) and `routeTally` ("1 condition on this route, 1 within 50 m, 1 avoided."). |
 | Route results (`route-result.tsx`) | A list of 2 or 3 routes | The recommended route shows its whole line and buttons. Alternates show heading, reason and count, plus a "Show route 2" button (`aria-expanded`, `aria-controls`) that opens the line and the buttons in place. |
+| Planner map (`planner-map.tsx`) | The routes of `GET /api/route` on the planner | MapLibre on the OpenFreeMap liberty basemap, loaded after the form. The selected route is the thick line (6 px, action, on a 10 px white casing); the others are 3 px muted lines; an LRT ride is a double line (two 3 px rails, 5 px gap). Start and end are ink circles with a "Start" / "End" tag. Conditions use the hazard shapes as pointer shortcuts only (hidden from assistive technology); a click jumps to the same stop in the list. Fits the selected route; jumps instead of flying under reduced motion. A key under the map names each line weight in words. |
+| `CheckField` | One on/off choice ("Include LRT trips", "Speak route changes aloud") | A native checkbox drawn in ink at 24 px on a 44 px row, help tied with `aria-describedby`. |
+| `LiveStatus` | The live connection on a page with a route | One quiet line, not a badge: a circle that is filled (live), half filled (reconnecting) or hollow (offline), and the word. Then the speech switch and the assertive region for route changes, which is always in the page. |
+| `RouteFailure`, `NoRoute` (`route-problem.tsx`) | A route request that failed or found nothing | An ink rule on the left, a short heading that says what happened, one sentence that says what to do, then "Try again" (and "Show demo routes instead" when the service cannot be reached). A refused request offers no retry: it needs new places. |
 | `CityWideConditions` | Conditions that cover the whole city | One line each, shown once above the routes: "Ice-risk watch is on for the whole city." They are never stops on a line. The route report still lists them under Weather and ice. |
 | `SaveRouteButton` (`save-route-button.tsx`, OP-306) | "Save this route" in each route's actions | One tap opens an inline form (name, filled with the destination). When alerts can be turned on, the form's main button is "Save and turn on alerts" (the permission request starts inside that press) with "Save without alerts" beside it; otherwise "Save route" plus a note saying why alerts are not offered. The result takes focus and says what happens: "Saved. You'll get an alert if this route closes or gets 20% slower." Saved without alerts, it offers "Turn on alerts for this route". The open form sits between two `--line` rules. |
 | Alerts page (`alerts-page.tsx`, OP-306) | `/alerts` | Saved routes first (no route, then changed, then clear), as plain rows, then one panel "Alerts on this device" with the state in words. Remove asks first ("Keep it" takes focus, Escape keeps), then a status line with Undo, which saves the trip again. |
@@ -160,6 +165,10 @@ The effect sets the shape. The kind supplies the words ("Elevator out"). Each sh
 | Clear | Circle with a check | Outline | `--clear` | "No known obstructions" |
 
 On the route line, an avoided condition is offset to the right, and the line kinks away from it. Each stop reads status, then the effect in words: "Avoided: path closed", "On this route: take care", "12 m from this route: take care".
+
+**Walk and LRT trips (OP-311 legs, drawn since OP-301).** A trip with `legs` draws walks as the usual single line, with a quiet line of text ("Walk 155 m, about 3 min"); a ride as a double line (two 3 px action rails with a 6 px gap) titled with the line and direction ("Capital Line toward Century Park"), then "9 stops, 18 min" and "About 8 min wait (estimate)"; and each station as an ink ring (a hollow circle, not a hazard shape) with "LRT station" and its elevator note. A station's elevator or escalator outage is a stop beside the station, on its walking side. Conditions without a position follow the last leg, in report order.
+
+**On the map.** The basemap is light in both themes, so the map's lines, place markers and focus ring keep the light theme's values (action `#1450A3`, muted `#4A5B6A`, ink `#0D1F2D`, focus `#E06F00`) instead of the theme tokens, which would turn light in dark mode.
 
 ## 7. Copy
 

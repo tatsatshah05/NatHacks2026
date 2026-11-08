@@ -1,0 +1,56 @@
+/* OP-301: live updates in the design system. A quiet line, not a badge: the shape of
+   the circle and the word carry the state. */
+
+.live {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 16px;
+}
+
+.line,
+.badge {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+
+.badge {
+  align-items: center;
+  font-weight: 700;
+}
+
+.glyph {
+  color: var(--ink);
+  flex: 0 0 16px;
+  margin-top: 4px;
+}
+
+.badge .glyph {
+  margin-top: 0;
+}
+
+.speak {
+  display: grid;
+}
+
+.detail {
+  color: var(--muted);
+  margin: 0;
+}
+
+/* The assertive region is always in the page (never display: none), so a change is read out. */
+.announcer {
+  border-left: 4px solid transparent;
+  padding-left: 12px;
+}
+
+.hasMessage {
+  border-left-color: var(--ink);
+  margin-top: 4px;
+}
+
+.message {
+  font-weight: 700;
+  margin: 0;
+}

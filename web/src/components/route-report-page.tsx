@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+// The route report (OP-211, live since OP-301). It reads the trip from the URL (the
+// same parameters as the planner, lib/route-link.ts), asks GET /api/route and
+// GET /api/status, and shows one route in full. `demo=1` shows the labelled demo the
+// planner offers when the route service cannot be reached.
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import ReportConditions, { conditionCount, conditionsSummary } from "./report-conditions";
+import { NoRoute, RouteFailure } from "./route-problem";
 import SourceFreshness, { freshnessSummary } from "./source-freshness";
 import HazardMark from "./ui/hazard-mark";
 import { ButtonLink } from "./ui/button";
@@ -13,73 +19,144 @@ import SegmentedChoice from "./ui/segmented-choice";
 import SiteFooter from "./ui/site-footer";
 import SiteHeader from "./ui/site-header";
 import StatusLine from "./ui/status-line";
+import { getRoutes, getStatus, isAbort } from "@/lib/api";
+import { useDataMode } from "@/lib/data-mode";
 import { getMockRouteResponse, getMockStatus } from "@/lib/mock-routes";
 import { RouteOut, RouteResponse, StatusResponse, profileLabel } from "@/lib/planner-types";
 import { formatDistance, plural } from "@/lib/report-format";
-import { ReportParams, parseReportParams, reportHref } from "@/lib/route-link";
+import { ReportParams, parseReportParams, plannerHref, reportHref } from "@/lib/route-link";
 
-type Demo = { response: RouteResponse; status: StatusResponse };
+type Loaded = { response: RouteResponse; status: StatusResponse | null; demo: boolean };
 
 export default function RouteReportPage() {
   const searchParams = useSearchParams();
-  const params = useMemo(() => parseReportParams(new URLSearchParams(searchParams.toString())), [searchParams]);
-  return <RouteReport key={searchParams.toString()} params={params} />;
+  const key = searchParams.toString();
+  const params = useMemo(() => parseReportParams(new URLSearchParams(key)), [key]);
+  if (!params) return <NoTrip />;
+  return <RouteReport key={key} params={params} />;
+}
+
+function NoTrip() {
+  return (
+    <div className="shell">
+      <SiteHeader />
+      <main id="main">
+        <div className="report-intro">
+          <h1>Route report</h1>
+          <p className="lead">This link does not include a trip.</p>
+          <p>
+            <Link href="/">Plan a route</Link> to see its report.
+          </p>
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  );
 }
 
 function RouteReport({ params }: { params: ReportParams }) {
-  // The demo is built once in the browser; `now` ticks so "Checked X min ago" stays true.
-  const [demo, setDemo] = useState<Demo | null>(null);
-  const [now, setNow] = useState<Date | null>(null);
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [failure, setFailure] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [demo, setDemo] = useState(params.demo);
+  // `now` ticks so "Checked X min ago" stays true.
+  const [now, setNow] = useState<Date>(() => new Date());
   const [rank, setRank] = useState(params.rank);
   const [announcement, setAnnouncement] = useState("");
+  const mode = useDataMode();
 
   useEffect(() => {
-    const start = new Date();
-    setDemo({ response: getMockRouteResponse(params, start, { empty: params.empty }), status: getMockStatus(start) });
-    setNow(start);
     const timer = window.setInterval(() => setNow(new Date()), 30000);
     return () => window.clearInterval(timer);
-  }, [params]);
+  }, []);
 
-  const route = demo?.response.routes.find((option) => option.rank === rank) ?? demo?.response.routes[0];
-  const emptyToggle = reportHref(params, rank) + (params.empty ? "" : "&demo=empty");
+  useEffect(() => {
+    setLoaded(null);
+    setFailure(null);
+    const start = new Date();
+    setNow(start);
+    if (demo) {
+      setLoaded({ response: getMockRouteResponse(params, start), status: getMockStatus(start), demo: true });
+      return;
+    }
+    const controller = new AbortController();
+    // Freshness is best effort: the report still shows without it.
+    const status = getStatus(controller.signal).catch(() => null);
+    getRoutes(params, controller.signal)
+      .then(async (response) => setLoaded({ response, status: await status, demo: false }))
+      .catch((error: unknown) => {
+        if (!isAbort(error)) setFailure(error);
+      });
+    return () => controller.abort();
+  }, [params, demo, attempt]);
+
+  const retry = useCallback(() => {
+    setDemo(false);
+    setAttempt((value) => value + 1);
+  }, []);
+
+  const routes = loaded?.response.routes ?? [];
+  const route = routes.find((option) => option.rank === rank) ?? routes[0];
+  const backHref = plannerHref(params, { saved: params.saved });
 
   return (
     <div className="shell">
       <SiteHeader />
       <main id="main">
         <div className="report-intro">
-          <Link className="back-link" href="/">
+          <Link className="back-link" href={backHref}>
             Back to the planner
           </Link>
           <h1>
             {params.from.name} to {params.to.name}
           </h1>
-          <p className="lead">Route report for {profileLabel(params.profile).toLowerCase()}.</p>
-          <p className="note">
-            <strong>Demo data.</strong> These routes, steps and conditions are samples so the screen can be reviewed
-            before it connects to the route service. They are not current Edmonton conditions.
-            {params.usedDefaultTrip ? " No trip was given, so this is the demo trip." : ""}{" "}
-            <Link href={emptyToggle}>
-              {params.empty ? "Show the demo with conditions" : "Show the demo with no known obstructions"}
-            </Link>
+          <p className="lead">
+            Route report for {profileLabel(params.profile).toLowerCase()}
+            {params.mode === "walk_lrt" ? ", walking and LRT" : ""}.
           </p>
+          {demo ? (
+            <p className="note">
+              <strong>Demo data.</strong> These routes, steps and conditions are samples, shown because the route service
+              could not be reached. They are not current Edmonton conditions.
+            </p>
+          ) : mode === "replay" ? (
+            <p className="note">
+              <strong>Replayed data.</strong> These conditions were recorded earlier and are not current.
+            </p>
+          ) : null}
         </div>
 
-        {!demo || !now || !route ? (
+        {failure ? (
+          <div className="page report">
+            <div className="page-main">
+              <RouteFailure error={failure} onRetry={retry} onDemo={() => setDemo(true)} />
+            </div>
+          </div>
+        ) : !loaded ? (
           <StatusLine>Loading the route report.</StatusLine>
+        ) : !route ? (
+          <div className="page report">
+            <div className="page-main">
+              <NoRoute response={loaded.response} profile={params.profile} />
+              <p>
+                <Link href={backHref}>Change the trip in the planner</Link>
+              </p>
+            </div>
+          </div>
         ) : (
           <ReportBody
-            response={demo.response}
-            status={demo.status}
+            loaded={loaded}
             route={route}
-            from={params.from.name}
-            to={params.to.name}
             params={params}
             now={now}
             announcement={announcement}
             onChoose={(next) => {
               setRank(next.rank);
+              window.history.replaceState(
+                null,
+                "",
+                reportHref(params, next.rank, { saved: params.saved, demo: loaded.demo })
+              );
               setAnnouncement(
                 `Showing route ${next.rank}: ${Math.round(next.eta_min)} min, ${formatDistance(next.distance_m)}. ` +
                   conditionsSummary(next.report) +
@@ -99,11 +176,8 @@ function RouteReport({ params }: { params: ReportParams }) {
 }
 
 type BodyProps = {
-  response: RouteResponse;
-  status: StatusResponse;
+  loaded: Loaded;
   route: RouteOut;
-  from: string;
-  to: string;
   params: ReportParams;
   now: Date;
   announcement: string;
@@ -112,13 +186,17 @@ type BodyProps = {
 
 // Sections in the order of web/ACCESSIBILITY.md: summary and freshness, route choice
 // and its line, numbered steps, grouped conditions and sources, then the Maps hand-off.
-function ReportBody({ response, status, route, from, to, params, now, announcement, onChoose }: BodyProps) {
-  const warnings = [...response.warnings, ...route.warnings];
+function ReportBody({ loaded, route, params, now, announcement, onChoose }: BodyProps) {
+  const { response, status } = loaded;
+  const warnings = [...new Set([...response.warnings, ...route.warnings])];
   const empty = conditionCount(route.report.groups) === 0;
   const routes = response.routes;
+  const noun = loaded.demo ? ["demo route", "demo routes"] : ["route", "routes"];
   const options = routes.map((option) => ({
     id: String(option.rank),
-    label: `Route ${option.rank}${option.rank === 1 ? ", recommended" : ""}: ${Math.round(option.eta_min)} min, ${formatDistance(option.distance_m)}`,
+    label: `Route ${option.rank}${option.rank === 1 ? ", recommended" : ""}: ${Math.round(option.eta_min)} min, ${
+      option.lrt ? `${formatDistance(option.lrt.walk_distance_m)} on foot` : formatDistance(option.distance_m)
+    }`,
     description: `${option.reason ? `${option.reason}. ` : ""}${conditionsSummary(option.report)}.`
   }));
 
@@ -128,7 +206,9 @@ function ReportBody({ response, status, route, from, to, params, now, announceme
         <Panel aria-labelledby="summary-title">
           <h2 id="summary-title">Safety summary</h2>
           <p className="lead">{empty ? "No known obstructions on this route." : `${conditionsSummary(route.report)}.`}</p>
-          <p className="muted">{freshnessSummary(status.sources, now)}</p>
+          <p className="muted">
+            {status ? freshnessSummary(status.sources, now) : "Source freshness is not available right now."}
+          </p>
           {warnings.length > 0 && (
             <ul className="warnings" aria-label="Warnings">
               {warnings.map((warning) => (
@@ -141,7 +221,7 @@ function ReportBody({ response, status, route, from, to, params, now, announceme
         <Panel aria-labelledby="options-title">
           <h2 id="options-title">Choose a route</h2>
           <SegmentedChoice
-            legend={`${plural(routes.length, "demo route", "demo routes")} for this trip`}
+            legend={`${plural(routes.length, noun[0], noun[1])} for this trip`}
             name="route-choice"
             layout="stack"
             options={options}
@@ -158,8 +238,8 @@ function ReportBody({ response, status, route, from, to, params, now, announceme
           <RouteLine
             route={route}
             routeCount={routes.length}
-            from={from}
-            to={to}
+            from={params.from.name}
+            to={params.to.name}
             profile={params.profile}
             now={now}
             headingId={`report-route-${route.rank}`}
@@ -193,7 +273,12 @@ function ReportBody({ response, status, route, from, to, params, now, announceme
             <ReportConditions groups={route.report.groups} now={now} />
           )}
           <h3 className="sources-title">Sources checked</h3>
-          <SourceFreshness sources={status.sources} now={now} />
+          {status ? (
+            <SourceFreshness sources={status.sources} now={now} />
+          ) : (
+            <p className="muted">The list of sources is not available right now.</p>
+          )}
+          {route.lrt && <p className="muted">{route.lrt.attribution}.</p>}
         </Panel>
 
         <Panel aria-labelledby="maps-title">
@@ -206,7 +291,7 @@ function ReportBody({ response, status, route, from, to, params, now, announceme
               Open in Apple Maps<span className="sr-only">, route {route.rank}</span>
             </ButtonLink>
           </div>
-          <p className="route-note note">{response.apple_maps_note}</p>
+          <p className="route-note note">{route.lrt?.maps_note ?? response.apple_maps_note}</p>
         </Panel>
       </div>
     </div>
