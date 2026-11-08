@@ -84,7 +84,8 @@ def test_route_hazards_use_replay_at(
             params={"from": churchill, "to": rogers, "profile": "wheelchair"},
         )
     assert response.status_code == 200, response.text
-    assert app.state.hazard_provider.latest.built_at == now  # matched at REPLAY_AT
+    # OP-205's camera provider wraps the matcher; the matcher ran at REPLAY_AT.
+    assert app.state.hazard_provider.base.latest.built_at == now
     best = response.json()["routes"][0]
     report = {
         i["id"]: i["status"] for g in best["report"]["groups"] for i in g["items"]
