@@ -17,6 +17,8 @@
 - ``SOCRATA_APP_TOKEN``: raises the City open data rate limit. Optional.
 - ``LRT_TRIPS``: ``true`` adds walk and LRT trips to ``/api/route?mode=walk_lrt``
   (OP-311). Off by default; then every route is walking only.
+- ``LOG_FORMAT``: ``text`` (the default) or ``json``, one record per line; ``LOG_LEVEL``
+  (default ``INFO``) for the app's own loggers (``logging_setup.py``, OP-402).
 """
 
 from __future__ import annotations
@@ -37,6 +39,7 @@ from pydantic import BaseModel
 
 from cloud.app import (
     ingest_api,
+    logging_setup,
     lrt,
     obstructions_api,
     priority,
@@ -294,6 +297,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     """Build the API. Reads the environment once, so a bad ``DATA_MODE`` fails here."""
+    # OP-402: one line per record for the app and uvicorn; installed once per process.
+    logging_setup.install(os.environ.get("LOG_FORMAT"), os.environ.get("LOG_LEVEL"))
     version = app_version()
     mode = data_mode(os.environ.get("DATA_MODE"))
 
