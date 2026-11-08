@@ -228,7 +228,7 @@ export const SOURCE_SECTIONS: ReadonlyArray<SourceSection> = [
         details: ["Snow, ice or a blocked path at one point"],
         credit: "Community report",
         usedFor:
-          "Barriers people report. A report has low confidence unless a photo check agrees with it. Photos are never stored.",
+          "Barriers people report. A photo is checked by OpenPath's road-condition model and by Claude through the Anthropic API, then dropped; it is never stored. A report has low confidence unless the photo check agrees with it.",
         freshness: { kind: "fixed", text: "Ice reports last 2 hours, blocked paths 6 hours and snow 12 hours." }
       }
     ]

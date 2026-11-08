@@ -9,8 +9,10 @@ export const metadata: Metadata = { title: "Privacy | OpenPath" };
 // Every statement here comes from the code: lib/client-id.ts and lib/settings.ts (the
 // device), cloud/app/saved_routes.py, push.py and push_api.py (alerts), reports.py and
 // reports_api.py (reports, config/reports.json for expiry), ws.py (live updates),
-// vision/ai_check.py and docs/DATA_SOURCES.md (Anthropic, camera images). When one of
-// them changes what is stored, change this page in the same pull request.
+// vision/ai_check.py and docs/DATA_SOURCES.md (Anthropic, camera images), and the
+// lead's decision of November 8, 2026 that report photos are checked by both the
+// road-condition model and Claude. When one of them changes what is stored, change
+// this page in the same pull request.
 
 const REPO = "https://github.com/tatsatshah05/NatHacks2026";
 
@@ -71,8 +73,9 @@ export default function PrivacyPage() {
             </dd>
           </dl>
           <p>
-            <strong>Photos are never stored.</strong> A photo you add to a report is held in memory while it is checked, then
-            dropped with the request. It is never written to disk, the database or a log.
+            <strong>Photos are never stored.</strong> A photo you add to a report is held in memory while
+            OpenPath&rsquo;s model and Claude check it, then dropped with the request. OpenPath never writes it to disk, the
+            database or a log.
           </p>
           <p>
             <strong>Searches and open routes are not stored.</strong> What you type in From and To is looked up in
@@ -105,11 +108,11 @@ export default function PrivacyPage() {
             </dd>
             <dt>Anthropic</dt>
             <dd>
-              OpenPath sends frames from public 511 Alberta road cameras to the Anthropic API, so its AI model, Claude, can
-              check each road reading. If the server is set up to check report photos with Claude, a photo you add to a
-              report is sent the same way. Images are sent in memory and not stored by OpenPath; Anthropic processes them
-              under its API terms. The labels OpenPath&rsquo;s camera model learned from were also made with Claude&rsquo;s
-              help.
+              A photo you add to a report is checked by OpenPath&rsquo;s road-condition model and by Claude, Anthropic&rsquo;s
+              AI model, so the photo is sent to the Anthropic API for that check. Frames from public 511 Alberta road
+              cameras are sent the same way, so Claude can check each road reading. Images are sent in memory: OpenPath
+              keeps no photo and no frame, and Anthropic processes them under its API terms. The labels OpenPath&rsquo;s
+              camera model learned from were also made with Claude&rsquo;s help.
             </dd>
             <dt>OpenFreeMap</dt>
             <dd>

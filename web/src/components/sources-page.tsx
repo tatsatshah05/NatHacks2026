@@ -250,13 +250,14 @@ export default function SourcesPage() {
         )}
 
         <div className={styles.prose}>
-          <h2>How camera readings are checked</h2>
+          <h2>How images are checked</h2>
           <p>
             Before a camera reading is posted, Claude, an AI model made by Anthropic, checks the same frame, and the
-            reading is posted only when Claude and OpenPath&rsquo;s model agree. The frame is sent to the Anthropic API in
-            memory and is not stored by OpenPath; Anthropic processes it under its API terms. The labels the model learned
-            from were also made with Claude&rsquo;s help. Training frames come from 511 Alberta cameras and are credited
-            to the Government of Alberta.
+            reading is posted only when Claude and OpenPath&rsquo;s model agree. A photo added to a community report is
+            checked the same way, by OpenPath&rsquo;s model and by Claude. Frames and photos are sent to the Anthropic API
+            in memory; OpenPath keeps none of them, and Anthropic processes them under its API terms. The labels the model
+            learned from were also made with Claude&rsquo;s help. Training frames come from 511 Alberta cameras and are
+            credited to the Government of Alberta.
           </p>
           <p>
             Measured accuracy and its limits are on <Link href="/about#cameras">the About page</Link>. What OpenPath keeps

@@ -78,18 +78,18 @@
   border-radius: 999px;
   display: inline-block;
   flex: 0 0 auto;
-  height: 28px;
+  height: 1.75em; /* 28 x 48 px at the default size; grows with the text size */
   position: relative;
-  width: 48px;
+  width: 3em;
 }
 .knob {
   border: 2px solid var(--ink);
   border-radius: 50%;
-  height: 16px;
-  left: 4px;
+  height: 1em;
+  left: 0.25em;
   position: absolute;
-  top: 4px;
-  width: 16px;
+  top: calc(50% - 0.5em);
+  width: 1em;
 }
 .switchInput:checked + .switchLabel .track {
   background: var(--ink);
@@ -98,7 +98,7 @@
   background: var(--snow);
   border-color: var(--snow);
   left: auto;
-  right: 4px;
+  right: 0.25em;
 }
 .limit {
   color: var(--muted);
