@@ -119,10 +119,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     store = ObstructionStore(make_engine())
     store.create_tables()
     app.state.store = store  # read by obstructions_api.get_store
-    camera_store = CameraReadingStore(
-        store.engine
-    )  # OP-213: readings from the vision worker
+    # OP-213: readings from the vision worker, in their own table.
+    camera_store = CameraReadingStore(store.engine)
     camera_store.create_tables()
+    camera_store.purge_expired(utcnow())  # drop readings that expired over a week ago
     app.state.camera_store = camera_store
     mode: str = app.state.mode
     snapshot_raw = os.environ.get("REPLAY_SNAPSHOT")
