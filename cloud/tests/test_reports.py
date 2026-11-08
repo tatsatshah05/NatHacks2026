@@ -9,6 +9,8 @@ import logging
 import math
 import os
 import pathlib
+import sys
+import sysconfig
 import tempfile
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, timedelta
@@ -400,17 +402,43 @@ def test_the_limit_survives_a_restart(tmp_path, monkeypatch) -> None:
 
 @pytest.fixture
 def disk_writes(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[str]]:
-    """Every attempt to write a file, temporary file or spool while the test runs."""
+    """Every attempt to write a file, temporary file or spool while the test runs.
+
+    Writes inside Python's own installation and bytecode caches are ignored: on a CI runner the interpreter
+    and its libraries write bytecode and certificate caches under ``sys.prefix`` while a
+    test runs, and a report photo can never legitimately land there. Everything else,
+    including the repository, the home folder and system temp folders, is recorded.
+    """
     writes: list[str] = []
     real_open, real_os_open = builtins.open, os.open
+    library_roots = tuple(
+        os.path.realpath(root)
+        for root in {
+            sys.prefix,
+            sys.base_prefix,
+            sysconfig.get_paths()["purelib"],
+            sysconfig.get_paths()["platlib"],
+        }
+        if root
+    )
+
+    def inside_python(file: Any) -> bool:
+        try:
+            path = os.path.realpath(os.fspath(file))
+        except TypeError:  # a file descriptor, not a path
+            return False
+        # Bytecode caches are written on first import, inside the repository too.
+        return path.startswith(library_roots) or "__pycache__" in path
 
     def spy_open(file: Any, mode: str = "r", *args: Any, **kwargs: Any) -> Any:
-        if any(flag in mode for flag in "wax+"):
+        if any(flag in mode for flag in "wax+") and not inside_python(file):
             writes.append(f"open({file!r}, {mode!r})")
         return real_open(file, mode, *args, **kwargs)
 
     def spy_os_open(path: Any, flags: int, *args: Any, **kwargs: Any) -> int:
-        if flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND):
+        if flags & (
+            os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND
+        ) and not inside_python(path):
             writes.append(f"os.open({path!r})")
         return real_os_open(path, flags, *args, **kwargs)
 
@@ -1282,3 +1310,19 @@ def test_render_installs_only_the_photo_check_extras() -> None:
     assert sorted(extras) == ["anthropic", "onnxruntime", "pillow"]
     vision = requirements("vision/requirements.txt")
     assert all(extras[name] == vision[name] for name in extras)  # the same ranges
+
+
+def test_the_disk_spy_ignores_writes_inside_python(disk_writes) -> None:
+    """A library writing its own cache under Python's prefix is not a photo on disk."""
+    with (
+        tempfile.TemporaryDirectory(dir=sysconfig.get_paths()["purelib"]) as folder,
+        open(os.path.join(folder, "cache.bin"), "wb") as file,
+    ):
+        file.write(b"not a photo")
+    cache = (
+        pathlib.Path(__file__).parent / "__pycache__" / "spy-check.cpython-312.pyc.1"
+    )
+    with open(cache, "wb") as file:
+        file.write(b"not a photo either")
+    cache.unlink()
+    assert disk_writes == []
