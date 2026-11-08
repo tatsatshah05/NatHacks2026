@@ -37,19 +37,25 @@ One section per source. Each adapter's owner keeps their section current: what t
 
 ## 511 Alberta Cameras (OP-112, Ipsa)
 
-**What it is.** Government of Alberta road cameras across the province, published through the 511 Alberta developer API. OpenPath uses the cameras inside Edmonton to read road conditions (OP-202, OP-204). Only camera metadata is fetched for now: location, roadway and views.
+**What it is.** Government of Alberta road cameras across the province, published through the 511 Alberta developer API. The app uses cameras inside Edmonton to read road conditions (OP-202, OP-204). OP-201 additionally uses provincial cameras for training examples; that does not widen routing coverage.
 
 **How we access it.** `GET https://511.alberta.ca/api/v2/get/cameras?key=…&format=json` with our free developer key (register, log in, request a key on the [API documentation page](https://511.alberta.ca/developers/doc)). The key is `ALBERTA_511_KEY` and is never committed. It travels in the query string, so `vision/cameras.py` redacts `key=` from the httpx and httpcore loggers and keeps them at WARNING. Each camera has `Id`, `Source`, `SourceId`, `Roadway`, `Direction`, `Latitude`, `Longitude`, `Location`, `SortOrder` and `Views` (`Id`, `Url`, `Status`, `Description`) ([GET Cameras](https://511.alberta.ca/help/endpoint/cameras)).
 
 **Licence and attribution.** 511 Alberta information may be reproduced for non-commercial or educational purposes without charge or further permission; commercial reproduction needs written permission from the Government of Alberta, and information is provided as is ([About 511 Alberta](https://511.alberta.ca/about/about)). Shown as "Road camera data: 511 Alberta, Government of Alberta" on `/sources` and beside each camera reading.
 
-**Camera images (open).** The terms do not mention camera images specifically. On November 7 we asked 511 Alberta to confirm in writing that keeping labelled frames for non-commercial training is allowed. Until then, live frames are processed in memory only, and the app links to the official 511 viewer instead of re-hosting images.
+**Camera images (decided November 8, 2026; [issue #132](https://github.com/tatsatshah05/NatHacks2026/issues/132)).** Tatsat, the lead, decided that keeping 511 camera frames for training is allowed under the general alberta.ca non-commercial terms. No 511 page addresses training images, so this is the team's decision, not permission from 511 Alberta. It comes with these rules:
+
+- Frames stay private on Tatsat's laptop. They are never committed to git and never put anywhere public: no public links, release assets or public repositories. Any other copy, such as the OP-201 pilot files, stays team-only and access-restricted under the same rules.
+- Training frames are credited to the Government of Alberta / 511 Alberta, in `vision/MODEL_CARD.md` and on `/sources`.
+- Any frame with an identifiable person or a readable plate is deleted, not labelled.
+- Everything is deleted after the event, including `op201_handoff.zip`, `op201_blind_review.zip` and any other copies.
+- Live app and worker frames are still processed in memory and discarded. The decision does not allow re-hosting camera images in the app.
 
 **Update cadence and limits.** The camera list is meant to refresh daily; the scheduling arrives with the worker (OP-204). 511 Alberta allows 10 calls every 60 seconds; one shared `RateLimiter` enforces that for every request, including the image requests OP-204 will add.
 
 **Reliability.** 20-second timeout. A failed fetch or a changed schema keeps the last good list and marks it stale, with one log line when it goes stale and one when it recovers. A single malformed camera is skipped with a log line rather than failing the whole list. The last good list is cached in `vision/.cache/` (ignored by git); if that disk is read-only, fetching carries on without the cache.
 
-**Measured.** Not yet: the Edmonton camera count is recorded here once the key arrives (`python -m vision.cameras --record vision/tests/fixtures/alberta511_cameras_recorded.json`). Until a City boundary file is passed with `--boundary`, the count uses a bounding box, over-counts neighbouring municipalities, and is labelled approximate. The test fixture is hand-written from the documented fields, not a recorded response.
+**Measured November 7, 2026, 21:11:11 MST (November 8, 04:11:11 UTC).** Estella's successful `python -m vision.cameras` terminal output returned 392 total camera records, 19 within the approximate Edmonton bounding box and 47 enabled views on those records. Multiple views are not additional physical cameras. Without a City boundary passed with `--boundary`, this is approximate and can include neighbouring municipalities. Cached metadata stays in ignored `vision/.cache/`; the committed test fixture remains hand-written from documented fields, not a recorded response. A fresh metadata response may be recorded with `--record` when needed, without committing image frames or keys.
 
 ## City of Edmonton Traffic Cameras (OP-112, Ipsa)
 
@@ -63,7 +69,7 @@ One section per source. Each adapter's owner keeps their section current: what t
 
 **Licence and attribution.** CC BY 4.0 ([IEEE DataPort](https://ieee-dataport.org/documents/rscd-road-surface-classification-dataset-detailed-annotations-driving-assistance), [Mendeley Data](https://data.mendeley.com/datasets/w86hvkrzc5)). Credit: Tong Zhao, "RSCD: Road Surface Classification Dataset with Detailed Annotations for Driving Assistance", IEEE DataPort, 2022, doi:10.21227/446p-xr65, in `vision/MODEL_CARD.md` and on `/sources`.
 
-**Decision D-3 (proposed; the lead records the final decision in PLAN.md section 16).** Mix RSCD into training, with attribution. Keep labelled 511 frames privately for non-commercial training, outside the repo and never redistributed, once 511 Alberta confirms; if it says no, delete them and train on RSCD and community photos only. Never keep an image in which a person can be identified, and never commit images.
+**Decision D-3 (decided by Tatsat on November 8, 2026; [issue #132](https://github.com/tatsatshah05/NatHacks2026/issues/132)).** No RSCD for the November 8 models: they train only on real 511 camera frames. Any class with no real 511 examples (likely `ice`) is reported as not covered in `vision/MODEL_CARD.md`, never filled in from another dataset. Keeping 511 frames follows the camera images decision above. Never keep an image in which a person can be identified, and never commit images.
 
 ## Environment and Climate Change Canada
 

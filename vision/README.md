@@ -6,9 +6,13 @@ Road-condition model and camera worker (PLAN.md section 7).
 - `LABELS.md` and `tools/label.py`: the label guide and the keyboard labelling tool (OP-115). Run `python -m vision.tools.label --images vision/data/raw --out vision/data/labels.csv --labeller <name>`; the guide explains the classes, the keys and the one-time OpenCV GUI install.
 - `train.py`: trains the road-condition model and exports it to ONNX (OP-202). See [Training](#training) below.
 - `evaluate.py` and `MODEL_CARD.md`: scores a trained run on its unseen test cameras and regenerates the model card (OP-203). See [Evaluation](#evaluation) below.
+- `tools/dataset.py`: validate local labels, preserve camera-disjoint splits, prepare a blind second-label sample, and measure agreement (OP-201). Follow the [dataset workflow](../docs/ESTELLA_OP201.md); the label tool's `--only` option restricts a session to the sample CSV.
+- `tools/collect.py`: preview approved live 511 frames before retaining them, one view per camera by default (`--views all` adds each camera's other enabled views under `raw/view_<view_id>/`); `python -m vision.tools.collect --limit 6 --reviewer Estella`. Supply the actual reviewer; live collection requires it. Press `k` only after privacy review. `--plan` lists camera IDs offline. Wait a minute between runs to respect the shared request window.
 - Planned: `worker.py` (OP-204).
 
 Add runtime dependencies to `vision/requirements.txt`; `make setup` installs them. `vision/data/` is git-ignored: images, label CSVs and training runs stay local.
+
+For OP-202, use only the canonical `labels_primary.csv` and explicitly pass the audit's `test_cameras.txt` via `--test-cameras`; do not use a `labels_*.csv` glob or the training script's default split. See the [exact handoff command](../docs/ESTELLA_OP201.md#preserve-the-frozen-test-cameras-in-op-202). Independent second-label CSVs measure agreement and must stay separate from training input.
 
 ## Training
 
@@ -16,12 +20,12 @@ Training runs on a laptop or Colab, never on Render. PyTorch lives in `scripts/r
 
 ```
 pip install -r vision/requirements.txt -r scripts/requirements-train.txt
-python -m vision.train --images vision/data/raw --labels vision/data/labels_*.csv \
-    --rscd vision/data/rscd --out vision/data/runs/v1
+python -m vision.train --images vision/data/raw --labels vision/data/labels_primary.csv \
+    --test-cameras $(cat vision/data/dataset/test_cameras.txt) --out vision/data/runs/v1
 ```
 
 - `--labels`: one or more OP-115 CSVs. An image labelled twice is kept when both labels agree and dropped when they disagree. Images from camera `unknown` are dropped, because the split could not keep them out of the test cameras.
-- `--rscd`: optional RSCD folder with one subfolder per RSCD class. The friction state in each folder name maps to our classes (`dry`, `wet`/`water` → `wet`, `fresh_snow` → `snow_covered`, `melted_snow` → `snow_partial`, `ice`). This mapping is provisional until the dataset is downloaded and checked; unmapped folders are listed in the log and in `metrics.json`. RSCD is mixed into the training split only, never validation or test, sampled to `--rscd-per-class` images per class (default 1000). There is no separate pre-training stage. With few labelled 511 frames, RSCD can outnumber them many times over, and the class weights balance classes, not sources, so lower `--rscd-per-class` until 511 frames are a large share of each class. RSCD has no `unusable` class, so that class comes only from 511 images.
+- `--rscd`: optional RSCD folder (not used for the November 8 models; see D-3 in `docs/DATA_SOURCES.md`) with one subfolder per RSCD class. The friction state in each folder name maps to our classes (`dry`, `wet`/`water` → `wet`, `fresh_snow` → `snow_covered`, `melted_snow` → `snow_partial`, `ice`). This mapping is provisional until the dataset is downloaded and checked; unmapped folders are listed in the log and in `metrics.json`. RSCD is mixed into the training split only, never validation or test, sampled to `--rscd-per-class` images per class (default 1000). There is no separate pre-training stage. With few labelled 511 frames, RSCD can outnumber them many times over, and the class weights balance classes, not sources, so lower `--rscd-per-class` until 511 frames are a large share of each class. RSCD has no `unusable` class, so that class comes only from 511 images.
 - `--test-cameras`: fix the test cameras by ID. Without it, a seeded 20% of cameras are held out for testing and 10% for validation. Whole cameras are assigned, never single images.
 - `--arch`: `mobilenet_v3_small` (default) or `efficientnet_b0`. `--epochs`, `--batch-size`, `--lr`, `--label-smoothing`, `--workers`, `--latency-runs` and `--seed` (default 202) are the other knobs. Out-of-range values (for example `--epochs 0`) are rejected before anything runs.
 
