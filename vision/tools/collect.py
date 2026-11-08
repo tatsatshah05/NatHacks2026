@@ -1,7 +1,8 @@
 """Purpose: preview approved 511 training frames and save only privacy-reviewed images.
 
-Use cached camera metadata, one enabled view per physical camera, and the shared
-511 rate limit. Images stay in memory until a person explicitly presses k.
+Use cached camera metadata, one enabled view per physical camera (or every
+enabled view with --views all), and the shared 511 rate limit. Images stay in
+memory until a person explicitly presses k.
 No API keys, request URLs, or automatic road-condition labels are written.
 """
 
@@ -33,6 +34,7 @@ from vision.cameras import (
 )
 
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
+VIEW_CHOICES = ("first", "all")
 MANIFEST_COLUMNS = (
     "image",
     "camera_id",
@@ -58,15 +60,31 @@ def trusted_view(url: str) -> bool:
         return False
 
 
+def usable_views(camera: Camera) -> list[CameraView]:
+    """Enabled views on the approved host, in the order the official API lists them."""
+    return [
+        view
+        for view in camera.views
+        if view.status.strip().lower() == "enabled" and trusted_view(view.url)
+    ]
+
+
 def select_views(
     cache: Path,
     limit: int,
     scope: str = "edmonton",
     camera_ids: set[int] | None = None,
+    views: str = "first",
 ) -> list[tuple[Camera, CameraView]]:
-    """Choose physical cameras; provincial training examples are allowed by issue #44."""
+    """Choose physical cameras; provincial training examples are allowed by issue #44.
+
+    `limit` counts physical cameras. `views="first"` keeps each camera's first
+    usable view; `views="all"` keeps every usable view, first view first.
+    """
     if scope not in ("edmonton", "alberta"):
         raise ValueError("Unknown camera selection scope")
+    if views not in VIEW_CHOICES:
+        raise ValueError("Unknown view selection")
     cameras = parse_cameras(json.loads(cache.read_text())["cameras"])
     selected = []
     seen = set()
@@ -79,12 +97,12 @@ def select_views(
             camera.latitude, camera.longitude, EDMONTON_BBOX_APPROX
         ):
             continue
-        for view in camera.views:
-            if view.status.strip().lower() == "enabled" and trusted_view(view.url):
-                selected.append((camera, view))
-                seen.add(camera.id)
-                break
-        if len(selected) >= limit:
+        usable = usable_views(camera)
+        if usable:
+            chosen = usable if views == "all" else usable[:1]
+            selected.extend((camera, view) for view in chosen)
+            seen.add(camera.id)
+        if len(seen) >= limit:
             break
     return selected
 
@@ -122,8 +140,14 @@ def collect(
     limiter: RateLimiter,
     review: Callable[[bytes, str], str] = review_frame,
     now: Callable[[], datetime] = lambda: datetime.now(UTC),
+    view_folders: bool = False,
 ) -> int:
-    """Fetch once per selected view, review in memory, then save the original bytes."""
+    """Fetch once per selected view, review in memory, then save the original bytes.
+
+    By default every frame goes in `out`. With `view_folders`, a camera's first
+    usable view still goes in `out`, and each other view goes in
+    `out/view_<view_id>/`, so two views of one camera never share a filename.
+    """
     if not reviewer.strip():
         raise ValueError("A privacy reviewer name is required")
     saved = 0
@@ -160,16 +184,23 @@ def collect(
             # Exception messages can contain request URLs; report only camera IDs.
             print(f"SKIP camera={camera.id} image request or decoding failed")
             continue
-        title = f"Camera {camera.id} | k: privacy clear/save | s: skip | q: quit"
+        title = f"Camera {camera.id} view {view.id} | k: privacy clear/save | s: skip | q: quit"
         action = review(content, title)
         if action == "q":
             break
         if action != "k":
             print(f"SKIP camera={camera.id} not retained")
             continue
-        out.mkdir(parents=True, exist_ok=True)
+        folder = out
+        if view_folders:
+            usable = usable_views(camera)
+            if not usable or usable[0].id != view.id:
+                folder = out / f"view_{view.id}"
+        folder.mkdir(parents=True, exist_ok=True)
         name = f"{camera.id}_{retrieved.strftime('%Y%m%dT%H%M%SZ')}{extension}"
-        path = out / name
+        path = folder / name
+        # Manifest paths are relative to `out`, like the label CSVs' image column.
+        image = path.relative_to(out).as_posix()
         try:
             with path.open("xb") as handle:
                 handle.write(content)
@@ -184,7 +215,7 @@ def collect(
                 writer.writeheader()
             writer.writerow(
                 {
-                    "image": name,
+                    "image": image,
                     "camera_id": str(camera.id),
                     "view_id": str(view.id),
                     "retrieved_at": retrieved.isoformat(),
@@ -193,7 +224,7 @@ def collect(
                 }
             )
         saved += 1
-        print(f"SAVED camera={camera.id} {name}")
+        print(f"SAVED camera={camera.id} {image}")
     return saved
 
 
@@ -205,7 +236,16 @@ def main(argv: list[str] | None = None) -> int:
         "--limit",
         type=int,
         default=6,
-        help="One view per camera; default 6 for the first review batch.",
+        help="Physical cameras to include; default 6 for the first review batch.",
+    )
+    parser.add_argument(
+        "--views",
+        choices=VIEW_CHOICES,
+        default="first",
+        help=(
+            "first (default): one enabled view per camera, saved in --out. "
+            "all: every enabled view; views after the first go in --out/view_<view_id>/."
+        ),
     )
     parser.add_argument(
         "--reviewer",
@@ -243,6 +283,7 @@ def main(argv: list[str] | None = None) -> int:
             args.limit,
             args.scope,
             set(args.camera_ids) if args.camera_ids is not None else None,
+            args.views,
         )
     except (OSError, ValueError, KeyError, TypeError, CameraSchemaError):
         parser.exit(
@@ -254,7 +295,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.scope == "edmonton"
         else "Alberta (training examples only)"
     )
-    print(f"Selected {len(selected)} physical cameras in {area}.")
+    camera_count = len({camera.id for camera, _ in selected})
+    view_note = f" ({len(selected)} views)" if args.views == "all" else ""
+    print(f"Selected {camera_count} physical cameras in {area}{view_note}.")
     for camera, view in selected:
         print(f"camera={camera.id} view={view.id}")
     if args.plan:
@@ -271,7 +314,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     try:
         with httpx.Client(timeout=20, follow_redirects=False) as client:
-            saved = collect(selected, args.out, args.reviewer, client, RateLimiter())
+            saved = collect(
+                selected,
+                args.out,
+                args.reviewer,
+                client,
+                RateLimiter(),
+                view_folders=args.views == "all",
+            )
     except (OSError, ValueError) as exc:
         parser.exit(
             2,

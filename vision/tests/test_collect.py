@@ -11,7 +11,7 @@ from PIL import Image
 
 from vision.cameras import Camera, RateLimiter
 from vision.tools.collect import collect, main, select_views, trusted_view
-from vision.tools.label import parse_image_name
+from vision.tools.label import list_images, parse_image_name
 
 
 def camera(camera_id=12, url="https://511.alberta.ca/map/Cctv/123"):
@@ -220,3 +220,125 @@ def test_missing_key_with_explicit_reviewer_is_named(monkeypatch, capsys):
         main(["--reviewer", "Ipsa"])
     assert error.value.code == 2
     assert "ALBERTA_511_KEY" in capsys.readouterr().err
+
+
+def multi_view_camera(camera_id=12):
+    """Views 123 and 124 usable; 125 disabled; 126 on an unapproved host."""
+    result = camera(camera_id)
+    base = result.views[0]
+    result.views.extend(
+        [
+            base.model_copy(
+                update={"id": 124, "url": "https://511.alberta.ca/map/Cctv/124"}
+            ),
+            base.model_copy(update={"id": 125, "status": "Disabled"}),
+            base.model_copy(update={"id": 126, "url": "http://511.alberta.ca/126"}),
+        ]
+    )
+    return result
+
+
+def write_cache(tmp_path, cameras):
+    cache = tmp_path / "cameras.json"
+    cache.write_text(json.dumps({"cameras": [c.model_dump() for c in cameras]}))
+    return cache
+
+
+def test_all_views_selects_every_usable_view_and_limit_counts_cameras(tmp_path):
+    cache = write_cache(
+        tmp_path, [multi_view_camera(), multi_view_camera(13), camera(14)]
+    )
+    pairs = [(c.id, v.id) for c, v in select_views(cache, 2, views="all")]
+    assert pairs == [(12, 123), (12, 124), (13, 123), (13, 124)]
+    assert [(c.id, v.id) for c, v in select_views(cache, 2)] == [(12, 123), (13, 123)]
+    with pytest.raises(ValueError):
+        select_views(cache, 2, views="some")
+
+
+def test_all_views_keep_first_view_in_raw_and_others_in_view_folders(tmp_path):
+    requests = []
+
+    def fetch(request):
+        requests.append(str(request.url))
+        return httpx.Response(200, content=image_bytes())
+
+    waits = []
+    clock = [0.0]
+
+    def sleep(seconds):
+        waits.append(seconds)
+        clock[0] += seconds
+
+    limiter = RateLimiter(1, 60, clock=lambda: clock[0], sleep=sleep)
+    c = multi_view_camera()
+    # Selection drops disabled views; collect() itself still rechecks the host.
+    with httpx.Client(transport=httpx.MockTransport(fetch)) as client:
+        saved = collect(
+            [(c, view) for view in c.views if view.id != 125],
+            tmp_path / "raw",
+            "Estella",
+            client,
+            limiter,
+            review=lambda data, title: "k",
+            now=lambda: datetime(2026, 11, 8, 4, 20, tzinfo=UTC),
+            view_folders=True,
+        )
+    assert saved == 2
+    # The unapproved host is never requested; every request waits on the limiter.
+    assert requests == [
+        "https://511.alberta.ca/map/Cctv/123",
+        "https://511.alberta.ca/map/Cctv/124",
+    ]
+    assert waits == [60]
+    raw = tmp_path / "raw"
+    keys = [p.relative_to(raw).as_posix() for p in list_images(raw)]
+    assert keys == ["12_20261108T042000Z.png", "view_124/12_20261108T042000Z.png"]
+    assert {parse_image_name(p.name)[0] for p in list_images(raw)} == {"12"}
+    with (tmp_path / "collection.csv").open(newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert [(r["image"], r["camera_id"], r["view_id"]) for r in rows] == [
+        ("12_20261108T042000Z.png", "12", "123"),
+        ("view_124/12_20261108T042000Z.png", "12", "124"),
+    ]
+
+
+def test_default_collection_still_writes_every_frame_in_out(tmp_path):
+    times = iter(
+        [
+            datetime(2026, 11, 8, 4, 20, tzinfo=UTC),
+            datetime(2026, 11, 8, 4, 21, tzinfo=UTC),
+        ]
+    )
+    c = multi_view_camera()
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, content=image_bytes())
+        )
+    ) as client:
+        saved = collect(
+            [(c, view) for view in c.views[:2]],
+            tmp_path / "raw",
+            "Estella",
+            client,
+            RateLimiter(),
+            review=lambda data, title: "k",
+            now=lambda: next(times),
+        )
+    assert saved == 2
+    assert sorted(p.name for p in (tmp_path / "raw").iterdir()) == [
+        "12_20261108T042000Z.png",
+        "12_20261108T042100Z.png",
+    ]
+
+
+def test_plan_lists_every_view_only_with_views_all(tmp_path, monkeypatch, capsys):
+    monkeypatch.delenv("ALBERTA_511_KEY", raising=False)
+    cache = write_cache(tmp_path, [multi_view_camera()])
+    assert main(["--plan", "--cache", str(cache)]) == 0
+    output = capsys.readouterr().out
+    assert "Selected 1 physical cameras" in output and "view=124" not in output
+    assert main(["--plan", "--views", "all", "--cache", str(cache)]) == 0
+    output = capsys.readouterr().out
+    assert "Selected 1 physical cameras" in output and "(2 views)" in output
+    assert "camera=12 view=123" in output and "camera=12 view=124" in output
+    assert "view=125" not in output and "view=126" not in output
