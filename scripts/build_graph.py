@@ -14,7 +14,8 @@ What it does
 
 Usage
 -----
-    pip install -r scripts/requirements-graph.txt -r cloud/requirements-network.txt
+    make graph                                          # installs OSMnx, then runs this
+    pip install -r scripts/requirements-graph.txt -r cloud/requirements.txt
     python scripts/build_graph.py                       # Edmonton, default output
     python scripts/build_graph.py --place "Strathcona, Edmonton, Alberta, Canada"
     python scripts/build_graph.py --cache-dir ~/.cache/openpath/osmnx
