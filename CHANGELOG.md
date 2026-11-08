@@ -12,15 +12,15 @@ No Phase 4 pull request has merged yet.
 
 ### Pending merge into `phase_3`
 
-These pull requests are open, not merged. They are included in the Phase 4 base that the first Phase 4 branches start from, so they are listed here until they merge.
+This pull request is open, not merged. It is included in the Phase 4 base that the first Phase 4 branches start from, so it is listed here until it merges.
 
-- OP-301: Connect the planner to the live API: place search, live routes, map markers and links that reopen a trip (#166).
 - OP-310: The city dashboard, with OP-309 camera readings on the map (#167).
 
 ### Phase 3: Web App and Alerts (merged into `phase_3`, not yet released into `main`)
 
 #### Added
 
+- OP-301: The planner connected to the live API: place search, live routes, map markers and links that reopen a trip (#166).
 - OP-302: Address and place search on `GET /api/search`, from a prebuilt index of City parcel addresses, LRT stations and named places (#151).
 - OP-303: Live updates on `WS /ws`: source status, obstruction changes and route changes for a subscribed route (#155).
 - OP-304: Saved routes and Web Push alerts on the server, with the route watcher (#150).
