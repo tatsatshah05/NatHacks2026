@@ -1114,6 +1114,8 @@ Discuss these as a team; the lead records each decision in this table by the tim
 
 **Decided:** version 1 has no user accounts (November 7). Settings and saved routes stay on the device, and push alerts use an anonymous ID.
 
+**Decided:** the camera worker posts a reading only when the ONNX model and Claude agree (November 8, lead). Any disagreement, refusal or API error gives `unknown`. Claude Haiku 5.5 checks readings by default to keep cost down; Opus 5.5 and Sonnet 5.5 are available with `--ai-check`. Frames are sent to the Anthropic API in memory and never stored by us. Measured results are in `vision/MODEL_CARD.md`.
+
 ## 17. Sources
 
 - [City of Edmonton Open Data portal](https://data.edmonton.ca)

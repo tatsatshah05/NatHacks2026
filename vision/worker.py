@@ -435,6 +435,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Post live readings to the agreed API; requires WORKER_KEY",
     )
+    parser.add_argument(
+        "--model-file",
+        type=Path,
+        help="Load the ONNX model from this local file instead of MODEL_URL (SHA-256 still checked)",
+    )
+    parser.add_argument(
+        "--ai-check",
+        choices=("claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"),
+        help="Post a reading only when this Claude model agrees with the ONNX model; needs ANTHROPIC_API_KEY",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     if not math.isfinite(args.interval_s) or args.interval_s <= 0:
@@ -454,10 +464,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         or not args.model_sha256
         or args.min_score is None
         or not os.environ.get("ALBERTA_511_KEY")
-        or not os.environ.get("MODEL_URL")
+        or not (args.model_file or os.environ.get("MODEL_URL"))
     ):
         parser.error(
-            "--live requires --model-labels, --model-sha256, --min-score, ALBERTA_511_KEY and MODEL_URL"
+            "--live requires --model-labels, --model-sha256, --min-score, ALBERTA_511_KEY and MODEL_URL or --model-file"
         )
     try:
         spec = ModelSpec.from_training_labels(
@@ -467,9 +477,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         boundary = load_boundary(args.boundary) if args.boundary else None
         with httpx.Client(timeout=20) as client:
-            classifier = OnnxClassifier.load(
-                download_model(client, os.environ["MODEL_URL"]), spec
+            model_bytes = (
+                args.model_file.read_bytes()
+                if args.model_file
+                else download_model(client, os.environ["MODEL_URL"])
             )
+            classifier: Classifier = OnnxClassifier.load(model_bytes, spec)
+            if args.ai_check:
+                # Lead decision, November 8: Claude must agree before a reading is posted.
+                from vision.ai_check import AgreeingClassifier, ClaudeCheck
+
+                classifier = AgreeingClassifier(classifier, ClaudeCheck(args.ai_check))
             limiter = RateLimiter()
             adapter = CameraAdapter(
                 os.environ["ALBERTA_511_KEY"],
