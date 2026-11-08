@@ -31,6 +31,7 @@ from pydantic import BaseModel
 
 from cloud.app import obstructions_api, routing_api, sources, status, weather_service
 from cloud.app.db import make_engine
+from cloud.app.matching import HazardProvider
 from cloud.app.network import DEFAULT_NETWORK_PATH, WalkNetwork
 from cloud.app.profiles import load_routing_config
 from cloud.app.routing import Router
@@ -120,9 +121,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Routing (OP-207): the prebuilt walking network loads in well under a second.
     # Without the file (a bare checkout) /api/route answers 503 instead of crashing startup.
     app.state.router = None
-    app.state.hazard_provider = None  # OP-206 sets the matcher here
+    app.state.hazard_provider = None
     if DEFAULT_NETWORK_PATH.exists():
-        app.state.router = Router(WalkNetwork.load(), load_routing_config())
+        network = WalkNetwork.load()
+        app.state.router = Router(network, load_routing_config())
+        # OP-206: matches the store's active obstructions to network edges for routing.
+        app.state.hazard_provider = HazardProvider(store, network)
     # One HTTP client per flavour, shared by every adapter and closed at shutdown.
     async with httpx.AsyncClient(timeout=10) as async_client:
         with httpx.Client(timeout=10) as sync_client:
