@@ -84,7 +84,7 @@ These steps need the Render and Vercel projects, which OP-102 creates.
    - Turn auto-deploy **off** (`autoDeploy: false` in `render.yaml`) so deploys only happen after CI passes.
    - Copy each service's deploy hook URL.
 3. **GitHub environments** (Settings → Environments). `production` only accepts deploys from `main`; `staging` only accepts deploys from `phase_*`. For each environment, add:
-   - **Secrets:** `RENDER_API_DEPLOY_HOOK`, `RENDER_WORKER_DEPLOY_HOOK`
+   - **Secrets:** `RENDER_API_DEPLOY_HOOK`, and `RENDER_WORKER_DEPLOY_HOOK` (not used: the camera worker runs on a laptop during the demo, see [DEPLOY.md](DEPLOY.md#4-camera-worker-on-demo-day))
    - **Variables:** `API_URL` (for example `https://openpath-api.onrender.com`), `WEB_URL`
 
 ## How to Get a Pull Request Merged

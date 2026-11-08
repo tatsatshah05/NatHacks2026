@@ -42,11 +42,37 @@ In **Settings → Secrets and variables → Actions**:
 | Kind | Name | Value |
 | --- | --- | --- |
 | Secret | `RENDER_API_DEPLOY_HOOK` | The deploy hook URL from Render step 5 |
-| Secret | `RENDER_WORKER_DEPLOY_HOOK` | Added later, when the vision worker exists (OP-204) |
+| Secret | `RENDER_WORKER_DEPLOY_HOOK` | Not used: the camera worker runs on a laptop (section 4) |
 | Variable | `API_URL` | The Render API URL, for example `https://openpath-api.onrender.com` |
 | Variable | `WEB_URL` | The Vercel production URL |
 
 Until these are set, the deploy job skips each step with a notice instead of failing.
+
+## 4. Camera worker on demo day
+
+Render's free plan has no background workers, so the camera worker (OP-204) runs on one team laptop during the demo and posts to the live API (decided November 8; Estella runs it). Run it on one laptop only: the 511 key allows 10 calls per 60 seconds for the whole team, so stop any frame collection while it runs.
+
+1. **Install:** `make setup` in the repository.
+2. **Set the environment** in the terminal (values by direct message from Tatsat; never commit them):
+
+   ```bash
+   export ALBERTA_511_KEY="..."   # the team's 511 Alberta key
+   export WORKER_KEY="..."        # the same value as WORKER_KEY on the openpath-api service
+   export CLOUD_URL="https://openpath-api-w6ql.onrender.com"
+   export MODEL_URL="..."         # the model release asset from OP-202
+   ```
+
+3. **Get the model details** from the OP-202/OP-203 release: `labels.json`, the model's SHA-256 and the validated minimum score in `vision/MODEL_CARD.md`.
+4. **Start it** and keep the laptop awake and on power (`caffeinate -i` on macOS):
+
+   ```bash
+   caffeinate -i python -m vision.worker --live --publish \
+     --model-labels /path/to/labels.json --model-sha256 <sha256> --min-score <validated score>
+   ```
+
+5. **Check** that `https://openpath-api-w6ql.onrender.com/api/cameras` lists readings with `age_s` under 600 within about 10 minutes.
+
+If the worker stops, its readings expire after 15 minutes and the weather watch keeps running (OP-412 adds the fallback notice in the UI). Its posts every 5 minutes also keep the free API awake, so start it at least 10 minutes before judging.
 
 ## Current deployment (November 8, 2026)
 
