@@ -827,11 +827,16 @@ def test_walk_lrt_adds_the_trip_with_legs_and_station_status(
     walking = get(client, mode="walk")
     body = get(client, mode="walk_lrt")
     assert body["mode"] == "walk_lrt"
-    walks, trip = body["routes"][:-1], body["routes"][-1]
+    assert len(body["routes"]) <= 3
+    trip, walks = body["routes"][0], body["routes"][1:]
+    assert trip["mode"] == "walk_lrt" and trip["rank"] == 1  # the trip comes first
+    # The street has one walking route, so nothing is dropped; it moves to rank 2.
     assert [r["mode"] for r in walks] == ["walk"] * len(walking["routes"])
     for before, after in zip(walking["routes"], walks, strict=True):
-        assert {k: v for k, v in after.items() if k != "mode"} == before
-    assert trip["mode"] == "walk_lrt" and trip["rank"] == len(walks) + 1
+        assert after["rank"] == before["rank"] + 1
+        assert {k: v for k, v in after.items() if k not in ("mode", "rank")} == {
+            k: v for k, v in before.items() if k != "rank"
+        }
     assert trip["eta_min"] < walks[0]["eta_min"]
     assert trip["reason"].startswith("Walk and LRT: about")
     assert [leg["kind"] for leg in trip["legs"]] == [
@@ -869,6 +874,63 @@ def test_walk_lrt_adds_the_trip_with_legs_and_station_status(
     )
 
 
+def ladder() -> WalkNetwork:
+    """Main Street plus a North and a South Street about 300 m away, joined only at
+    both ends. Walking from node 0 to node 60 gives three distinct routes: Main Street
+    (about 99 min by wheelchair), then North and South (about 109 min each)."""
+    lat_off = 0.0027  # about 300 m
+    east = LNG0 + 60 * DLNG
+    nodes = [RawNode(i + 1, LAT0, LNG0 + i * DLNG) for i in range(61)]
+    nodes += [
+        RawNode(101, LAT0 + lat_off, LNG0),
+        RawNode(102, LAT0 + lat_off, east),
+        RawNode(201, LAT0 - lat_off, LNG0),
+        RawNode(202, LAT0 - lat_off, east),
+    ]
+    edges = [
+        RawEdge(i + 1, i + 2, 99.3, highway="footway", name="Main Street", osmid=i + 1)
+        for i in range(60)
+    ]
+    for a, b, name in ((101, 102, "North Street"), (201, 202, "South Street")):
+        edges += [
+            RawEdge(1, a, 300.0, highway="footway", name=f"{name} West", osmid=a),
+            RawEdge(a, b, 5958.0, highway="footway", name=name, osmid=a + 10),
+            RawEdge(b, 61, 300.0, highway="footway", name=f"{name} East", osmid=b),
+        ]
+    return WalkNetwork.from_data(export_network(nodes, edges, source="test"))
+
+
+def test_walk_lrt_comes_first_and_keeps_at_most_three_routes(config, store) -> None:
+    router = Router(ladder(), config)
+    client = make_client(router, store, planner_for(router))
+    walking = get(client, mode="walk")["routes"]
+    assert [r["rank"] for r in walking] == [1, 2, 3]
+    assert walking[1]["eta_min"] == walking[2]["eta_min"]  # North and South tie
+    body = get(client, mode="walk_lrt")
+    routes = body["routes"]
+    assert len(routes) == 3
+    assert [r["mode"] for r in routes] == ["walk_lrt", "walk", "walk"]
+    assert [r["rank"] for r in routes] == [1, 2, 3]
+    assert routes[0]["reason"].startswith("Walk and LRT: about")
+    assert routes[0]["reason"].endswith("min faster than walking")
+    # The slowest walking route (the later of the tie) made room for the trip.
+    for kept, original in zip(routes[1:], walking[:2], strict=True):
+        assert {k: v for k, v in kept.items() if k not in ("mode", "rank")} == {
+            k: v for k, v in original.items() if k != "rank"
+        }
+
+    # No qualifying trip (S3's only elevator is out): the walking routes are unchanged.
+    store.upsert([device_item("30", "S3, Platform", lng=LNG0 + 59 * DLNG)], NOW)
+    client = make_client(router, store, planner_for(router))
+    walking = get(client, mode="walk")["routes"]  # its reports now list the outage
+    blocked = get(client, mode="walk_lrt")
+    assert [{k: v for k, v in r.items() if k != "mode"} for r in blocked["routes"]] == (
+        walking
+    )
+    assert [r["mode"] for r in blocked["routes"]] == ["walk"] * 3
+    assert any("S3 Station is not used" in w for w in blocked["warnings"])
+
+
 def test_walk_lrt_report_explains_an_avoided_station(router, store) -> None:
     store.upsert([device_item("30", "S3, Platform", lng=LNG0 + 59 * DLNG)], NOW)
     client = make_client(router, store, planner_for(router))
@@ -876,7 +938,7 @@ def test_walk_lrt_report_explains_an_avoided_station(router, store) -> None:
     assert all(r["mode"] == "walk" for r in wheelchair["routes"])  # no trip
     assert any("S3 Station is not used" in w for w in wheelchair["warnings"])
     standard = get(client, "standard", mode="walk_lrt")
-    trip = standard["routes"][-1]
+    trip = standard["routes"][0]
     assert trip["mode"] == "walk_lrt"
     indoor = next(g for g in trip["report"]["groups"] if g["category"] == "indoor")
     assert [i["id"] for i in indoor["items"]] == ["city_lrt_devices:30"]
@@ -888,7 +950,7 @@ def test_walk_lrt_reads_the_store_without_a_hazard_provider(
     client = make_client(
         router, store_with_outages, planner_for(router), provider=False
     )
-    trip = get(client, mode="walk_lrt")["routes"][-1]
+    trip = get(client, mode="walk_lrt")["routes"][0]
     s1 = trip["lrt"]["stations"][0]
     assert {d["device_id"]: d["status"] for d in s1["devices"]}["11"] == (
         "out_of_service"
@@ -994,9 +1056,23 @@ def test_churchill_to_southgate_by_wheelchair_on_the_real_network(app_env) -> No
         body = client.get("/api/route", params={**params, "profile": "wheelchair"})
         assert body.status_code == 200, body.text
         routes = body.json()["routes"]
-        trip = routes[-1]
+        trip = routes[0]
         assert trip["mode"] == "walk_lrt", body.json()["warnings"]
-        assert trip["eta_min"] < routes[0]["eta_min"]
+        assert [r["rank"] for r in routes] == list(range(1, len(routes) + 1))
+        assert len(routes) <= 3
+        walking = client.get(
+            "/api/route", params={**params, "profile": "wheelchair", "mode": "walk"}
+        ).json()["routes"]
+        assert trip["eta_min"] < walking[0]["eta_min"]
+        # The best walking routes follow the trip; the slowest one made room for it.
+        kept = sorted(walking, key=lambda r: (r["eta_min"], -r["rank"]))[
+            : len(routes) - 1
+        ]
+        kept_ranks = sorted(r["rank"] for r in kept)
+        assert [r["eta_min"] for r in routes[1:]] == [
+            next(w for w in walking if w["rank"] == rank)["eta_min"]
+            for rank in kept_ranks
+        ]
         rides = [leg for leg in trip["legs"] if leg["kind"] == "ride"]
         assert len(rides) == 1 and rides[0]["lines"] == ["Capital Line"]
         assert rides[0]["from_name"] == "Churchill Station"
@@ -1026,4 +1102,5 @@ def test_churchill_to_southgate_by_wheelchair_on_the_real_network(app_env) -> No
         standard = client.get(
             "/api/route", params={**params, "profile": "standard"}
         ).json()
-        assert standard["routes"][-1]["mode"] == "walk_lrt"
+        assert standard["routes"][0]["mode"] == "walk_lrt"
+        assert len(standard["routes"]) <= 3

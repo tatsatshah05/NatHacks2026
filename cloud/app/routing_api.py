@@ -11,9 +11,11 @@ Each route carries a ``report`` (OP-208): every known item on it, within 50 m of
 or avoided by it, grouped by category.
 
 ``mode=walk_lrt`` (OP-311, only when ``LRT_TRIPS`` is on, so ``app.state.lrt_planner``
-exists) adds the best walk and LRT trip after the walking routes, with ``legs`` and
-``lrt``. Otherwise the response is exactly the walking one: the endpoint leaves unset
-fields out, and the OP-311 fields are set only for ``walk_lrt``.
+exists): when a walk and LRT trip is faster than walking, it comes first (rank 1, with
+``legs`` and ``lrt``), and the slowest walking route is dropped so there are still at
+most 3 routes. Otherwise the walking routes are unchanged. Without ``walk_lrt`` the
+response is exactly the walking one: the endpoint leaves unset fields out, and the
+OP-311 fields are set only for ``walk_lrt``.
 """
 
 from __future__ import annotations
@@ -160,6 +162,9 @@ def route_report(route: Route, items: Sequence[ItemIndex]) -> RouteReportOut:
         return RouteReportOut.of(build_report(route, ()))
 
 
+# exclude_unset keeps walking responses byte-for-byte as before OP-311: the optional
+# OP-311 fields are left out unless set. Any field with a default must therefore be
+# passed explicitly, or it disappears from responses.
 @router.get("/route", response_model=RouteResponse, response_model_exclude_unset=True)
 def get_route(
     request: Request,
@@ -317,9 +322,12 @@ def add_lrt_trip(
     origin: tuple[float, float],
     destination: tuple[float, float],
 ) -> RouteResponse:
-    """The walking response plus the best walk and LRT trip, when one is faster.
+    """The walking response with the best walk and LRT trip first, when one is faster.
 
-    A failure here never loses the walking routes (AGENTS.md, priority 1).
+    The trip becomes rank 1 and the slowest walking route is dropped, so the response
+    keeps at most ``alternates.max_routes`` (3) routes, best first. When no trip
+    qualifies, the walking routes are unchanged. A failure here never loses the
+    walking routes (AGENTS.md, priority 1).
     """
     for route in response.routes:
         route.mode = "walk"
@@ -359,27 +367,32 @@ def add_lrt_trip(
             report = RouteReportOut.of(build_report(trip.route, ()))
         google, apple = lrt_trips.transit_maps_urls(origin, destination)
         r = trip.route
-        response.routes.append(
-            RouteOut(
-                rank=len(response.routes) + 1,
-                geometry={"type": "LineString", "coordinates": r.coordinates},
-                distance_m=r.distance_m,
-                eta_min=r.eta_min,
-                steps=[
-                    StepOut(text=s.text, distance_m=round(s.distance_m, 1))
-                    for s in r.steps
-                ],
-                hazards_on_route=_hazards_out(r.hazards_on_route),
-                hazards_avoided=_hazards_out(r.hazards_avoided),
-                warnings=[*r.warnings, *([stale] if stale else [])],
-                reason=r.reason,
-                report=report,
-                google_maps_url=google,
-                apple_maps_url=apple,
-                mode="walk_lrt",
-                legs=lrt_trips.legs_out(trip),
-                lrt=lrt_trips.trip_out(trip, planner.schedule),
-            )
+        first = RouteOut(
+            rank=1,
+            geometry={"type": "LineString", "coordinates": r.coordinates},
+            distance_m=r.distance_m,
+            eta_min=r.eta_min,
+            steps=[
+                StepOut(text=s.text, distance_m=round(s.distance_m, 1)) for s in r.steps
+            ],
+            hazards_on_route=_hazards_out(r.hazards_on_route),
+            hazards_avoided=_hazards_out(r.hazards_avoided),
+            warnings=[*r.warnings, *([stale] if stale else [])],
+            reason=r.reason,
+            report=report,
+            google_maps_url=google,
+            apple_maps_url=apple,
+            mode="walk_lrt",
+            legs=lrt_trips.legs_out(trip),
+            lrt=lrt_trips.trip_out(trip, planner.schedule),
         )
+        walks = list(response.routes)
+        while walks and len(walks) + 1 > planner.router.config.alternates.max_routes:
+            # Drop the slowest walking route (the later one when two tie).
+            slowest = max(range(len(walks)), key=lambda i: (walks[i].eta_min, i))
+            walks.pop(slowest)
+        for rank, route in enumerate(walks, start=2):
+            route.rank = rank
+        response.routes = [first, *walks]
     response.warnings = [*response.warnings, *warnings]
     return response

@@ -2,8 +2,9 @@
 
 Behind the feature flag ``LRT_TRIPS`` (off by default). With the flag off, or with
 ``mode=walk``, ``GET /api/route`` is exactly the walking planner (OP-207). With the
-flag on and ``mode=walk_lrt``, the response keeps every walking route and adds the
-best walk and LRT trip, when there is one and it is faster than walking.
+flag on and ``mode=walk_lrt``, the best walk and LRT trip, when there is one and it
+is faster than walking, comes first (rank 1) and the slowest walking route is dropped,
+so a response still has at most 3 routes, best first.
 
 The data
     ``cloud/data/lrt.json`` is built from the ETS GTFS schedule by
