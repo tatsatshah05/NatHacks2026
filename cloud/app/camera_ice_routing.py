@@ -15,6 +15,9 @@ either side changed. Crossing matches are cached per camera position.
 Nothing here may break routing: a failed camera read keeps the unexpired risks it
 had, a failed matcher keeps the matcher's last good map, and any other error is
 logged and the matcher's map is returned unchanged.
+
+At shutdown ``stop()`` stops the camera reads (calls keep the last camera map) and
+stops the matcher, so neither touches the database after the lifespan closes it.
 """
 
 from __future__ import annotations
@@ -142,6 +145,20 @@ class CameraIceHazardProvider:
         self._merged: HazardMap = {}
         self._merged_from: tuple[object, object] | None = None
         self._lock = threading.Lock()
+        self._stopped = False  # set by stop(): no more camera reads
+
+    def stop(self, timeout_s: float | None = None) -> bool:
+        """Shutdown: read no more camera readings, then stop the matcher (``base``).
+
+        Its own reads run in the caller's thread (requests, the push watcher, the
+        live hub), which the lifespan has stopped first. Returns the matcher's
+        ``stop()`` result: False if a rebuild is still running after ``timeout_s``.
+        """
+        self._stopped = True
+        stop = getattr(self.base, "stop", None)
+        if not callable(stop):
+            return True
+        return bool(stop() if timeout_s is None else stop(timeout_s))
 
     def __call__(self, now: datetime) -> HazardMap:
         now = as_utc(now)
@@ -173,6 +190,8 @@ class CameraIceHazardProvider:
 
     def _camera_hazards(self, now: datetime) -> HazardMap:
         """The camera hazard map at ``now``; the same object while nothing changed."""
+        if self._stopped:  # shutting down: the last map, never a database read
+            return self._camera
         failed: Exception | None = None
         payloads: list[dict[str, object]] = []
         try:
