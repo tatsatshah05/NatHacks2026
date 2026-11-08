@@ -279,7 +279,7 @@ export default function AlertsPage() {
             <div className={styles.notice}>
               <StatusLine>{listMessage}</StatusLine>
               {removed && (
-                <Button id="saved-undo" variant="text" onClick={() => void undo()} aria-disabled={removed.restoring || undefined}>
+                <Button id="saved-undo" variant="text" className={styles.undo} onClick={() => void undo()} aria-disabled={removed.restoring || undefined}>
                   Undo<span className="sr-only"> removing {removed.route.name}</span>
                 </Button>
               )}
