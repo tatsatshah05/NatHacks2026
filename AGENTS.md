@@ -174,6 +174,7 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 - **Health:** `GET /health` returns `{"status": "ok", "version": "<git commit>", "mode": "live"}`. `version` comes from `RENDER_GIT_COMMIT` (`dev` locally), and the deploy job waits for it. `mode` is `DATA_MODE` (`live` or `replay`); the web app shows the Replay badge when it is `replay`.
 - **Read:** `GET /health`, `/api/status`, `/api/obstructions?bbox=`, `/api/route?from=&to=&profile=&mode=walk|walk_lrt`, `/api/search?q=`, `/api/weather`, `/api/cameras`, `/api/priority`.
 - **Write:** `POST /api/reports`, `/api/push/subscribe`, `/api/saved-routes`, `/api/ingest/camera` (`X-Worker-Key`), `/api/admin/override` (`X-Admin-Key`, testing only).
+- **Camera readings (OP-213, agreed November 8):** `POST /api/ingest/camera` takes one reading per camera view in the shape from docs/OP-204.md: `source` `camera_model`, `source_ref` `511:<camera_id>:<view_id>`, `camera_id`, `view_id`, `latitude`, `longitude`, `label` (`dry|wet|snow_partial|snow_covered|ice|unknown`), `score`, `reason`, `observed_at`, `expires_at`, `model_version`, `mode`, `attribution`. One row per view in `camera_reading` (`cloud/app/camera_readings.py`); `GET /api/cameras` lists the latest unexpired readings as GeoJSON. Readings are not obstructions; OP-205 turns them into `ice_risk` where the rule applies.
 - **Live:** `WS /ws` with events `obstruction_changed`, `route_changed` and `source_status`.
 
 ## Data Source Rules
