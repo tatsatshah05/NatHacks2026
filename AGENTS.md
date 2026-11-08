@@ -19,6 +19,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
+- **OP-205:** camera `ice` (or `wet` while the watch is active) becomes `ice_risk` on the crossings within 50 m of the camera. `CameraIceHazardProvider` (`cloud/app/camera_ice_routing.py`) is `app.state.hazard_provider`: it wraps the matcher and adds those exact crossings, so camera risks never meet the matcher's area rule. See [docs/OP-205.md](docs/OP-205.md).
+
 - **November 7, 2026:** Phase 1 is in progress. OP-104's walking network is merged through PR #97. OP-101 (contracts), OP-102 (skeleton) and OP-103 (scheduler) remain integration dependencies on this branch.
 - **OP-107 on this branch:** the construction adapter and recorded preview isolate malformed/amended rows and use only a short line near the official permit point. Broad corridors fall back to the point. Shared API/store/scheduler integration remains pending; see [docs/OP-107.md](docs/OP-107.md). OP-103 owns hourly cadence, retries and cooldowns; every adapter call performs one fetch, with no internal sleeps or poll gate.
 - **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
@@ -26,13 +28,15 @@ Update this section whenever the status changes.
 - **Deploys:** the one-time Render, Vercel and GitHub setup is in [docs/DEPLOY.md](docs/DEPLOY.md).
 - **CI/CD is live, and every branch below is protected.** Every pull request needs the `CI passed` check and an approval from Tatsat, Ipsa or Kashish. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Phase branches:** Phase 1 work goes into the `phase_1` branch, which is the default branch. When the phase passes its checkpoint, `phase_1` is released into `main`, and `phase_2` starts from `main`.
+- **Vision training (OP-202):** `vision/train.py` trains and exports the road-condition model on a laptop or Colab (never Render or CI); no real model exists yet, pending OP-201 labels and decision D-3. `vision/model_contract.py` defines `labels.json`, the hand-off to the worker (OP-204).
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
 - **Scheduler and status (OP-103):** `cloud/app/scheduler.py` runs every source in `config/sources.json` on its cadence (10 s timeout, 3 retries, stale after 3 failures, a failed source never clears data) and `GET /api/status` reports freshness. `SCHEDULER=off` disables fetching (tests). In replay mode the adapters read the `REPLAY_SNAPSHOT` folder through a fake HTTP transport, so nothing touches the network.
 
-- **Routing (OP-207):** `cloud/app/routing.py` runs Dijkstra on the prebuilt network with per-profile weights from `config/profiles.json` (a shared contract), returns up to 3 distinct routes with ETAs, text steps, hazards avoided and a reason, and serves `GET /api/route`. Hazards enter as a `HazardMap` (edge index -> `EdgeHazard`) that the matcher (OP-206) provides through `app.state.hazard_provider`. `cloud/app/maps_links.py` (OP-209) builds the Google Maps link with up to 3 waypoints where a route leaves the plain shortest route, and the Apple Maps link (start to end only, with a note).
+- **Routing (OP-207):** `cloud/app/routing.py` runs Dijkstra on the prebuilt network with per-profile weights from `config/profiles.json` (a shared contract), returns up to 3 distinct routes with ETAs, text steps, hazards avoided and a reason, and serves `GET /api/route`. Hazards enter as a `HazardMap` (edge index -> `EdgeHazard`) that the matcher (OP-206) provides through `app.state.hazard_provider`. Each end snaps to the nearest node with a usable path; if no route is found because an end sits in a pocket cut off for that profile (between stairs and a closure, say), it moves to the nearest node of the main connected piece within `snap.max_m` and the search runs again, with a warning. `cloud/app/maps_links.py` (OP-209) builds the Google Maps link with up to 3 waypoints where a route leaves the plain shortest route, and the Apple Maps link (start to end only, with a note).
 - **Camera worker hosting (November 8):** the OP-204 worker runs on one team laptop during the demo, not on Render, because Render's free plan has no background workers. Estella runs it; the steps are in [docs/DEPLOY.md](docs/DEPLOY.md#4-camera-worker-on-demo-day). Its posts every 5 minutes also keep the free API awake.
 - **Matching (OP-206):** `cloud/app/matching.py` builds that `HazardMap` from the store's active items. The first route request builds it; after that it is rebuilt at most every 30 s in a background thread, so requests never wait, and a failed rebuild (for example a database error) keeps the last good map. A point snaps to the nearest edge within 30 m; a line matches each edge with at least half its length, or at least 25 m of it, inside a 15 m buffer; polygons, 311 neighbourhood advisories (`snow_complaints`) and `weather` items attach as areas and change no edges. Indoor items (LRT elevators and escalators) are never snapped to sidewalks, because the City gives station points; an elevator outage blocks only edges from a reviewed mapping (OP-106), otherwise it is kept as a station warning. Each hazard keeps the item's `id` and `effect`; routing applies the effect per profile.
+- **Route report (OP-208):** every route from `GET /api/route` carries `report`: each known item `on_route` (matched to a path the route uses, or an area the route passes through), `nearby` (within 50 m of the route line) or `avoided` (on the plain shortest route but not this one, at any distance). Groups come in a fixed order and are always present: Indoor, Sidewalks and paths, Roads and crossings, Weather and ice (Transit only when it has items). Each item has its source and attribution, title and detail, confidence, `observed_at` (when OpenPath last confirmed it with its source, not when the source changed it), the source's dates, a source link, its distance from the route and, for station-level or area items, a `note` on why it cannot change routes. A `weather` item the matcher keeps as an area (the black-ice watch, which the `weather_watch` source will publish as one item over the network's bounding box) is `on_route` for every route. 311 neighbourhood advisories are still points, so they follow the 50 m rule until they get neighbourhood polygons (Phase 3). `cloud/app/report.py` builds the report from one or more `ItemIndex`: the matcher builds one with every match. A hazard with no record is still listed from what the hazard carries. The report can never break matching or routing: if the index build fails, the match keeps its hazards with no index, and if a route's report fails, it falls back to the hazards that route met (both logged). `routing_api.get_report_items` adds the index of OP-205's camera ice risks (`CameraIceHazardProvider.items`) and takes the matcher from its `base`.
 
 ## Where to Find Context
 
@@ -198,6 +202,14 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 
 ## Commands
 
+OP-201 dataset audit: `python -m vision.tools.dataset --images vision/data/raw --labels vision/data/labels_primary.csv --out vision/data/dataset`; see the [dataset workflow](docs/ESTELLA_OP201.md) for blind second labelling and source permissions. Preserve AI-assisted labeling provenance; non-blind review is not independent agreement.
+
+OP-201 → OP-202: pass only `--labels vision/data/labels_primary.csv` and the frozen IDs via `--test-cameras $(cat vision/data/dataset/test_cameras.txt)` to `vision.train` (when OP-202 is available); its default split differs and does not read the registry. Do not glob `labels_*.csv` or train on blind second-label CSVs. The audit reports `split_class_counts` and exports `test_cameras.txt`.
+
+OP-201 collection (keeping frames follows the lead's November 8 decision in #132): `python -m vision.tools.collect --limit 6 --reviewer Estella` previews each image in memory; only `k` retains a privacy-reviewed frame in ignored `vision/data/raw/`. `--views all` also fetches each camera's other enabled views, through the same rate limiter and host check, into `vision/data/raw/view_<view_id>/`. `--plan` lists cached camera IDs offline. The UTC filename timestamp is retrieval time, not verified capture time.
+
+Issue #44 permits additional provincial snow/ice training examples: `python -m vision.tools.collect --scope alberta --limit 20 --reviewer Estella` (optional `--camera-ids ...`); `--plan` remains offline. The actual reviewer is required for live collection; wait a minute between collector runs because each starts a new local rate limiter. This training-data selection does not change Edmonton routing coverage.
+
 OP-109's standalone weather app: `.venv/bin/python -m uvicorn cloud.app.weather_app:create_app --factory --port 8001`; replay requires `DATA_MODE=replay` and `REPLAY_SNAPSHOT` pointing to the snapshot described in [Estella's weather guide](docs/ESTELLA_PHASE1.md).
 
 These live in the root Makefile and are available after OP-102.
@@ -220,6 +232,10 @@ These live in the root Makefile and are available after OP-102.
 
 `make dev` and `make web` run `scripts/dev.py`. It removes API keys from the environment and sets `DATA_MODE=replay` with `REPLAY_SNAPSHOT=cloud/tests/fixtures`, so adapters must read their fixtures in replay mode. If one server stops (for example because its port is in use), the other is stopped too and `make dev` fails with that server's exit code.
 
+OP-202 trains the road-condition model on a laptop or Colab, never on Render or in CI: `pip install -r vision/requirements.txt -r scripts/requirements-train.txt`, then `python -m vision.train --images vision/data/raw --labels vision/data/labels_*.csv --out vision/data/runs/v1` (see [vision/README.md](vision/README.md#training)). It writes `model.onnx`, `labels.json`, `split.json` and `metrics.json`; publish `model.onnx` and `labels.json` as a GitHub release asset and set `MODEL_URL`, never commit them. Its end-to-end tests skip where PyTorch is not installed.
+
+OP-203 evaluates a run on its unseen test cameras and regenerates `vision/MODEL_CARD.md`: `python -m vision.evaluate --run vision/data/runs/v1 --images vision/data/raw --labels vision/data/labels_*.csv` (needs onnxruntime, not PyTorch). It refuses a `model.onnx` that does not match the `sha256` in the run's `labels.json`, and records that hash on the card. Never edit the card's numbers by hand.
+
 OP-107 offers a recorded preview until the shared app is integrated:
 
 ```bash
@@ -232,15 +248,17 @@ Use `--live` instead of `--fixtures` for one official City API read, with option
 `--at` is replay-only and requires a timezone; `--local-timezone` defaults to
 `America/Edmonton`. This preview prints output and does not write to the store.
 
+OP-205 checks: `python -m pytest cloud/tests/test_camera_ice.py cloud/tests/test_camera_ice_routing.py cloud/tests/test_camera_ice_review.py cloud/tests/test_camera_ice_app.py -q`.
+
 ## Environment Variables
 
 Never commit values. Keep `.env.example` current. Nothing loads `.env.example` or a `.env` file: Render and Vercel take values from their dashboards, and `make dev` sets its own.
 
-- **cloud:** `DATABASE_URL`, `ADMIN_KEY`, `WORKER_KEY`, `CORS_ORIGINS`, `SOCRATA_APP_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DATA_MODE` (`live` or `replay`), `REPLAY_SNAPSHOT`, `WEATHER_LAT`, `WEATHER_LNG`, `LRT_TRIPS`
+- **cloud:** `DATABASE_URL`, `ADMIN_KEY`, `WORKER_KEY`, `CORS_ORIGINS`, `SOCRATA_APP_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DATA_MODE` (`live` or `replay`), `REPLAY_SNAPSHOT`, `REPLAY_AT`, `WEATHER_LAT`, `WEATHER_LNG`, `LRT_TRIPS`
 - **vision:** `CLOUD_URL`, `WORKER_KEY`, `ALBERTA_511_KEY`, `MODEL_URL`
 - **web:** `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. The OP-113 web app currently reads `NEXT_PUBLIC_API_BASE_URL` instead of `NEXT_PUBLIC_API_URL`; `make dev` and docs/DEPLOY.md set both until the two agree.
 
-`REPLAY_SNAPSHOT` is a folder, not a file: one subfolder of recorded responses per source, as in `cloud/tests/fixtures/`. `CORS_ORIGINS` is comma-separated, and a `*` matches part of one host-name label (`https://openpath-*-<team-slug>.vercel.app`). It is not a security boundary; see [docs/DEPLOY.md](docs/DEPLOY.md).
+`REPLAY_SNAPSHOT` is a folder, not a file: one subfolder of recorded responses per source, as in `cloud/tests/fixtures/`. `REPLAY_AT` (replay only, ISO 8601 with a time zone, for example `2026-11-10T18:00:00Z`) freezes the app's clock (`app.state.clock`) so recorded closures stay active: the scheduler, the map (`GET /api/obstructions`) and route hazards all use it. `CORS_ORIGINS` is comma-separated, and a `*` matches part of one host-name label (`https://openpath-*-<team-slug>.vercel.app`). It is not a security boundary; see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Conventions
 

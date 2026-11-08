@@ -23,6 +23,10 @@ How an item attaches (PLAN.md section 8, step 3)
                                mapping assigns to its device (``elevator_edges``);
                                with no reviewed mapping it is kept as a station
                                warning.
+    Camera ice risks (``camera_model``)
+                               never matched here: OP-205's ``CameraIceHazardProvider``
+                               puts them on the exact crossings within 50 m of the
+                               camera and adds them to this module's map.
 
 Effects
     Each hazard carries the item's own ``effect``. Routing turns it into a cost or a
@@ -54,6 +58,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 from .network import WalkNetwork
+from .report import ItemIndex
 from .routing import EdgeHazard, HazardMap
 from .schemas import Category, Kind, Obstruction
 from .store import ObstructionStore
@@ -69,12 +74,14 @@ SAMPLE_M = 5.0  # spacing of the points used to measure how much of an edge is i
 REFRESH_S = 30.0  # the provider rebuilds the map at most this often
 
 # Items that describe an area or the whole city, never particular paths.
-# When OP-205 (#113) lands, its camera ice risks arrive under category "weather" with
-# exact crossing edges. Their hook must key on source == "camera_model" and run
-# BEFORE the area check in match_item, or every camera ice risk becomes city-wide.
 AREA_KINDS = frozenset({Kind.SNOW_COMPLAINTS})
 AREA_CATEGORIES = frozenset({Category.WEATHER})
 AREA_TYPES = frozenset({"Polygon", "MultiPolygon"})
+# OP-205's camera ice risks are category "weather" but sit on exact crossings, which
+# camera_ice.CrossingIndex finds; CameraIceHazardProvider adds them to this map. They
+# never pass through the store, and if one ever does, it must not become a city-wide
+# area or a generic 30 m point match, so the matcher leaves it alone.
+CAMERA_SOURCE = "camera_model"
 
 Method = Literal["point", "line", "area", "elevator", "station", "unmatched"]
 
@@ -98,6 +105,8 @@ class MatchResult:
     built_at: datetime
     hazards: dict[int, list[EdgeHazard]] = field(default_factory=dict)
     matches: dict[str, Match] = field(default_factory=dict)
+    # The same items' details and geometry, for the route report (OP-208).
+    items: ItemIndex | None = None
 
     def counts(self) -> dict[str, int]:
         counts: dict[str, int] = {}
@@ -272,6 +281,10 @@ def match_item(
     elevator_edges: Mapping[str, Sequence[int]],
 ) -> Match:
     """Decide which edges one item affects."""
+    if item.source == CAMERA_SOURCE:  # before the area check: see CAMERA_SOURCE
+        return Match(
+            item.id, "unmatched", note="camera ice risk: matched to crossings by OP-205"
+        )
     if is_area(item):
         return Match(item.id, "area", note="area advisory: changes no paths")
 
@@ -336,6 +349,7 @@ def match_items(
     An item that fails to match (a bug on one odd geometry) is logged and changes no
     edges, so it cannot stop every other item from reaching routing.
     """
+    items = list(items)
     result = MatchResult(built_at=now)
     for item in items:
         try:
@@ -352,6 +366,11 @@ def match_items(
         )
         for edge in match.edges:
             result.hazards.setdefault(edge, []).append(hazard)
+    methods = {item_id: match.method for item_id, match in result.matches.items()}
+    try:
+        result.items = ItemIndex.build(items, index.to_xy, methods)
+    except Exception:  # the report must never stop hazards reaching routing
+        log.exception("REPORT index failed; routes list only the hazards they meet")
     return result
 
 
