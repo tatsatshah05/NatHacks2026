@@ -157,9 +157,13 @@ class Router:
             profile = self.config.profile(profile_key)
         except KeyError as error:
             raise RoutingError(str(error)) from None
-        origin = self._snap(from_lat, from_lng, "from")
-        destination = self._snap(to_lat, to_lng, "to")
-        warnings = self._snap_warnings(origin, destination)
+        # Weights first: snapping must know which paths this profile can use right now,
+        # otherwise a start inside a blocked stretch snaps to a node with no way out and
+        # the whole trip fails even though an open path is a few metres away.
+        weights = profile_weights(self.network, profile, hazards)
+        warnings: list[str] = []
+        origin = self._snap(from_lat, from_lng, "start", weights, warnings)
+        destination = self._snap(to_lat, to_lng, "end", weights, warnings)
         if origin[0] == destination[0]:
             return RouteResult(
                 profile_key,
@@ -168,8 +172,6 @@ class Router:
                 [],
                 [*warnings, "The start and end are at the same place."],
             )
-
-        weights = profile_weights(self.network, profile, hazards)
         # The plain shortest route ignores hazards (but keeps the profile's stair rule),
         # so "what did this route avoid?" and "why is it longer?" have a baseline.
         plain_weights = profile_weights(self.network, profile, NO_HAZARDS)
@@ -204,25 +206,46 @@ class Router:
 
     # -- pieces --------------------------------------------------------------
 
-    def _snap(self, lat: float, lng: float, which: str) -> tuple[int, float]:
-        node, distance = self.network.nearest_node(lat, lng)
-        if distance > self.config.snap.max_m:
+    # How many nearby nodes to consider when the nearest one has no usable path.
+    SNAP_CANDIDATES = 12
+
+    def _snap(
+        self,
+        lat: float,
+        lng: float,
+        which: str,
+        weights: np.ndarray,
+        warnings: list[str],
+    ) -> tuple[int, float]:
+        """Snap a coordinate to the nearest node that still connects to the network.
+
+        A node "connects" when at least one of its edges is usable for this profile
+        (weight above 0). Among the nearest candidates the first usable one wins; if
+        none is usable, the nearest node is returned and the search reports no route.
+        """
+        nodes, distances = self.network.nearest_nodes(lat, lng, self.SNAP_CANDIDATES)
+        nearest, nearest_m = int(nodes[0]), float(distances[0])
+        if nearest_m > self.config.snap.max_m:
             raise RoutingError(
-                f"The '{which}' point is {distance:.0f} m from the nearest walkable path "
+                f"The {which} point is {nearest_m:.0f} m from the nearest walkable path "
                 f"(limit {self.config.snap.max_m:.0f} m). Choose a point inside Edmonton."
             )
-        return node, distance
-
-    def _snap_warnings(
-        self, origin: tuple[int, float], destination: tuple[int, float]
-    ) -> list[str]:
-        out = []
-        for name, (_, distance) in (("start", origin), ("end", destination)):
-            if distance > self.config.snap.warn_m:
-                out.append(
-                    f"The {name} point is {distance:.0f} m from the nearest walkable path."
-                )
-        return out
+        chosen, chosen_m = nearest, nearest_m
+        for node, distance in zip(nodes, distances, strict=True):
+            _, edge_ids = self.network.neighbors(int(node))
+            if len(edge_ids) and bool((weights[edge_ids] > 0).any()):
+                chosen, chosen_m = int(node), float(distance)
+                break
+        if chosen != nearest:
+            warnings.append(
+                f"The {which} point is inside a blocked stretch; the route {'begins' if which == 'start' else 'ends'} "
+                f"{chosen_m:.0f} m away at the nearest open path."
+            )
+        elif chosen_m > self.config.snap.warn_m:
+            warnings.append(
+                f"The {which} point is {chosen_m:.0f} m from the nearest walkable path."
+            )
+        return chosen, chosen_m
 
     def _shortest(
         self, weights: np.ndarray, src: int, dst: int

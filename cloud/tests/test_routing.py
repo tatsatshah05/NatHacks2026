@@ -249,15 +249,49 @@ def test_alternates_are_distinct_and_capped(router) -> None:
 
 
 def test_unreachable_destination_gives_no_route(router, grid) -> None:
+    """Cut the top row off for wheelchairs: 1-4 and 3-6 blocked, 2-5 is stairs. No route."""
     _, index = grid
-    # Cut node 9 off completely for everyone.
     hazards = {
-        index[(6, 9)]: [EdgeHazard("b:1", Effect.BLOCKED, Confidence.HIGH)],
-        index[(8, 9)]: [EdgeHazard("b:2", Effect.BLOCKED, Confidence.HIGH)],
+        index[(1, 4)]: [EdgeHazard("b:1", Effect.BLOCKED, Confidence.HIGH)],
+        index[(3, 6)]: [EdgeHazard("b:2", Effect.BLOCKED, Confidence.HIGH)],
     }
-    result = router.route(*latlng(1), *latlng(9), "standard", hazards)
+    result = router.route(*latlng(1), *latlng(9), "wheelchair", hazards)
     assert result.routes == []
     assert any("No route is possible" in w for w in result.warnings)
+    # A standard walker can take the stairs, so the same hazards still leave a route.
+    assert router.route(*latlng(1), *latlng(9), "standard", hazards).routes
+
+
+def test_start_inside_a_blocked_stretch_snaps_to_the_nearest_open_path(
+    router, grid
+) -> None:
+    """Every path out of node 1 is blocked; the trip must still route from the next open node."""
+    _, index = grid
+    hazards = {
+        index[(1, 2)]: [
+            EdgeHazard("c:1", Effect.BLOCKED, Confidence.HIGH, "Sidewalk closed")
+        ],
+        index[(1, 4)]: [
+            EdgeHazard("c:2", Effect.BLOCKED, Confidence.HIGH, "Sidewalk closed")
+        ],
+    }
+    result = router.route(*latlng(1), *latlng(9), "wheelchair", hazards)
+    assert result.routes, result.warnings
+    assert result.origin[0] != 0  # moved off the boxed-in node
+    assert any(
+        "inside a blocked stretch" in w and "begins" in w for w in result.warnings
+    )
+    # The destination end gets the same treatment.
+    hazards_end = {
+        index[(6, 9)]: [EdgeHazard("c:3", Effect.BLOCKED, Confidence.HIGH)],
+        index[(8, 9)]: [EdgeHazard("c:4", Effect.BLOCKED, Confidence.HIGH)],
+    }
+    result = router.route(*latlng(1), *latlng(9), "wheelchair", hazards_end)
+    assert result.routes and result.destination[0] != 8
+    assert any("ends" in w for w in result.warnings)
+    # Without hazards the nearest node is used as before, with no warning.
+    plain = router.route(*latlng(1), *latlng(9), "wheelchair")
+    assert plain.origin == (0, pytest.approx(0, abs=1)) and plain.warnings == []
 
 
 def test_same_place_and_far_points(router) -> None:
