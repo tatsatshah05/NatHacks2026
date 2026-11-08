@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+from cloud.app.adapters._quality import RowQuality
 from cloud.app.adapters._text import clip_detail
 
 # The IANA zone name; a named constant so secret scanners do not mistake the ZoneInfo key= argument for a credential.
@@ -154,6 +155,9 @@ class CityAdapter:
     poll_interval_seconds = 0
     order_by = ""
     timestamp_timezone = EDMONTON
+    # The dataset's columns as recorded in cloud/tests/fixtures/city_advisories
+    # (OP-407). Any other name is reported on /api/status, never rejected.
+    expected_fields: frozenset[str] = frozenset()
 
     def __init__(
         self,
@@ -176,6 +180,7 @@ class CityAdapter:
         self.last_good: list[Obstruction] | None = None
         self.last_success: datetime | None = None
         self.last_error: str | None = None
+        self.quality = RowQuality(self.expected_fields)  # OP-407, read by the scheduler
 
     def query(self, now: datetime) -> dict[str, str]:
         return {}
@@ -212,6 +217,7 @@ class CityAdapter:
 
     async def fetch(self, now: datetime) -> list[Obstruction]:
         """Build a complete refresh; leave last_good untouched if any step fails."""
+        self.quality.start()
         try:
             now = utc(now)
             rows = []
@@ -311,6 +317,36 @@ class SnowComplaintsAdapter(CityAdapter):
     source = "city_311_snow"
     poll_interval_seconds = 3600
     order_by = "row_id"
+    expected_fields = frozenset(
+        {
+            "count",
+            "date_closed",
+            "date_created",
+            "interaction_channel",
+            "month",
+            "month_number",
+            "nbhd_latitude",
+            "nbhd_location",
+            "nbhd_longitude",
+            "neighbourhood",
+            "neighbourhood_id",
+            "referral_type",
+            "request_status",
+            "row_id",
+            "service_area",
+            "service_area_service_category",
+            "service_area_service_description",
+            "service_category",
+            "service_category_service_area",
+            "service_description",
+            "status_detail",
+            "ward",
+            "ward_latitude",
+            "ward_location",
+            "ward_longitude",
+            "year",
+        }
+    )
 
     def query(self, now: datetime) -> dict[str, str]:
         """Ask the City for open complaints inside the 72-hour local-time window."""
@@ -334,6 +370,7 @@ class SnowComplaintsAdapter(CityAdapter):
         groups: dict[str, list[tuple[dict[str, Any], datetime]]] = defaultdict(list)
         # Check dates/status again so recorded data follows the same rules as live data.
         for row in unique_rows(rows, "row_id"):
+            self.quality.see(row)
             status = text(row, "request_status").casefold()
             if status == "closed":
                 continue
@@ -349,6 +386,7 @@ class SnowComplaintsAdapter(CityAdapter):
                 text(row, "neighbourhood")
                 point(row, "nbhd_location")
             except ValueError as exc:
+                self.quality.reject(exc)
                 logger.warning(
                     "SKIP %s row=%s reason=%s",
                     self.source,
@@ -392,16 +430,38 @@ class TrailClosuresAdapter(CityAdapter):
     order_by = "id_number"
     # The official ArcGIS layer linked by the dataset declares date fields UTC.
     timestamp_timezone = ZoneInfo("UTC")
+    expected_fields = frozenset(
+        {
+            "activity_type",
+            "date_entered",
+            "date_updated",
+            "details",
+            "duration",
+            "end_date",
+            "geometry_point",
+            "id_number",
+            "image_url",
+            "infrastructure",
+            "latitude",
+            "link",
+            "location_name",
+            "longitude",
+            "start_date",
+            "type_of_closure",
+        }
+    )
 
     def normalize(self, rows: list[dict[str, Any]], now: datetime) -> list[Obstruction]:
         """Keep active notices and use the City's structured closure type."""
         now = utc(now)
         items = []
         for row in unique_rows(rows, "id_number"):
+            self.quality.see(row)
             # Parse every supplied end date so unknown values are visible in logs.
             raw_end = row.get("end_date")
             ends = end_time(raw_end, EDMONTON)
             if not isinstance(row.get("details"), str) or not row["details"].strip():
+                self.quality.reject("missing or invalid details")
                 logger.warning(
                     "SKIP %s row=%s reason=missing or invalid details",
                     self.source,

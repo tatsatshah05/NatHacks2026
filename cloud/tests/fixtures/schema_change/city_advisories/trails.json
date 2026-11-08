@@ -1,0 +1,1264 @@
+[
+  {
+    "id_number": "1",
+    "date_entered": "2015-12-24T00:00:00.000",
+    "date_updated": "2017-05-05T00:00:00.000",
+    "end_date": "Undetermined",
+    "duration": "Ongoing",
+    "type_of_closure": "Permanent",
+    "activity_type": "Slumping",
+    "infrastructure": "Granular",
+    "location_name": "Forest Heights Lower Trail",
+    "latitude": "53.5429689997271",
+    "longitude": "-113.46008499989108",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.46008499989108,
+        53.5429689997271
+      ]
+    },
+    "description": "The lower granular trail from Dawson Bridge to the George Hustler paved trail is closed due to slumping and erosion.",
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "3",
+    "date_entered": "2015-12-24T00:00:00.000",
+    "date_updated": "2017-05-05T00:00:00.000",
+    "end_date": "Undetermined",
+    "type_of_closure": "Permanent",
+    "activity_type": "Slumping",
+    "details": "The City of Edmonton has identified a substantial slide on the east bank of Whitemud Creek where it borders the community of Twin Brooks. The broken-away portion of the top of the bank has encroached onto the granular, public walking path that runs just behind the houses backing toward the ravine. The closed section of trail falls between 9B Avenue and 119 Street through to 12 Avenue and 119 Street. The City has barricaded and signed off a section of the unstable valley slope to ensure the safety of residents and trail users in this area. Please use the residential sidewalks along 119 street to bypass this area.",
+    "infrastructure": "Granular",
+    "location_name": "Whitemud Ravine South - Twin Brooks",
+    "latitude": "53.44153510172899",
+    "longitude": "-113.5422191014814",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.5422191014814,
+        53.44153510172899
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "9",
+    "date_entered": "2016-07-18T00:00:00.000",
+    "date_updated": "2017-05-05T00:00:00.000",
+    "start_date": "2011-07-18T00:00:00.000",
+    "end_date": "Undetermined",
+    "type_of_closure": "Permanent",
+    "details": "The granular trail running along the Riverdale community near the North Saskatchewan River is closed from Allan Stien Park to 99th avenue.  Please follow the detour along the paved trail to get around the closed section of trail.",
+    "infrastructure": "Granular",
+    "location_name": "Riverdale",
+    "latitude": "53.54244709562887",
+    "longitude": "-113.46332939506178",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.46332939506178,
+        53.54244709562887
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "343",
+    "start_date": "2021-07-01T06:00:00.000",
+    "type_of_closure": "Permanent",
+    "activity_type": "Slumping",
+    "details": "The beginning portion of the granular Trail between 76 avenue and Argyll has been closed permanently due to slumping and erosion. Continued work will occur in July and August 2022 to stabalize the area.  Please obey signage and use the paved path for access.",
+    "infrastructure": "Granular",
+    "latitude": "53.51208450914795",
+    "longitude": "-113.46597803959664",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.46597803959664,
+        53.51208450914795
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "344",
+    "date_entered": "2022-07-18T06:00:00.000",
+    "type_of_closure": "Permanent",
+    "activity_type": "Slumping",
+    "details": "The beginning portion of the granular Trail between 76 avenue and Argyll has been closed permanently due to slumping and erosion. Continued work will occur in July and August 2022 to stabalize the area.  Please obey signage and use the paved path for access.",
+    "infrastructure": "Granular",
+    "latitude": "53.51036189139507",
+    "longitude": "-113.46481932613803",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.46481932613803,
+        53.51036189139507
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "451",
+    "date_entered": "2025-01-09T16:38:30.000",
+    "start_date": "2025-01-09T16:38:50.000",
+    "end_date": "1 Year",
+    "duration": "1 Year",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "76avenue bridge replacement will be occuring starting January, 2025. Please follow local detours noted on site. For further questions, please connect with 311 or the project manager information on site.",
+    "infrastructure": "All Maintained Trails",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/451/attachments/86",
+    "latitude": "53.51236522549835",
+    "longitude": "-113.4669436345319",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.4669436345319,
+        53.51236522549835
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "454",
+    "start_date": "2025-03-04T07:00:00.000",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Bridge 302 in Millcreek Ravine south is undergoing repair work by the City of Edmonton. Closure signs are on site. Please detour to use Bridge 303 for further access.",
+    "infrastructure": "Bridge",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/454/attachments/87",
+    "latitude": "53.477504486471275",
+    "longitude": "-113.41634729105058",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.41634729105058,
+        53.477504486471275
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "461",
+    "date_entered": "2025-06-06T21:58:53.000",
+    "start_date": "2025-06-09T21:59:00.000",
+    "type_of_closure": "Caution",
+    "activity_type": "Maintenance",
+    "details": "EPCOR light pole and bulb replacement.",
+    "infrastructure": "All Maintained Trails",
+    "location_name": "Gold Bar Park",
+    "latitude": "53.55411434553247",
+    "longitude": "-113.40718434106955",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.40718434106955,
+        53.55411434553247
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "464",
+    "date_entered": "2025-07-18T15:00:05.000",
+    "start_date": "2025-07-21T15:00:15.000",
+    "end_date": "November 2027",
+    "duration": "July 2025-November 2027",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Trail closure implementation is to prepare for the upcoming Blackmud Creek Bridge construction laydown setup. Pedestrians and cyclists travelling north-south of 111 St will be detoured to the eastside of the Blackmud Creek Bridge.",
+    "infrastructure": "Bridge",
+    "location_name": "Blackmud Creek Bridge",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/464/attachments/112",
+    "latitude": "53.44864605286058",
+    "longitude": "-113.5166396132998",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.5166396132998,
+        53.44864605286058
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "465",
+    "date_entered": "2025-07-18T15:08:59.000",
+    "start_date": "2025-07-21T15:09:04.000",
+    "end_date": "November 2027",
+    "duration": "July 2025 - November 2027",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Trail closure implementation is to prepare for the upcoming Blackmud Creek Bridge construction laydown setup. Pedestrians and cyclists travelling north-south of 111 St will be detoured to the eastside of the Blackmud Creek Bridge.",
+    "infrastructure": "Bridge",
+    "location_name": "Blackmud Creek Bridge",
+    "latitude": "53.44401342579238",
+    "longitude": "-113.51790561721477",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.51790561721477,
+        53.44401342579238
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "466",
+    "date_entered": "2025-07-18T15:10:16.000",
+    "date_updated": "2025-07-18T15:10:19.000",
+    "start_date": "2025-07-21T15:10:23.000",
+    "end_date": "November 2027",
+    "duration": "July 2025 - November 2027",
+    "type_of_closure": "Temporary",
+    "details": "Trail closure implementation is to prepare for the upcoming Blackmud Creek Bridge construction laydown setup. Pedestrians and cyclists travelling north-south of 111 St will be detoured to the eastside of the Blackmud Creek Bridge.",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/466/attachments/113",
+    "latitude": "53.44626590389427",
+    "longitude": "-113.51534142521989",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.51534142521989,
+        53.44626590389427
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "468",
+    "date_entered": "2025-08-28T16:55:03.000",
+    "date_updated": "2025-08-28T16:55:05.000",
+    "start_date": "2025-09-09T16:55:11.000",
+    "end_date": "2025-09-11",
+    "duration": "1 day",
+    "type_of_closure": "Temporary",
+    "activity_type": "Maintenance",
+    "details": "Trail is temporarily closed September 10, 2025 for EPCOR light replacement",
+    "infrastructure": "Granular",
+    "location_name": "Goldstick / Goldbar Park",
+    "latitude": "53.550982647754815",
+    "longitude": "-113.40335382454823",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.40335382454823,
+        53.550982647754815
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "472",
+    "date_entered": "2025-08-28T20:58:26.000",
+    "date_updated": "2025-08-28T20:56:12.000",
+    "start_date": "2025-09-14T20:56:16.000",
+    "end_date": "TBD",
+    "duration": "Trail will be reopened upon project completion.",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Trail closure for erosion repair around bridge.",
+    "infrastructure": "Bridge",
+    "location_name": "Mill Creek Erosion Repair Project for Bridges B082 and B275",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/472/attachments/92",
+    "latitude": "53.519758664051146",
+    "longitude": "-113.47540370620874",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.47540370620874,
+        53.519758664051146
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "477",
+    "date_entered": "2025-09-08T20:48:55.000",
+    "date_updated": "2025-09-08T20:49:08.000",
+    "start_date": "2025-09-14T20:49:22.000",
+    "end_date": "November 1, 2026",
+    "duration": "14 months",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Trail closure from 104 avenue to McKinnon Ravine for 102 ave Wellington Bridge rehabilitation.",
+    "infrastructure": "Bridge",
+    "location_name": "Ramsay Ravine / Wellington Bridge",
+    "latitude": "53.544336030587715",
+    "longitude": "-113.54828378525556",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.54828378525556,
+        53.544336030587715
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "478",
+    "date_entered": "2025-09-08T20:59:11.000",
+    "date_updated": "2025-09-08T20:59:14.000",
+    "start_date": "2025-09-14T20:59:20.000",
+    "end_date": "November 1, 2026",
+    "duration": "14 months",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Trail closure from 104 avenue to McKinnon Ravine for 102 ave Wellington Bridge rehabilitation.",
+    "infrastructure": "Bridge",
+    "location_name": "Ramsay Ravine / Wellington Bridge",
+    "latitude": "53.54566003417252",
+    "longitude": "-113.54862978969877",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.54862978969877,
+        53.54566003417252
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "479",
+    "date_entered": "2025-09-08T21:03:10.000",
+    "date_updated": "2025-09-08T21:03:12.000",
+    "start_date": "2025-09-14T21:03:16.000",
+    "end_date": "November 1, 2026",
+    "duration": "14 Months",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Trail closure from MacKinnon Ravine to 104 ave for 102 ave Wellington Bridge rehabilitation.",
+    "infrastructure": "Hard Surface",
+    "location_name": "Ramsay Ravine / Wellington Bridge",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/479/attachments/89",
+    "latitude": "53.539159548288914",
+    "longitude": "-113.54845678943691",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.54845678943691,
+        53.539159548288914
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "484",
+    "date_entered": "2025-09-29T20:16:08.000",
+    "date_updated": "2025-09-29T20:16:12.000",
+    "start_date": "2025-09-29T20:16:15.000",
+    "end_date": "Permanently closed",
+    "duration": "Ongoing",
+    "type_of_closure": "Permanent",
+    "activity_type": "Erosion",
+    "details": "The Highlands Pedestrian Bridge, located along the North riverbank east of the Highlands golf course, has been closed (September 26, 2025) for safety reasons. During a recent inspection, one of the bridge foundation piles was found to be on the verge of complete failure, necessitating this urgent closure. This closure was anticipated to support an upcoming trail realignment project by Integrated Infrastructure Services (IIS) in the area. The bridge will not be required in the trail realignment so there is no replacement required. No repair strategy will occur prior to the renewal. Physical barriers have been installed on the bridge to prevent use and closure signage has been placed up the trail.",
+    "infrastructure": "Bridge",
+    "location_name": "Highlands Pedestrian Bridge 182",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/484/attachments/105",
+    "latitude": "53.56389854434789",
+    "longitude": "-113.42206758830962",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.42206758830962,
+        53.56389854434789
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "485",
+    "date_entered": "2025-09-29T20:19:44.000",
+    "date_updated": "2025-09-29T20:19:51.000",
+    "start_date": "2025-09-29T20:19:56.000",
+    "end_date": "Ongoing",
+    "duration": "Ongoing",
+    "type_of_closure": "Caution",
+    "activity_type": "Erosion",
+    "details": "Pedestrian bridge on trail is permanently closed. No through traffic.",
+    "infrastructure": "Bridge",
+    "location_name": "Highlands Riverbank Trail",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/485/attachments/106",
+    "latitude": "53.56409727456535",
+    "longitude": "-113.42041803006917",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.42041803006917,
+        53.56409727456535
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "486",
+    "date_entered": "2025-09-29T20:21:43.000",
+    "date_updated": "2025-09-29T20:21:45.000",
+    "start_date": "2025-09-29T20:21:47.000",
+    "end_date": "Ongoing",
+    "duration": "Ongoing",
+    "type_of_closure": "Caution",
+    "activity_type": "Erosion",
+    "details": "Pedestrian bridge on trail is permanently closed. No through traffic.",
+    "infrastructure": "Bridge",
+    "location_name": "Highlands Riverbank Trail",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/486/attachments/104",
+    "latitude": "53.556862471787795",
+    "longitude": "-113.43873785874383",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.43873785874383,
+        53.556862471787795
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "488",
+    "date_entered": "2025-09-29T21:09:22.000",
+    "date_updated": "2025-09-29T21:09:25.000",
+    "start_date": "2025-09-29T21:09:28.000",
+    "end_date": "December 2025",
+    "duration": "8-10 weeks",
+    "activity_type": "Construction",
+    "details": "In September 2025, construction will begin on two small bridges crossing Gariepy Ravine as part of the Neighbourhood Renewal project. The Neighbourhood Renewal project details can be viewed at edmonton.ca/BuildingGariepy.",
+    "infrastructure": "Bridge",
+    "location_name": "Gariepy Ravine",
+    "link": "edmonton.ca/BuildingGariepy",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/488/attachments/95",
+    "latitude": "53.49339128422114",
+    "longitude": "-113.61606788542915",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.61606788542915,
+        53.49339128422114
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "492",
+    "date_entered": "2025-09-29T21:20:00.000",
+    "date_updated": "2025-09-29T21:20:05.000",
+    "start_date": "2025-09-30T21:20:14.000",
+    "end_date": "March 2027",
+    "duration": "18 months",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "EPCOR is constructing the Rossdale Water Treatment Plant Flood Mitigation Project.  As part of this work, the trail on the south side of the water plant will be closed from October 1, 2025 to early Q1 2027 in order to allow for the construction of the flood wall. We anticipate reopening the trail in Q1 2027. During this time, trail users will be redirected around the plant – see map for details.",
+    "infrastructure": "Hard Surface",
+    "location_name": "Rossdale Treatment Plant Trail",
+    "link": "epcor.com/floodprotection",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/492/attachments/102",
+    "latitude": "53.528882404178795",
+    "longitude": "-113.499793355277",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.499793355277,
+        53.528882404178795
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "493",
+    "date_entered": "2025-09-29T21:23:15.000",
+    "date_updated": "2025-09-29T21:23:17.000",
+    "start_date": "2025-09-30T21:23:20.000",
+    "end_date": "March 2027",
+    "duration": "18 Months",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "EPCOR is constructing the Rossdale Water Treatment Plant Flood Mitigation Project.  As part of this work, the trail on the south side of the water plant will be closed from October 1, 2025 to early Q1 2027 in order to allow for the construction of the flood wall. We anticipate reopening the trail in Q1 2027. During this time, trail users will be redirected around the plant – see map for details.",
+    "infrastructure": "Hard Surface",
+    "location_name": "Rossdale Treatment Plant Trail",
+    "link": "epcor.com/floodprotection",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/493/attachments/103",
+    "latitude": "53.52917576291446",
+    "longitude": "-113.4918647471082",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.4918647471082,
+        53.52917576291446
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "499",
+    "date_entered": "2025-11-28T22:20:27.000",
+    "start_date": "2025-11-28T22:20:36.000",
+    "type_of_closure": "Temporary",
+    "details": "The Mackenzie Ravine Boardwalks are closing for public safety reasons and will remain closed until the scheduled replacement.  The closure is effective Friday, November 28, 2025.  The boardwalk has shifted, is structurally compromised, and is extremely slippery due to ice and the deck cross slope. It is scheduled for demolition and replacement construction in summer/fall 2027.",
+    "infrastructure": "Bridge",
+    "location_name": "Mackenzie Ravie Boardwalk",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/499/attachments/110",
+    "latitude": "53.52873925818531",
+    "longitude": "-113.55881731385972",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.55881731385972,
+        53.52873925818531
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "500",
+    "date_entered": "2025-11-28T22:24:00.000",
+    "start_date": "2025-11-28T22:24:27.000",
+    "type_of_closure": "Temporary",
+    "details": "The Mackenzie Ravine Boardwalks are closing for public safety reasons and will remain closed until the scheduled replacement.  The closure is effective Friday, November 28, 2025.  The boardwalk has shifted, is structurally compromised, and is extremely slippery due to ice and the deck cross slope. It is scheduled for demolition and replacement construction in summer/fall 2027.",
+    "infrastructure": "Bridge",
+    "location_name": "Mackenzie Ravine Boardwalk",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/500/attachments/111",
+    "latitude": "53.52919324967101",
+    "longitude": "-113.5652526022464",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.5652526022464,
+        53.52919324967101
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "507",
+    "start_date": "2026-05-06T17:16:43.000",
+    "end_date": "August 6, 2026",
+    "duration": "3 Months",
+    "type_of_closure": "Temporary",
+    "activity_type": "Maintenance",
+    "details": "Dawson Bridge Pier Rehabilitation",
+    "infrastructure": "Bridge",
+    "location_name": "Dawson Park",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/507/attachments/121",
+    "latitude": "53.54982257475466",
+    "longitude": "-113.47065612189843",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.47065612189843,
+        53.54982257475466
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "508",
+    "date_entered": "2026-05-13T17:19:40.000",
+    "start_date": "2026-05-06T17:19:46.000",
+    "end_date": "August 6, 2026",
+    "duration": "3 Months",
+    "type_of_closure": "Temporary",
+    "activity_type": "Maintenance",
+    "details": "Dawson Bridge Pier Rehabilitation",
+    "infrastructure": "Bridge",
+    "location_name": "Dawson Park",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/508/attachments/122",
+    "latitude": "53.549814075623175",
+    "longitude": "-113.47013398527578",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.47013398527578,
+        53.549814075623175
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "509",
+    "date_entered": "2026-06-11T21:51:07.000",
+    "date_updated": "2026-06-11T21:51:13.000",
+    "start_date": "2026-06-11T21:51:18.000",
+    "duration": "Indefinitiely Pending Repairs",
+    "type_of_closure": "Temporary",
+    "activity_type": "Erosion",
+    "details": "Creekbed erosion has forced the closure of Bridge 268. Repairs to begin in 2027.",
+    "location_name": "Mill Creek Ravine Bridge 268",
+    "latitude": "53.47470822479131",
+    "longitude": "-113.55089172871634",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.55089172871634,
+        53.47470822479131
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "512",
+    "date_entered": "2026-06-19T18:31:46.000",
+    "date_updated": "2026-06-19T18:31:50.000",
+    "start_date": "2026-06-12T18:31:52.000",
+    "duration": "Indefinitiely Pending Repairs",
+    "type_of_closure": "Temporary",
+    "activity_type": "Erosion",
+    "details": "Creekbed erosion has forced the closure of Bridge 268. Repairs to begin in 2027.",
+    "infrastructure": "Bridge",
+    "location_name": "WHitemud Creek Bridge B268",
+    "latitude": "53.47332839091469",
+    "longitude": "-113.55757042944073",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.55757042944073,
+        53.47332839091469
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "517",
+    "date_entered": "2026-06-22T19:04:46.000",
+    "date_updated": "2026-06-22T19:04:48.000",
+    "start_date": "2026-06-22T19:04:50.000",
+    "duration": "Indefinitely pending river water level recession.",
+    "type_of_closure": "Temporary",
+    "activity_type": "Flooding",
+    "details": "Temporary closure due to damage sustained from inclement weather and high river levels.",
+    "infrastructure": "Granular",
+    "location_name": "Gold Bar to Capilano Park trail.",
+    "latitude": "53.55455162258681",
+    "longitude": "-113.40053870786063",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.40053870786063,
+        53.55455162258681
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "518",
+    "date_entered": "2026-06-23T20:03:56.000",
+    "date_updated": "2026-06-23T20:04:01.000",
+    "start_date": "2026-06-23T20:04:04.000",
+    "end_date": "Indefinitely",
+    "duration": "Indefinitely pending review.",
+    "type_of_closure": "Permanent",
+    "activity_type": "Slumping",
+    "details": "Trail closed indefinitely as a result of slumping banks.",
+    "infrastructure": "Granular",
+    "location_name": "Capilano Lower Granular Trail",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/518/attachments/126",
+    "latitude": "53.558792316578725",
+    "longitude": "-113.42918917731802",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.42918917731802,
+        53.558792316578725
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "519",
+    "date_entered": "2026-06-23T20:06:06.000",
+    "date_updated": "2026-06-23T20:06:08.000",
+    "start_date": "2026-06-23T20:06:10.000",
+    "end_date": "Indefinitly",
+    "duration": "Indefinitely pending review.",
+    "type_of_closure": "Permanent",
+    "activity_type": "Slumping",
+    "details": "Trail closed indefinitely as a resulto of slumping banks.",
+    "infrastructure": "Granular",
+    "location_name": "Capilano Lower Granular Trail",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/519/attachments/125",
+    "latitude": "53.555522892501294",
+    "longitude": "-113.43591615711348",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.43591615711348,
+        53.555522892501294
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "520",
+    "date_entered": "2026-06-26T16:34:41.000",
+    "date_updated": "2026-06-26T16:34:44.000",
+    "start_date": "2026-07-03T12:00:00.000",
+    "end_date": "November 27th 2026",
+    "type_of_closure": "Temporary",
+    "activity_type": "Maintenance",
+    "details": "Temporary closure of the hard surface trail beneath the Beverly Bridge  during  one phase of the rehabilitation project.",
+    "infrastructure": "Hard Surface",
+    "location_name": "Beverly Bridge",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/520/attachments/127",
+    "latitude": "53.570924574988595",
+    "longitude": "-113.37610290435745",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.37610290435745,
+        53.570924574988595
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "521",
+    "date_entered": "2026-06-26T16:36:54.000",
+    "date_updated": "2026-06-26T16:36:57.000",
+    "start_date": "2026-07-03T12:00:00.000",
+    "end_date": "November 27 2026",
+    "type_of_closure": "Temporary",
+    "activity_type": "Maintenance",
+    "details": "Temporary closure of the hard surface trail beneath the Beverly Bridge  during  one phase of the rehabilitation project.",
+    "infrastructure": "Hard Surface",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/521/attachments/128",
+    "latitude": "53.57387621076957",
+    "longitude": "-113.37302904364257",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.37302904364257,
+        53.57387621076957
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "524",
+    "date_entered": "2026-06-30T20:34:25.000",
+    "type_of_closure": "Temporary",
+    "activity_type": "Flooding",
+    "details": "The River Loop Trail is currently closed due to flooding and high water levels in the North Saskatchewan River.",
+    "location_name": "River Loop Trail",
+    "latitude": "53.4977581222319",
+    "longitude": "-113.58907115948587",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.58907115948587,
+        53.4977581222319
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "525",
+    "date_entered": "2026-06-30T20:35:33.000",
+    "type_of_closure": "Temporary",
+    "activity_type": "Flooding",
+    "details": "The River Loop Trail is currently closed due to flooding and high water levels in the North Saskatchewan River.",
+    "latitude": "53.5052040908339",
+    "longitude": "-113.56724870891536",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.56724870891536,
+        53.5052040908339
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "526",
+    "date_entered": "2026-06-30T20:36:52.000",
+    "type_of_closure": "Temporary",
+    "activity_type": "Flooding",
+    "details": "The boat launch at Laurier Park is currently closed due to the high water levels in the North Saskatchewan River.",
+    "location_name": "Laurier Park Boat Launch",
+    "latitude": "53.510330490408755",
+    "longitude": "-113.54682556949915",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.54682556949915,
+        53.510330490408755
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "529",
+    "date_entered": "2026-06-30T06:00:00.000",
+    "start_date": "2026-06-30T06:00:00.000",
+    "type_of_closure": "Temporary",
+    "details": "Bridge closed due to flooding. Please avoid the bridge and follow the directions of signage.",
+    "latitude": "53.48077489088252",
+    "longitude": "-113.42192116072998",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.42192116072998,
+        53.48077489088252
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "541",
+    "date_entered": "2026-07-23T20:16:10.000",
+    "start_date": "2026-07-23T20:16:17.000",
+    "end_date": "August 1 2026",
+    "type_of_closure": "Temporary",
+    "activity_type": "Maintenance",
+    "details": "Trail is closed from about 60th St to 62nd St due to emergency sewer pipe repair.",
+    "latitude": "53.56406246848645",
+    "longitude": "-113.42900324715714",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.42900324715714,
+        53.56406246848645
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "542",
+    "date_entered": "2026-07-23T20:21:16.000",
+    "start_date": "2026-07-23T20:21:54.000",
+    "end_date": "August 1 2026",
+    "type_of_closure": "Temporary",
+    "activity_type": "Maintenance",
+    "details": "Trail is closed from about 60th St to 62nd St due to emergency sewer pipe repair.",
+    "latitude": "53.563267222402395",
+    "longitude": "-113.43121767846047",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.43121767846047,
+        53.563267222402395
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "544",
+    "date_entered": "2026-08-07T17:09:50.000",
+    "date_updated": "2026-08-07T17:09:56.000",
+    "start_date": "2026-08-07T17:09:59.000",
+    "end_date": "Until Further Notice",
+    "duration": "Until Further Notice",
+    "type_of_closure": "Caution",
+    "activity_type": "Tree Down",
+    "details": "There is a tree overhanging the granular trail at the bridge crossing. Crews have been scheduled to remove it but be cautious until that work is completed.",
+    "infrastructure": "Granular",
+    "location_name": "Mill Creek Ravine",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/544/attachments/129",
+    "latitude": "53.47650293851837",
+    "longitude": "-113.4133153543103",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.4133153543103,
+        53.47650293851837
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "545",
+    "date_entered": "2026-08-24T16:52:20.000",
+    "date_updated": "2026-08-24T16:52:24.000",
+    "start_date": "2026-09-25T16:52:29.000",
+    "end_date": "October 5 2026",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Trail rehabilitation work.",
+    "infrastructure": "Hard Surface",
+    "location_name": "Nellie McClung",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/545/attachments/130",
+    "latitude": "53.52632906154156",
+    "longitude": "-113.49194213623284",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.49194213623284,
+        53.52632906154156
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "546",
+    "date_entered": "2026-08-24T16:55:10.000",
+    "date_updated": "2026-08-24T16:55:12.000",
+    "start_date": "2026-09-25T15:30:15.000",
+    "end_date": "October 5 2026",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Trail rehabilitation work.",
+    "infrastructure": "Hard Surface",
+    "location_name": "Nellie McClung",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/546/attachments/131",
+    "latitude": "53.531542584105914",
+    "longitude": "-113.4870122354222",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.4870122354222,
+        53.531542584105914
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "547",
+    "date_entered": "2026-08-24T16:56:35.000",
+    "date_updated": "2026-08-24T16:56:38.000",
+    "start_date": "2026-09-25T15:30:46.000",
+    "end_date": "October 5 2026",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Trail rehabilitation work.",
+    "infrastructure": "Hard Surface",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/547/attachments/132",
+    "latitude": "53.530219334648194",
+    "longitude": "-113.48637387026275",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.48637387026275,
+        53.530219334648194
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "548",
+    "date_entered": "2026-08-25T20:08:04.000",
+    "date_updated": "2026-08-25T20:08:06.000",
+    "start_date": "2026-08-25T20:08:08.000",
+    "end_date": "Until Further Notice",
+    "duration": "Until Further Notice",
+    "type_of_closure": "Temporary",
+    "activity_type": "Slumping",
+    "details": "Above bank slumping has encroached on the mountain bike trail creating a safety hazard.",
+    "infrastructure": "Granular",
+    "location_name": "Just Pedal & Bruce Almighty trails in Mackenzie Ravine",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/548/attachments/133",
+    "latitude": "53.52777616538872",
+    "longitude": "-113.55798561689362",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.55798561689362,
+        53.52777616538872
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "549",
+    "date_entered": "2026-08-25T20:10:58.000",
+    "date_updated": "2026-08-25T20:11:00.000",
+    "start_date": "2026-08-25T20:11:02.000",
+    "end_date": "Until Further Notice",
+    "duration": "Until Further Notice",
+    "type_of_closure": "Temporary",
+    "details": "Above bank slumping has encroached on the mountain bike trail creating a safety hazard.",
+    "infrastructure": "Granular",
+    "location_name": "Just Pedal & Bruce Almighty trails",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/549/attachments/134",
+    "latitude": "53.52133049917336",
+    "longitude": "-113.5528711842448",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.5528711842448,
+        53.52133049917336
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "554",
+    "date_entered": "2026-09-14T15:35:55.000",
+    "start_date": "2026-09-17T14:00:00.000",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "The Wolf Willow Bridge Rehabilitation project starts Sept 14 2026. While under construction, this path will not be accessible.",
+    "latitude": "53.500434757584756",
+    "longitude": "-113.60206406108829",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.60206406108829,
+        53.500434757584756
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "555",
+    "date_entered": "2026-09-14T15:38:19.000",
+    "start_date": "2026-09-17T14:00:00.000",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "The Wolf Willow Bridge Rehabilitation project starts Sept 14 2026. While under construction, this path will not be accessible.",
+    "latitude": "53.50448454381926",
+    "longitude": "-113.60272093288468",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.60272093288468,
+        53.50448454381926
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "556",
+    "start_date": "2026-09-21T13:00:00.000",
+    "duration": "Estimated 2 weeks",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Repair and maintenance work will be conducted on the bridge on the trail West of this location. Please use alternate routes.",
+    "latitude": "53.53904264210644",
+    "longitude": "-113.47756516862569",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.47756516862569,
+        53.53904264210644
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "557",
+    "start_date": "2026-09-21T13:00:00.000",
+    "duration": "Expected 2 weeks.",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "Repair and maintenance work will be conducted on the bridge on the trail East of this location. Please use alternate routes.",
+    "latitude": "53.53932062968218",
+    "longitude": "-113.48040187224906",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.48040187224906,
+        53.53932062968218
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "558",
+    "start_date": "2026-09-16T14:00:00.000",
+    "duration": "2 Days",
+    "type_of_closure": "Caution",
+    "details": "Epcor will be conducting some work in the area on the 4 lamp posts in the nearby area. Please be cautious of workers and follow directions.",
+    "latitude": "53.55103078335427",
+    "longitude": "-113.47072553069701",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.47072553069701,
+        53.55103078335427
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "559",
+    "start_date": "2026-09-16T14:00:00.000",
+    "duration": "2 Days",
+    "type_of_closure": "Caution",
+    "details": "Epcor will be conducting some work in the area on the 4 lamp posts in the nearby area. Please be cautious of workers and follow directions.",
+    "latitude": "53.55172172697597",
+    "longitude": "-113.47074913386658",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.47074913386658,
+        53.55172172697597
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "560",
+    "date_entered": "2026-09-17T14:28:28.000",
+    "start_date": "2026-09-17T14:28:31.000",
+    "type_of_closure": "Temporary",
+    "activity_type": "Erosion",
+    "details": "Trail is currently closed due to damage sustained during inclement weather and high river levels.",
+    "latitude": "53.56230818584174",
+    "longitude": "-113.41815318773848",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.41815318773848,
+        53.56230818584174
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "561",
+    "date_entered": "2026-09-25T15:31:48.000",
+    "start_date": "2026-10-07T15:35:05.000",
+    "end_date": "October 8th 2026",
+    "duration": "2 days",
+    "type_of_closure": "Caution",
+    "activity_type": "Maintenance",
+    "details": "There will be some tree removal work in the area on October 7th and 8tth 2026. Please use the area with caution and follow directions from staff.",
+    "latitude": "53.5300159938575",
+    "longitude": "-113.5030997993509",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.5030997993509,
+        53.5300159938575
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "562",
+    "date_entered": "2026-09-25T21:10:37.000",
+    "start_date": "2026-09-29T14:00:00.000",
+    "end_date": "October 23, 2026",
+    "type_of_closure": "Caution",
+    "details": "Epcor will be completing some work in the immediate area. Please be cautious and following applicable detours.",
+    "latitude": "53.54983117066135",
+    "longitude": "-113.47105060693441",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.47105060693441,
+        53.54983117066135
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "563",
+    "date_entered": "2026-10-15T17:35:03.000",
+    "start_date": "2026-10-15T17:35:22.000",
+    "end_date": "End of December 2026",
+    "type_of_closure": "Temporary",
+    "activity_type": "Construction",
+    "details": "The shared use path from 28th Ave to 34th Ave on 91st will be closed for emergency tunnel repair underground. Please follow the directions for the detour route.",
+    "latitude": "53.46495143032976",
+    "longitude": "-113.46582785166304",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.46582785166304,
+        53.46495143032976
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "564",
+    "date_entered": "2026-10-15T17:36:42.000",
+    "start_date": "2026-10-15T17:36:44.000",
+    "end_date": "End of December 2026.",
+    "type_of_closure": "Temporary",
+    "details": "The shared use path from 28th Ave to 34th Ave on 91st will be closed for emergency tunnel repair underground. Please follow the directions for the detour route.",
+    "latitude": "53.459202714713186",
+    "longitude": "-113.46573343997382",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.46573343997382,
+        53.459202714713186
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "565",
+    "date_entered": "2026-10-28T21:28:40.000",
+    "start_date": "2026-11-06T18:00:00.000",
+    "duration": "1 Day",
+    "type_of_closure": "Temporary",
+    "details": "Hydrovac work will be occurring southwards from this location. Please follow signage and flaggers for detour.",
+    "latitude": "53.50967027199401",
+    "longitude": "-113.46401251576145",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.46401251576145,
+        53.50967027199401
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "566",
+    "date_entered": "2026-10-28T21:29:36.000",
+    "start_date": "2026-11-06T18:00:00.000",
+    "type_of_closure": "Temporary",
+    "details": "Hydrovac work will be occurring southwards from this location. Please follow signage and flaggers for detour.",
+    "latitude": "53.50569898723057",
+    "longitude": "-113.4587081830002",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.4587081830002,
+        53.50569898723057
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "567",
+    "date_entered": "2026-11-03T15:23:34.000",
+    "date_updated": "2026-11-03T15:23:36.000",
+    "start_date": "2026-11-03T15:23:42.000",
+    "end_date": "Spring 2027",
+    "duration": "Ongoing",
+    "type_of_closure": "Temporary",
+    "activity_type": "Maintenance",
+    "details": "Fire damage is preventing the use of the staircase. Repairs to commence in the spring of 2027.",
+    "infrastructure": "Stairs",
+    "location_name": "McKay School Park",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/567/attachments/135",
+    "latitude": "53.53684154585037",
+    "longitude": "-113.49936112118291",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.49936112118291,
+        53.53684154585037
+      ]
+    },
+    "source_system": "ArcGIS"
+  },
+  {
+    "id_number": "568",
+    "date_entered": "2026-11-03T15:26:04.000",
+    "date_updated": "2026-11-03T15:26:05.000",
+    "start_date": "2026-11-03T15:26:07.000",
+    "end_date": "Spring 2027",
+    "duration": "Ongoing",
+    "type_of_closure": "Temporary",
+    "activity_type": "Maintenance",
+    "details": "Fire damage is preventing the use of the staircase. Repairs to commence in the spring of 2027.",
+    "infrastructure": "Stairs",
+    "location_name": "McKay School Park",
+    "image_url": "https://gis.edmonton.ca/arcgishosting/rest/services/Hosted/Trail_Cautions_and_Closures_View/FeatureServer/0/568/attachments/136",
+    "latitude": "53.536207108403005",
+    "longitude": "-113.49924846864211",
+    "geometry_point": {
+      "type": "Point",
+      "coordinates": [
+        -113.49924846864211,
+        53.536207108403005
+      ]
+    },
+    "source_system": "ArcGIS"
+  }
+]
