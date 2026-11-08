@@ -55,6 +55,10 @@ REPLAY_PATH = Path(__file__).parent / "tests/fixtures/worker_replay.json"
 Condition = Literal["dry", "wet", "snow_partial", "snow_covered", "ice", "unknown"]
 VALID_CONDITIONS = frozenset(LABELS) - {"unusable"} | {"unknown"}
 RECENT_FRAME_LIMIT = 32
+# OP-213 rejects a reading trusted for more than 2 hours (MAX_LIFETIME in
+# cloud/app/camera_readings.py), so a long --interval-s must not turn every post
+# into a 422. The worker does not import cloud/; a test keeps the two equal.
+MAX_EXPIRY = timedelta(hours=2)
 
 
 class Reading(BaseModel):
@@ -261,6 +265,11 @@ class CameraWorker:
         self.publish_succeeded = 0
         self.publish_failed = 0
 
+    @property
+    def lifetime(self) -> timedelta:
+        """Three intervals, capped at the longest lifetime the ingest API accepts."""
+        return timedelta(seconds=min(3 * self.interval_s, MAX_EXPIRY.total_seconds()))
+
     def _deliver(self, reading: Reading) -> None:
         """Retry metadata on a later pass without renewing its original timestamps."""
         ref = reading.source_ref
@@ -355,7 +364,7 @@ class CameraWorker:
                     score=prediction.score,
                     reason=prediction.reason,
                     observed_at=observed_at,
-                    expires_at=observed_at + timedelta(seconds=3 * self.interval_s),
+                    expires_at=observed_at + self.lifetime,
                     model_version=self.classifier.version,
                     mode="live",
                 )
