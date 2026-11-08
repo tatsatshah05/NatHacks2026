@@ -1,0 +1,8 @@
+{
+  "retrieved_on": "2026-11-07",
+  "replay_at": "2026-11-07T21:30:00Z",
+  "snow_url": "https://data.edmonton.ca/resource/9i6v-cqzn.json",
+  "snow_note": "Five latest open records plus five latest records overall; a deliberately small sample, not all records.",
+  "trails_url": "https://data.edmonton.ca/resource/k4mi-dkvi.json",
+  "trails_note": "Complete 60-row response ordered by id_number at retrieval."
+}

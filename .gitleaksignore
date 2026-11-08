@@ -4,3 +4,9 @@
 # OP-102: an empty `VAPID_PRIVATE_KEY=` line, where the rule ran on into the next
 # line's variable name. Fixed in .env.example by giving every variable its own comment line.
 c75c651139b9f373e6d8d299ad45901331329cfa:.env.example:generic-api-key:11
+
+# OP-110: the ZoneInfo.from_file argument named key holds the time zone name America/Edmonton, not a secret.
+b6e11b8dd033f58dcb038e721d576fde73d4185d:cloud/app/adapters/city_advisories.py:generic-api-key:27
+
+# OP-110: earlier revisions of the note above tripped the same rule; the scan covers every commit in the pull request.
+82da026f5137179f3c4e0190000c9c003a37e81a:.gitleaksignore:generic-api-key:8

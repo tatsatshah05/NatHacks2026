@@ -39,6 +39,9 @@ Tatsat (lead), Ipsa, Estella, Kaleb, Matthew and Kashish.
 
 ## Getting Started
 
+For Estella's OP-110 snow-complaint and trail-closure adapters, see
+[the local preview and integration guide](docs/ESTELLA_OP110.md).
+
 1. Read [PLAN.md](PLAN.md) for the product, architecture and backlog.
 2. Read [User Stories](docs/USER_STORIES.md) to see your stories, and [GUIDELINE.md](GUIDELINE.md) for the workflow.
 3. Find your stories under [Issues](https://github.com/tatsatshah05/NatHacks2026/issues) using your name label.
