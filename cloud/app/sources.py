@@ -46,6 +46,7 @@ from zoneinfo import ZoneInfo
 import httpx
 from pydantic import ValidationError
 
+from .adapters._quality import QualityReport
 from .scheduler import Source
 
 log = logging.getLogger("openpath.sources")
@@ -409,7 +410,7 @@ def build_sources(
             continue
         if built is None:
             continue
-        name, cadence_s, fetch, url, provides_items = built
+        name, cadence_s, fetch, url, provides_items, quality = built
         sources.append(
             Source(
                 name=name,
@@ -420,12 +421,26 @@ def build_sources(
                 stale_after=cfg.stale_after,
                 url=url,
                 provides_items=provides_items,
+                quality=quality,
             )
         )
     return sources
 
 
-Built = tuple[str, float, Callable[[datetime], Any], str | None, bool] | None
+# What a builder returns: source name, default cadence, fetch, official URL,
+# whether it provides items, and the adapter's OP-407 row-quality reader (None
+# for a source with no rows to check).
+Built = (
+    tuple[
+        str,
+        float,
+        Callable[[datetime], Any],
+        str | None,
+        bool,
+        Callable[[], QualityReport] | None,
+    ]
+    | None
+)
 Builder = Callable[
     [str, Path | None, str | None, httpx.AsyncClient, httpx.Client, Any], Built
 ]
@@ -448,7 +463,14 @@ def _lrt(
     )  # type: ignore[arg-type]
     adapter = lrt_devices.LrtDevicesAdapter(reader, source_timezone=EDMONTON)
     url = f"https://data.edmonton.ca/d/{lrt_devices.OUTAGES}"
-    return adapter.source, adapter.cadence_s, _threaded(adapter.fetch), url, True
+    return (
+        adapter.source,
+        adapter.cadence_s,
+        _threaded(adapter.fetch),
+        url,
+        True,
+        adapter.quality.report,
+    )
 
 
 def _city(adapter_name: str) -> Builder:
@@ -472,7 +494,14 @@ def _city(adapter_name: str) -> Builder:
         )  # type: ignore[arg-type]
         adapter = cls(client, app_token=token)
         url = f"{city_advisories.CITY_BASE}/d/{adapter.dataset}"
-        return adapter.source, adapter.poll_interval_seconds, adapter.fetch, url, True
+        return (
+            adapter.source,
+            adapter.poll_interval_seconds,
+            adapter.fetch,
+            url,
+            True,
+            adapter.quality.report,
+        )
 
     return build
 
@@ -494,7 +523,14 @@ def _snow_clearing(
     )  # type: ignore[arg-type]
     adapter = snow_clearing.SnowClearingAdapter(client, app_token=token)
     url = f"https://data.edmonton.ca/d/{snow_clearing.DATASET}"
-    return adapter.source, adapter.cadence_s, _threaded(adapter.fetch), url, True
+    return (
+        adapter.source,
+        adapter.cadence_s,
+        _threaded(adapter.fetch),
+        url,
+        True,
+        adapter.quality.report,
+    )
 
 
 def _construction(
@@ -525,6 +561,7 @@ def _construction(
         _threaded(fetch),
         construction.SOURCE_URL,
         True,
+        adapter.quality.report,
     )
 
 
@@ -550,6 +587,7 @@ def _traffic(
         _threaded(adapter.fetch),
         adapter.url,
         True,
+        adapter.quality.report,
     )
 
 
@@ -571,7 +609,14 @@ def _weather(
         if not ok:
             raise RuntimeError(weather_service.last_error or "weather refresh failed")
 
-    return "weather_watch", REFRESH_SECONDS, fetch, "https://api.weather.gc.ca/", False
+    return (
+        "weather_watch",
+        REFRESH_SECONDS,
+        fetch,
+        "https://api.weather.gc.ca/",
+        False,
+        None,  # no rows to check: the weather watch is its own reading
+    )
 
 
 _BUILDERS: dict[str, Builder] = {
