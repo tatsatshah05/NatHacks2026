@@ -1,0 +1,4 @@
+# Narrow OP-105 development dependencies until the shared skeleton is merged.
+pytest==9.2.0
+ruff==0.17.4
+tzdata==2026.6

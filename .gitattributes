@@ -1,0 +1,2 @@
+# Preserve the recorded responses so manifest SHA-256 hashes survive checkout.
+cloud/tests/fixtures/lrt/*.json text eol=lf
