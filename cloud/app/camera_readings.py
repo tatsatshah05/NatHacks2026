@@ -23,10 +23,12 @@ from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from sqlalchemy import Index
+from sqlalchemy import Index, func
 from sqlalchemy.engine import Engine
 from sqlmodel import Field as Column
 from sqlmodel import Session, SQLModel, select
+
+from .camera_status import CamerasStatus
 
 log = logging.getLogger("openpath.cameras")
 
@@ -199,6 +201,17 @@ class CameraReadingStore:
                 session.expunge(row)
             return list(rows)
 
+    def count_views(self) -> int:
+        """Distinct camera views the table holds, expired readings included (OP-412).
+
+        ``source_ref`` is the key, so this is the row count. Rows leave the table a
+        week after they expire (``purge_expired``), so it is "views seen lately".
+        """
+        with Session(self.engine) as session:
+            return session.exec(
+                select(func.count()).select_from(CameraReadingRow)
+            ).one()
+
     def purge_expired(self, now: datetime, older_than_days: int = 7) -> int:
         """Delete readings that expired more than ``older_than_days`` ago. Returns the count."""
         cutoff = now.astimezone(UTC) - timedelta(days=older_than_days)
@@ -251,6 +264,9 @@ class CameraCollection(BaseModel):
     type: Literal["FeatureCollection"] = "FeatureCollection"
     generated_at: str
     features: list[CameraFeature]
+    # OP-412: the same facts as the ``cameras`` block of GET /api/status, computed
+    # from these features. None only when it could not be computed.
+    summary: CamerasStatus | None = None
 
 
 def to_feature(row: CameraReadingRow, now: datetime) -> CameraFeature:

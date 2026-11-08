@@ -23,6 +23,7 @@ from .camera_readings import (
     Outcome,
     to_feature,
 )
+from .camera_status import camera_status
 from .obstructions_api import get_now
 
 router = APIRouter(prefix="/api", tags=["cameras"])
@@ -89,6 +90,7 @@ def ingest_camera(
 
 @router.get("/cameras", response_model=CameraCollection)
 def list_cameras(
+    request: Request,
     store: Annotated[CameraReadingStore, Depends(get_camera_store)],
     now: Annotated[datetime, Depends(get_now)],
 ) -> CameraCollection:
@@ -96,8 +98,17 @@ def list_cameras(
 
     Read at the app's clock, like the map and route hazards, so a replay with a
     frozen or running clock (OP-305) shows the recorded readings of that time.
+    ``summary`` (OP-412) is the ``cameras`` block of ``GET /api/status``, built
+    from the same rows, so one call also says whether the cameras are reporting.
     """
+    rows = store.latest(now)
     return CameraCollection(
         generated_at=now.isoformat().replace("+00:00", "Z"),
-        features=[to_feature(row, now) for row in store.latest(now)],
+        features=[to_feature(row, now) for row in rows],
+        summary=camera_status(
+            store,
+            getattr(request.app.state, "weather_service", None),
+            now,
+            rows=lambda _at: rows,
+        ),
     )
