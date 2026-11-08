@@ -29,6 +29,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from cloud.app.adapters._quality import RowQuality
 from cloud.app.adapters._text import clip_detail
 
 SOURCE = "city_construction"
@@ -38,6 +39,27 @@ POLL_INTERVAL = timedelta(hours=1)
 MAX_LINE_LENGTH_M = 500
 MAX_POINT_LINE_DISTANCE_M = 50
 EARTH_RADIUS_M = 6_371_000
+# The dataset's columns as recorded in cloud/tests/fixtures/construction (OP-407).
+# A permit with any other name is reported on /api/status, not rejected.
+EXPECTED_FIELDS = frozenset(
+    {
+        "bike_facilities_affected",
+        "file_number",
+        "finish_date",
+        "geometry_multiline",
+        "latitude",
+        "location",
+        "longitude",
+        "on_street_parking_affected",
+        "peak_hour_restrictions",
+        "pedestrian_affected",
+        "road_segment_intersections",
+        "spatial_reference",
+        "start_date",
+        "street_full_name",
+        "work_reason",
+    }
+)
 LOGGER = logging.getLogger(__name__)
 Row = dict[str, Any]
 
@@ -276,12 +298,14 @@ def normalize_permits(
     local_timezone: tzinfo,
     lifetime: timedelta = 3 * POLL_INTERVAL,
     previous: list[Row] | None = None,
+    quality: RowQuality | None = None,
 ) -> NormalizedPermits:
     """Convert active pedestrian permits; report records with no map location.
 
     Start and finish dates are inclusive Edmonton calendar dates. Bad rows are
     skipped, logged and counted; the other rows are still returned, and affected
-    previous records keep their original freshness/expiry.
+    previous records keep their original freshness/expiry. ``quality`` (OP-407)
+    also counts the skips and notes field names this adapter does not know.
     """
     if observed_at.tzinfo is None:
         raise ValueError("observed_at must include a timezone")
@@ -298,6 +322,8 @@ def normalize_permits(
         permit = (
             str(row.get("file_number") or "").strip() if isinstance(row, dict) else ""
         )
+        if quality is not None and isinstance(row, dict):
+            quality.see(row)
         try:
             if not isinstance(row, dict):
                 raise FeedError("Expected a construction record object")
@@ -326,6 +352,8 @@ def normalize_permits(
         except (FeedError, OverflowError) as exc:
             warnings.add(f"{permit or 'Unknown permit'}: {exc}; row skipped")
             skipped += 1
+            if quality is not None:
+                quality.reject(f"{permit or 'Unknown permit'}: {exc}")
             if permit:
                 failed_permits.add(permit)
             else:
@@ -412,6 +440,7 @@ class ConstructionAdapter:
         self.last_success: datetime | None = None
         self.last_error: str | None = None
         self._last_good = NormalizedPermits([], [])
+        self.quality = RowQuality(EXPECTED_FIELDS)  # OP-407, read by the scheduler
 
     @property
     def last_good(self) -> NormalizedPermits:
@@ -424,6 +453,7 @@ class ConstructionAdapter:
         if now.tzinfo is None:
             raise ValueError("now must include a timezone")
         today = now.astimezone(self.local_timezone).date()
+        self.quality.start()
         try:
             rows = _rows(self.reader.read(today))
             result = normalize_permits(
@@ -431,6 +461,7 @@ class ConstructionAdapter:
                 observed_at=now,
                 local_timezone=self.local_timezone,
                 previous=self._last_good.obstructions,
+                quality=self.quality,
             )
         except FeedError as exc:
             self.last_error = str(exc)

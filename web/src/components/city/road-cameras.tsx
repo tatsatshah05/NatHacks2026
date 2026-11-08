@@ -1,3 +1,4 @@
+import { cameraFallback, useCamerasStatus } from "@/lib/camera-status";
 import { CAMERA_VIEWER_URL, cameraName, readingWords, scoreWords } from "@/lib/city";
 import Panel from "../ui/panel";
 import TimeAgo from "../ui/time-ago";
@@ -16,6 +17,8 @@ type Props = {
 
 /** The keyboard and screen-reader path to every camera on the map. No images, ever. */
 export default function RoadCameras({ cameras, error, replay, now, selectedId, onToggle }: Props) {
+  // OP-412: while the cameras are not reporting, say so and where ice risk comes from.
+  const fallback = cameraFallback(useCamerasStatus(), now);
   return (
     <Panel aria-labelledby="road-cameras-title" className={styles.panel} id="road-cameras">
       <h2 id="road-cameras-title">Road cameras</h2>
@@ -30,10 +33,16 @@ export default function RoadCameras({ cameras, error, replay, now, selectedId, o
           <strong>Camera readings could not be loaded.</strong> {error} Refresh the list to try again.
         </p>
       )}
+      {!error && fallback && (
+        <p className={styles.empty} data-camera-state={fallback.state}>
+          <strong>{fallback.sentence}</strong>
+        </p>
+      )}
       {!error && cameras.length === 0 && (
         <p className={styles.empty}>
-          No camera readings from the last two hours. The camera worker reads each camera every few minutes while it
-          runs; when it is off, the ice-risk weather watch still applies.
+          {!fallback && "No camera readings from the last two hours. "}
+          The camera worker reads each camera every few minutes while it runs; when it is off, the ice-risk weather
+          watch still applies.
         </p>
       )}
       {cameras.length > 0 && (

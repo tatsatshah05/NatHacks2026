@@ -1,0 +1,173 @@
+# Nightly backup (OP-405): the replay snapshot and the production database, as
+# workflow artifacts kept 14 days. docs/RUNBOOK.md (Backups, Restore) has the steps.
+#
+# 1. The replay snapshot (cloud/tests/fixtures, which `make dev` and the Render replay
+#    fallback read) is zipped with a SHA-256 list: its second place besides git.
+# 2. The database: Render's free Postgres has no backups of its own ("Free Render
+#    Postgres databases don't support any form of backups", render.com/docs/free).
+#    scripts/db_backup.py runs pg_dump of the server's major version; the dump is
+#    encrypted with gpg and uploaded, then restored into a throwaway Postgres
+#    container as a drill. It needs two repository secrets the lead adds:
+#    - DATABASE_URL: Render's External Database URL for openpath-db. Without it the
+#      database part is skipped with a notice.
+#    - BACKUP_PASSPHRASE: any long random string, kept in a password manager. The
+#      repository is public and its artifacts can be downloaded by any signed-in
+#      GitHub user, while the dump holds saved routes, so it is never uploaded
+#      unencrypted: with DATABASE_URL set and no passphrase, the run fails.
+#
+# Scheduled workflows run only from the default branch. A failed run emails the
+# user who last changed the cron line.
+
+name: Backup
+
+on:
+  schedule:
+    - cron: "17 9 * * *" # every day at 09:17 UTC (02:17 in Edmonton)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Replay snapshot and database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zip the replay snapshot
+        run: |
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          mkdir -p artifacts/snapshot
+          cd cloud/tests
+          zip -q -r -X "$GITHUB_WORKSPACE/artifacts/snapshot/replay-snapshot-$stamp.zip" fixtures
+          find fixtures -type f -print0 | sort -z | xargs -0 sha256sum \
+            > "$GITHUB_WORKSPACE/artifacts/snapshot/replay-snapshot-$stamp.sha256"
+          cd "$GITHUB_WORKSPACE"
+          echo "Replay snapshot: $(wc -l < "artifacts/snapshot/replay-snapshot-$stamp.sha256") files"
+          ls -l artifacts/snapshot
+
+      - name: Upload the replay snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: replay-snapshot-${{ github.run_id }}
+          path: artifacts/snapshot/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Check the database secrets
+        id: secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::notice::The DATABASE_URL repository secret is not set, so the database backup was skipped (the replay snapshot was saved). Add Render's External Database URL as DATABASE_URL; docs/RUNBOOK.md, Backups."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::DATABASE_URL is set but BACKUP_PASSPHRASE is not. The dump is only uploaded encrypted, because anyone signed in to GitHub can download this public repository's artifacts. Add BACKUP_PASSPHRASE; docs/RUNBOOK.md, Backups."
+            exit 1
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        if: steps.secrets.outputs.run == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install pg_dump for the server's major version
+        if: steps.secrets.outputs.run == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python -m pip install --quiet "psycopg[binary]>=3.2,<4"
+          # Masks the host name (it stays out of this public log) and writes the
+          # server's major version to pg_major.txt.
+          python - <<'EOF'
+          import os
+          import sys
+          from pathlib import Path
+          from urllib.parse import urlsplit
+
+          import psycopg
+
+          sys.path.insert(0, "scripts")
+          import db_backup
+
+          db = db_backup.parse_database_url(os.environ["DATABASE_URL"])
+          host = urlsplit(db.conninfo).hostname
+          if host:
+              print(f"::add-mask::{host}", flush=True)
+          with psycopg.connect(db.conninfo, password=db.password, connect_timeout=30) as conn:
+              Path("pg_major.txt").write_text(str(conn.info.server_version // 10000))
+          EOF
+          major="$(cat pg_major.txt)"
+          echo "Postgres server major version: $major"
+          if [ ! -x "/usr/lib/postgresql/$major/bin/pg_dump" ]; then
+            sudo apt-get install -y -q postgresql-common
+            sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+            sudo apt-get install -y -q "postgresql-client-$major"
+          fi
+          echo "/usr/lib/postgresql/$major/bin" >> "$GITHUB_PATH"
+          echo "PG_MAJOR=$major" >> "$GITHUB_ENV"
+
+      - name: Back up the database
+        if: steps.secrets.outputs.run == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          pg_dump --version
+          python scripts/db_backup.py --yes --out backups
+
+      - name: Encrypt the dump
+        if: steps.secrets.outputs.run == 'true'
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          for f in backups/openpath-*.dump; do
+            gpg --batch --yes --quiet --pinentry-mode loopback --passphrase-fd 0 \
+              --symmetric --cipher-algo AES256 --output "$f.gpg" "$f" <<< "$BACKUP_PASSPHRASE"
+          done
+          ls -l backups
+
+      # Only the encrypted dump and its manifest (size, SHA-256, row counts) leave
+      # the runner; the plain dump stays for the drill below and dies with the runner.
+      - name: Upload the encrypted dump
+        if: steps.secrets.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: openpath-db-${{ github.run_id }}
+          path: |
+            backups/*.dump.gpg
+            backups/*.dump.json
+          retention-days: 14
+          if-no-files-found: error
+
+      # After the upload, so a failed drill never costs the night's backup; a failed
+      # drill still turns the run red.
+      - name: Restore drill into a throwaway Postgres
+        if: steps.secrets.outputs.run == 'true'
+        run: |
+          password="$(openssl rand -hex 16)"
+          echo "::add-mask::$password"
+          docker run -d --name restore-drill -e POSTGRES_PASSWORD="$password" \
+            -p 127.0.0.1:55432:5432 "postgres:$PG_MAJOR" > /dev/null
+          # TCP readiness: the image's first-start server listens on a socket only.
+          for _ in $(seq 1 60); do
+            if docker exec restore-drill pg_isready -q -h 127.0.0.1 -U postgres; then break; fi
+            sleep 2
+          done
+          dump="$(ls backups/openpath-*.dump)"
+          status=0
+          python scripts/db_restore.py --yes "$dump" \
+            --database-url "postgresql://postgres:$password@127.0.0.1:55432/postgres" || status=$?
+          docker rm -f restore-drill > /dev/null
+          rm -f backups/openpath-*.dump
+          exit "$status"

@@ -1,6 +1,6 @@
 # Deploying OpenPath
 
-The API and its database run on Render, and the web app runs on Vercel. Merges to `main` deploy through CI: the `Deploy to production` job calls the Render deploy hook after `CI passed`, then waits until `/health` reports the new commit. Vercel deploys production on every merge to `main` and nothing else: preview deployments are off in `web/vercel.json` (see [docs/CI_CD.md](CI_CD.md)). [docs/CI_CD.md](CI_CD.md) has the full pipeline and merge rules; this page is the one-time setup in detail.
+The API and its database run on Render, and the web app runs on Vercel. Merges to `main` deploy through CI: the `Deploy to production` job calls the Render deploy hook after `CI passed`, waits until `/health` reports the new commit, then runs the Playwright smoke tests against the live site (OP-406; they only read, and a failure is the alert, not a rollback). Vercel deploys production on every merge to `main` and nothing else: preview deployments are off in `web/vercel.json` (see [docs/CI_CD.md](CI_CD.md)). [docs/CI_CD.md](CI_CD.md) has the full pipeline and merge rules; this page is the one-time setup in detail.
 
 Secrets live only in the Render, Vercel and GitHub settings, never in the repository. Every variable is listed in [`.env.example`](../.env.example). Nothing reads a `.env` file.
 
@@ -20,7 +20,7 @@ Secrets live only in the Render, Vercel and GitHub settings, never in the reposi
 5. Open the `openpath-api` service, go to **Settings → Deploy Hook**, and copy the URL.
 6. Check that `https://<service>.onrender.com/health` returns `{"status": "ok", "version": "<commit>", "mode": "live"}`.
 
-The free plan sleeps after a period without traffic. Decision D-2 (PLAN.md section 16) chooses between always-on instances and a keep-warm before judging.
+Render spins down a free web service after 15 minutes without inbound traffic, and the first request afterwards waits about a minute while it starts again ([render.com/docs/free](https://render.com/docs/free), read on November 8, 2026). Since OP-404, [`.github/workflows/keep-warm.yml`](../.github/workflows/keep-warm.yml) calls `/health` and `/api/status` every 10 minutes from the default branch and fails loudly when either is not 200, and [docs/PERFORMANCE.md](PERFORMANCE.md) has the judging plan. Decision D-2 (PLAN.md section 16) still covers an always-on instance.
 
 ## 2. Vercel: web app
 
@@ -47,8 +47,11 @@ In **Settings → Secrets and variables → Actions**:
 | Secret | `RENDER_WORKER_DEPLOY_HOOK` | Not used: the camera worker runs on a laptop (section 4) |
 | Variable | `API_URL` | The Render API URL, for example `https://openpath-api.onrender.com` |
 | Variable | `WEB_URL` | The Vercel production URL |
+| Repository secret | `DATABASE_URL` | `openpath-db`'s External Database URL, for the nightly backup (OP-405, docs/RUNBOOK.md section 3) |
+| Repository secret | `BACKUP_PASSPHRASE` | A long random passphrase that encrypts the nightly dump; keep a copy in the team's password manager |
+| Repository variable | `DEMO_CHECK_MODE` | Only while the API runs the replay fallback: `replay`, so the uptime check (OP-402) expects it |
 
-Until these are set, the deploy job skips each step with a notice instead of failing.
+Until these are set, the deploy job skips each step with a notice instead of failing, and the backup workflow skips the database with a notice.
 
 ## 4. Camera worker on demo day
 
@@ -83,6 +86,14 @@ Render's free plan has no background workers, so the camera worker (OP-204) runs
 5. **Check** that `https://openpath-api-w6ql.onrender.com/api/cameras` lists readings with `age_s` under 600 within about 10 minutes.
 
 If the worker stops, its readings expire after 15 minutes and the weather watch keeps running (OP-412 adds the fallback notice in the UI). Its posts every 5 minutes also keep the free API awake, so start it at least 10 minutes before judging.
+
+**No cold starts during judging (OP-404).** Three things keep the API warm; any one of them is enough, and together they cover a laptop that drops off the Wi-Fi:
+
+1. The camera worker above, posting every 5 minutes.
+2. The `Keep warm` workflow (`.github/workflows/keep-warm.yml`), which calls `/health` and `/api/status` every 10 minutes from the default branch. Check that its last run is green in the Actions tab before judging; a red run means the API is down or reports no commit, and GitHub emails the person who last changed the workflow file.
+3. A warm-up visit 10 minutes before the slot: open the web app, plan one route, open the alerts page. This also fills the matcher's hazard map and the routing caches, so the first route in front of the judges is not the first route of the day.
+
+[docs/PERFORMANCE.md](PERFORMANCE.md) has the measured route latency on this instance.
 
 ## 5. Web Push keys (OP-304)
 
@@ -136,7 +147,7 @@ The lead does these steps once.
 
 3. **Deploy.** The new build command reaches Render with `render.yaml` when this change is released into `main`. Check that **Settings → Build Command** reads `pip install -r cloud/requirements.txt -r cloud/requirements-photo-check.txt`; if it does not, run **Manual Sync** on the Blueprint. The order of steps 2 and 3 does not matter: without the packages, the API logs that a check is not available and keeps accepting reports at low confidence.
 
-4. **Check it.** The API configures no INFO logging, so Render's log shows only warnings. A correct setup starts with no `REPORT photo check` warning; each problem has its own line:
+4. **Check it.** Since OP-402 the API logs its INFO lines too (`LOG_LEVEL`, docs/RUNBOOK.md), so a correct setup starts with `REPORT photo check: onnx:... + claude:...; medium confidence needs both to agree` and no `REPORT photo check` warning; each problem has its own line:
    - `REPORT photo check: only ... is running; the decided setup is the ONNX model and Claude together (check ...)`: one check is missing, and the line names what to set.
    - `REPORT photo check: the ONNX model is not available (ValueError)`: usually `MODEL_SHA256` does not match `model.onnx` or the `sha256` inside `labels.json`. The API refuses both rather than use the wrong model.
    - `... not available (ModuleNotFoundError)`: the build did not install `cloud/requirements-photo-check.txt` (step 3).
@@ -161,4 +172,4 @@ The lead does these steps once.
 | GitHub `production` environment | secret `RENDER_API_DEPLOY_HOOK`; variables `API_URL`, `WEB_URL` |
 | Vercel environment variables | `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL` (production and preview) |
 
-`CORS_ORIGINS` on the API is `https://openpath-lyart.vercel.app,https://openpath-*-tatsats-projects-997c1533.vercel.app`. The free Render instance sleeps after inactivity; decision D-2 covers always-on instances for judging.
+`CORS_ORIGINS` on the API is `https://openpath-lyart.vercel.app,https://openpath-*-tatsats-projects-997c1533.vercel.app`. The free Render instance spins down after 15 idle minutes; the `Keep warm` workflow and the camera worker keep it awake (section 4), and decision D-2 covers an always-on instance for judging.

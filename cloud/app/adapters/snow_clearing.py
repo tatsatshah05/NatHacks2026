@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 
+from cloud.app.adapters._quality import RowQuality
+
 if TYPE_CHECKING:
     from cloud.app.schemas import Obstruction
 
@@ -24,6 +26,31 @@ DATASET = "8pdx-hfxi"
 API_URL = f"https://data.edmonton.ca/resource/{DATASET}.json"
 WARNING = "Plow passed. Curb ramps may be blocked by snow ridges."
 CLOCK_SKEW = timedelta(seconds=5)
+# The dataset's published columns (cloud/tests/fixtures/snow_clearing/
+# source_metadata.json), for OP-407's unexpected-field check.
+EXPECTED_FIELDS = frozenset(
+    {
+        "district",
+        "fid",
+        "geometry_line",
+        "last_updat",
+        "linear_km",
+        "loc_note",
+        "num_passes",
+        "pass_km",
+        "priority",
+        "road_from",
+        "road_on",
+        "road_to",
+        "route",
+        "route_id",
+        "route_stat",
+        "seg_stat",
+        "segment",
+        "serv_ach",
+        "serv_hrs",
+    }
+)
 Row = dict[str, Any]
 logger = logging.getLogger(__name__)
 
@@ -115,6 +142,7 @@ class SnowClearingAdapter:
         self.last_good: list[Obstruction] | None = None
         self.last_success: datetime | None = None
         self.last_error: str | None = None
+        self.quality = RowQuality(EXPECTED_FIELDS)  # OP-407, read by the scheduler
 
     def _page(self, offset: int, *, limit: int | None = None) -> list[Row]:
         """Read a page once. Errors propagate to OP-103's retry policy."""
@@ -140,6 +168,7 @@ class SnowClearingAdapter:
 
     def _skip(self, row: Row, reason: Any) -> None:
         identifier = row.get("route_id") or row.get("fid") or "unknown"
+        self.quality.reject(reason)
         logger.warning(
             "SKIP %s row=%s reason=%s",
             self.source,
@@ -152,6 +181,7 @@ class SnowClearingAdapter:
         now = as_utc(now)
         by_route: dict[str, Row] = {}
         for row in rows:
+            self.quality.see(row)
             # Area records often have no status. One such record must not stale
             # the entire feed or stop an inactive snow event returning zero items.
             try:
@@ -228,6 +258,7 @@ class SnowClearingAdapter:
 
     def fetch(self, now: datetime) -> list[Obstruction]:
         """Return a complete source refresh; preserve last-good data on failure."""
+        self.quality.start()
         try:
             now = as_utc(now)
             rows = []

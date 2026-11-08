@@ -15,7 +15,7 @@ REQUIREMENTS := $(sort $(wildcard cloud/requirements*.txt cloud/tests/requiremen
 # The web app (web/) comes from OP-113. Web steps are skipped until it is here.
 HAS_WEB := $(wildcard web/package.json)
 
-.PHONY: setup dev web test lint format build types graph lrt record worker
+.PHONY: setup dev web test lint format build types e2e graph lrt record worker bench demo-check
 
 setup:  ## Create .venv (cloud + vision) and install the web app's dependencies
 	$(PYTHON) -m venv .venv
@@ -56,8 +56,11 @@ build:  ## Production build of the web app
 types:  ## Regenerate web/src/lib/api-types.ts from the API's OpenAPI schema
 	$(VENV_PY) scripts/export_openapi.py web/openapi.json
 	cd web && npx --yes openapi-typescript@7.13.0 openapi.json -o src/lib/api-types.ts
+
+e2e:  ## Playwright end-to-end tests: API in replay mode + production web build, then stop both (OP-406)
+	$(VENV_PY) scripts/e2e.py $(E2E_FLAGS)
 else
-build types:
+build types e2e:
 	@echo make $@ needs web/, which OP-113 adds && exit 1
 endif
 
@@ -73,3 +76,9 @@ record:  ## Record a replay snapshot of every source into snapshots/<UTC time>/ 
 
 worker:  ## Run the vision worker locally (OP-204)
 	$(VENV_PY) -m vision.worker
+
+bench:  ## Measure /api/route latency: 20 trips x 4 profiles against the API on :8000 (OP-404; BENCH_FLAGS="--base-url https://..." for another)
+	$(VENV_PY) scripts/route_bench.py $(BENCH_FLAGS)
+
+demo-check:  ## Check every demo dependency, ok or FAIL per line (OP-402); DEMO_CHECK_FLAGS="--mode replay --api ... --web ..."
+	$(VENV_PY) scripts/demo_check.py $(DEMO_CHECK_FLAGS)

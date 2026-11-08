@@ -1,0 +1,55 @@
+# Uptime check (OP-402; decision D-1, PLAN.md section 16): every 10 minutes, the slim
+# demo check against production: GET /health (200, a 40-character commit, live mode),
+# GET /api/status (scheduler running, no stale source) and the web app (200, says
+# OpenPath). A red run means something is wrong; GitHub emails "the user who last
+# modified the cron syntax in the workflow file" (GitHub docs, schedule event).
+#
+# Scheduled workflows run only from the default branch, so this starts once it is
+# merged there. GitHub may delay a scheduled run when Actions is busy. Read-only:
+# it sends GETs only and needs no secrets. docs/RUNBOOK.md has what to do when it
+# fails, and how to add UptimeRobot for a phone alert.
+#
+# OP-404's keep-warm.yml calls /health on the same 10-minute cadence; the two can be
+# merged into this one workflow, because this run also wakes the free instance.
+
+name: Uptime
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  uptime:
+    name: Production health
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      API_URL: https://openpath-api-w6ql.onrender.com
+      WEB_URL: https://openpath-lyart.vercel.app
+      # Set the repository variable DEMO_CHECK_MODE to "replay" while Render runs the
+      # replay fallback (docs/RUNBOOK.md), or every run fails on the mode.
+      MODE: ${{ vars.DEMO_CHECK_MODE || 'live' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/demo_check.py
+            config/profiles.json
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install httpx
+        run: python -m pip install --quiet "httpx>=0.27,<0.29"
+      - name: Check /health, /api/status and the web app
+        run: >-
+          python scripts/demo_check.py --only health,status,web
+          --api "$API_URL" --web "$WEB_URL" --mode "$MODE"
