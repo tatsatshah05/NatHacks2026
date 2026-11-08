@@ -13,6 +13,7 @@ import csv
 import importlib.util
 import io
 import json
+import re
 import zipfile
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
@@ -54,6 +55,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # all year), so tests read it from the zone instead of assuming an offset.
 NOW = datetime(2026, 11, 7, 20, 10, tzinfo=UTC)
 LOCAL_HOUR = NOW.astimezone(lrt.EDMONTON).hour
+STORY_ID = re.compile(r"\bOP-\d")  # a story id such as OP-106
 
 # ---------------------------------------------------------------- GTFS fixture
 
@@ -594,6 +596,10 @@ def test_trip_with_one_transfer_and_estimated_waits(router) -> None:
     assert trip.route.eta_min == pytest.approx(trip.total_s / 60, abs=0.05)
     assert trip.route.eta_min < 99  # walking the 6 km takes about 99 min
     assert any("estimate" in w for w in trip.warnings)
+    # Users see plain language, never a story id.
+    assert lrt.UNMAPPED_ENTRY_WARNING in trip.warnings
+    assert "not yet matched to the map, so the walk ends" in lrt.UNMAPPED_ENTRY_WARNING
+    assert not any(STORY_ID.search(w) for w in [*trip.warnings, *result.warnings])
     texts = [s.text for s in trip.route.steps]
     assert any(t.startswith("Ride the Red Line toward X from S1 to X") for t in texts)
     assert any("Change trains at X Station" in t for t in texts)
@@ -1097,6 +1103,7 @@ def test_churchill_to_southgate_by_wheelchair_on_the_real_network(app_env) -> No
         params = {"from": CHURCHILL, "to": SOUTHGATE, "mode": "walk_lrt"}
         body = client.get("/api/route", params={**params, "profile": "wheelchair"})
         assert body.status_code == 200, body.text
+        assert not STORY_ID.search(body.text)  # no "OP-<id>" in anything users see
         routes = body.json()["routes"]
         trip = routes[0]
         assert trip["mode"] == "walk_lrt", body.json()["warnings"]

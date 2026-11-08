@@ -115,8 +115,8 @@ WAIT_WARNING = (
     "at this hour), not live arrivals."
 )
 UNMAPPED_ENTRY_WARNING = (
-    "Station elevators are not yet matched to the map (OP-106), so the walk ends at "
-    "the station's location; follow the station signs to an elevator."
+    "Station elevators are not yet matched to the map, so the walk ends at the "
+    "station's location; follow the station signs to an elevator."
 )
 MAPS_NOTE = (
     "Google Maps and Apple Maps plan their own transit trip and may not use the same "
