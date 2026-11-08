@@ -25,18 +25,20 @@ Two halves
 
 Normalisation
 -------------
-``normalise()`` turns "10220-104 Avenue Northwest" and "10220 104 ave nw" into the
-same tokens (``["10220", "104", "ave", "nw"]``): lower case, accents removed,
-punctuation to spaces, ordinals stripped ("104th" to "104") and street words and
-quadrants shortened through ``WORD_ALIASES``. The same function runs on the
-dataset at build time and on every query, so prefix matching works per token.
+``words()`` lower-cases the text, removes accents and punctuation, strips ordinals
+("104th" to "104") and joins "N.W." into "nw". ``normalise()`` then puts each word
+in the dataset's spelling through ``WORD_ALIASES`` ("ave" to "avenue", "northwest"
+to "nw"), so "10220-104 Ave N.W." and "10220 104 Avenue Northwest" give the same
+tokens. The dataset and the places are indexed in that canonical form. A query
+word matches a token when the word, as typed or in its canonical spelling, is a
+prefix of the token, so half-typed words work ("10220 104 aven").
 
 Ranking
 -------
 1. A station or place whose name (or alias) starts with the whole query.
-2. Addresses: a leading house number, then every remaining token a prefix of a
-   token of the street name ("10220 104" finds 104 Avenue NW and 104 Street NW).
-3. Stations and places where every query token is a prefix of some token of the
+2. Addresses: a leading house number, then every remaining word a prefix of a
+   word of the street name ("10220 104" finds 104 Avenue NW and 104 Street NW).
+3. Stations and places where every query word is a prefix of some word of the
    name, an alias or the detail ("churchill" finds Sir Winston Churchill Square).
 4. Fuzzy: a misspelt word is replaced by the closest word in the vocabulary
    ("jaspr" to "jasper") and tiers 2 and 3 run again.
@@ -95,53 +97,49 @@ FUZZY_CUTOFF = 0.8
 
 Kind = Literal["address", "station", "place"]
 
-# Street words and quadrants, shortened to one spelling. Both the dataset and the
-# query go through this table, so "Avenue", "Ave" and "AVE." all match.
+# Abbreviations -> the word the dataset uses ("AVENUE", "WEST", "NW"). The dataset and
+# the places are indexed in this canonical form. A query word matches either as typed
+# or through this table, so "ave", "aven" and "avenue" all find AVENUE, while "st"
+# still finds "Stony Plain Road" as well as STREET.
 WORD_ALIASES: dict[str, str] = {
-    "avenue": "ave",
-    "av": "ave",
-    "street": "st",
-    "str": "st",
-    "saint": "st",
-    "road": "rd",
-    "drive": "dr",
-    "boulevard": "blvd",
-    "boul": "blvd",
-    "crescent": "cres",
-    "cresc": "cres",
-    "cr": "cres",
-    "court": "crt",
-    "ct": "crt",
-    "place": "pl",
-    "lane": "ln",
-    "point": "pt",
-    "pointe": "pt",
-    "terrace": "terr",
-    "tce": "terr",
-    "trail": "trl",
-    "tr": "trl",
-    "square": "sq",
-    "circle": "cir",
-    "circ": "cir",
-    "centre": "ctr",
-    "center": "ctr",
-    "gardens": "gdns",
-    "crossing": "xing",
-    "promenade": "prom",
-    "parkway": "pkwy",
-    "highway": "hwy",
-    "plaza": "plz",
-    "village": "vlg",
-    "landing": "ldg",
-    "green": "grn",
-    "grove": "grv",
-    "heights": "hts",
-    "mount": "mt",
-    "fort": "ft",
-    "north": "n",
-    "south": "s",
-    "east": "e",
-    "west": "w",
+    "ave": "avenue",
+    "av": "avenue",
+    "st": "street",
+    "str": "street",
+    "rd": "road",
+    "dr": "drive",
+    "blvd": "boulevard",
+    "boul": "boulevard",
+    "cres": "crescent",
+    "cresc": "crescent",
+    "cr": "crescent",
+    "crt": "court",
+    "ct": "court",
+    "pl": "place",
+    "ln": "lane",
+    "pt": "point",
+    "terr": "terrace",
+    "tce": "terrace",
+    "trl": "trail",
+    "tr": "trail",
+    "sq": "square",
+    "cir": "circle",
+    "circ": "circle",
+    "ctr": "centre",
+    "center": "centre",
+    "gdns": "gardens",
+    "xing": "crossing",
+    "prom": "promenade",
+    "pkwy": "parkway",
+    "hwy": "highway",
+    "plz": "plaza",
+    "vlg": "village",
+    "ldg": "landing",
+    "grn": "green",
+    "grv": "grove",
+    "hts": "heights",
+    "mt": "mount",
+    "ft": "fort",
     "northwest": "nw",
     "northeast": "ne",
     "southwest": "sw",
@@ -156,24 +154,42 @@ _NOT_WORD = re.compile(r"[^a-z0-9 ]+")
 # ------------------------------------------------------------------ normalising
 
 
-def normalise(text: str) -> list[str]:
-    """Tokens for matching: lower case, ASCII, no punctuation, aliases applied.
+def words(text: str) -> list[str]:
+    """Words as typed: lower case, ASCII, no punctuation, no ordinal suffixes.
 
-    >>> normalise("10220-104 Avenue Northwest")
+    >>> words("10220-104th Ave. N.W.")
     ['10220', '104', 'ave', 'nw']
-    >>> normalise("Sir Winston Churchill Sq.")
-    ['sir', 'winston', 'churchill', 'sq']
     """
     ascii_text = (
         unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()
     )
     ascii_text = ascii_text.replace("'", "")  # king's -> kings, not king s
-    tokens: list[str] = []
+    out: list[str] = []
     for raw in _NOT_WORD.sub(" ", ascii_text).split():
         match = _ORDINAL.match(raw)
         word = match.group(1) if match else raw
-        tokens.append(WORD_ALIASES.get(word, word))
-    return tokens
+        # "N.W." arrives as "n" then "w": join it back into one quadrant.
+        if word in {"e", "w"} and out and out[-1] in {"n", "s"}:
+            out[-1] += word
+            continue
+        out.append(word)
+    return out
+
+
+def canonical(word: str) -> str:
+    """One word in the dataset's spelling: "ave" -> "avenue", "northwest" -> "nw"."""
+    return WORD_ALIASES.get(word, word)
+
+
+def normalise(text: str) -> list[str]:
+    """Canonical tokens, for indexing and for comparing whole addresses.
+
+    >>> normalise("10220-104 Ave Northwest")
+    ['10220', '104', 'avenue', 'nw']
+    >>> normalise("Sir Winston Churchill Sq.")
+    ['sir', 'winston', 'churchill', 'square']
+    """
+    return [canonical(word) for word in words(text)]
 
 
 def street_label(raw: str) -> str:
@@ -243,8 +259,15 @@ def parse_parcel_rows(rows: Iterable[Mapping[str, Any]]) -> list[AddressRow]:
     return parsed
 
 
-def parse_station_rows(rows: Iterable[Mapping[str, Any]]) -> list[NamedPlace]:
-    """LRT stations and stops (``fhxi-cnhe``): one entry per name, at the mean point."""
+def parse_station_rows(
+    rows: Iterable[Mapping[str, Any]],
+    aliases: Mapping[str, Sequence[str]] | None = None,
+) -> list[NamedPlace]:
+    """LRT stations and stops (``fhxi-cnhe``): one entry per name, at the mean point.
+
+    A station has one row per platform, so its entry sits between them. ``aliases``
+    (from ``config/places.json``) adds names people use, such as "Government Centre".
+    """
     points: dict[str, list[tuple[float, float]]] = defaultdict(list)
     for row in rows:
         try:
@@ -263,9 +286,16 @@ def parse_station_rows(rows: Iterable[Mapping[str, Any]]) -> list[NamedPlace]:
                 lat=sum(p[0] for p in pts) / len(pts),
                 lng=sum(p[1] for p in pts) / len(pts),
                 detail=detail,
+                aliases=tuple((aliases or {}).get(name, ())),
             )
         )
     return stations
+
+
+def load_station_aliases(path: Path = DEFAULT_PLACES_PATH) -> dict[str, list[str]]:
+    """``station_aliases`` from ``config/places.json``: station name -> other names."""
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    return {name: list(names) for name, names in raw.get("station_aliases", {}).items()}
 
 
 def load_places(path: Path = DEFAULT_PLACES_PATH) -> list[NamedPlace]:
@@ -299,17 +329,25 @@ class SearchResult(BaseModel):
     kind: Kind
 
 
+# One query word's spellings: as typed, and through WORD_ALIASES ({"ave", "avenue"}).
+Options = frozenset[str]
+
+
+def options(word: str) -> Options:
+    return frozenset({word, canonical(word)})
+
+
 def _prefix_owners(
     sorted_tokens: np.ndarray, owners: np.ndarray, prefix: str
 ) -> set[int]:
     """Ids of the entries that own a token starting with ``prefix`` (two binary searches)."""
     lo = int(np.searchsorted(sorted_tokens, prefix, side="left"))
-    hi = int(np.searchsorted(sorted_tokens, prefix + "￿", side="left"))
+    hi = int(np.searchsorted(sorted_tokens, prefix + "\uffff", side="left"))
     return set(owners[lo:hi].tolist())
 
 
 class _TokenIndex:
-    """Sorted (token, owner) pairs: every query token must prefix a token of the owner."""
+    """Sorted (token, owner) pairs: every query word must prefix a token of the owner."""
 
     def __init__(self, token_lists: Sequence[Sequence[str]]) -> None:
         pairs = sorted(
@@ -323,18 +361,21 @@ class _TokenIndex:
         self.owners = np.array([p[1] for p in pairs], dtype=np.int32)
         self.vocabulary = sorted({p[0] for p in pairs if p[0].isalpha()})
 
-    def match_all(self, tokens: Sequence[str]) -> set[int] | None:
-        """Owners matching every token; None when there are no tokens to match."""
+    def owners_of(self, spellings: Options) -> set[int]:
+        found: set[int] = set()
+        for spelling in spellings:
+            found |= _prefix_owners(self.tokens, self.owners, spelling)
+        return found
+
+    def match_all(self, query: Sequence[Options]) -> set[int] | None:
+        """Owners matching every query word; None when there are no words to match."""
         result: set[int] | None = None
-        for token in tokens:
-            found = _prefix_owners(self.tokens, self.owners, token)
+        for spellings in query:
+            found = self.owners_of(spellings)
             result = found if result is None else result & found
             if not result:
                 return set()
         return result
-
-    def has_prefix(self, token: str) -> bool:
-        return bool(_prefix_owners(self.tokens, self.owners, token))
 
 
 class SearchIndex:
@@ -369,7 +410,9 @@ class SearchIndex:
         self.name_lng = name_lng
         self.manifest = manifest
         # Lookup structures, rebuilt at load (a few milliseconds).
-        self._street_index = _TokenIndex([normalise(s) for s in self.streets])
+        street_tokens = [normalise(s) for s in self.streets]
+        self._street_tokens = [set(tokens) for tokens in street_tokens]
+        self._street_index = _TokenIndex(street_tokens)
         self._name_prefixes = [
             [" ".join(normalise(term)) for term in terms] for terms in self.name_terms
         ]
@@ -433,13 +476,24 @@ class SearchIndex:
     def __len__(self) -> int:
         return len(self.addr_number) + len(self.name_label)
 
+    def find_address(self, number: int, street: str) -> tuple[float, float] | None:
+        """The (lat, lng) of one exact address, in any spelling; None if it is not indexed."""
+        wanted = normalise(street)
+        lo = int(np.searchsorted(self.addr_number, number, side="left"))
+        hi = int(np.searchsorted(self.addr_number, number, side="right"))
+        for row in range(lo, hi):
+            if normalise(self.streets[self.addr_street[row]]) == wanted:
+                return float(self.addr_lat[row]), float(self.addr_lng[row])
+        return None
+
     def search(self, query: str) -> list[SearchResult]:
         """Up to ``MAX_RESULTS`` matches, best first. See the module docstring for the tiers."""
         if len(query.strip()) < MIN_QUERY_CHARS:
             return []
-        tokens = normalise(query[:MAX_QUERY_CHARS])
-        if not tokens:
+        typed = words(query[:MAX_QUERY_CHARS])
+        if not typed:
             return []
+        spelt = [options(word) for word in typed]
         # Each entry: (sort key, result). Keys are (tier, group, rank, label): tier
         # first, names before addresses within a tier, then the rank inside the group.
         scored: list[tuple[tuple[Any, ...], SearchResult]] = []
@@ -452,7 +506,6 @@ class SearchIndex:
             label = self.name_label[i]
             scored.append(
                 (
-                    # Same shape as the address keys: (tier, group, rank, label).
                     (tier, 0, len(label), label),
                     SearchResult(
                         label=label,
@@ -464,20 +517,22 @@ class SearchIndex:
                 )
             )
 
-        # Tier 0: the whole query is a prefix of a name or alias.
-        query_text = " ".join(tokens)
+        # Tier 0: the whole query starts a name or alias. The last word may be
+        # half typed, so it also counts as typed ("rogers pl" starts "rogers place").
+        canon = [canonical(word) for word in typed]
+        heads = {" ".join(canon), " ".join([*canon[:-1], typed[-1]])}
         for i, prefixes in enumerate(self._name_prefixes):
-            if any(p.startswith(query_text) for p in prefixes):
+            if any(p.startswith(head) for p in prefixes for head in heads):
                 add_name(i, 0)
         # Tier 1: house number plus street.
-        scored.extend(self._address_matches(tokens, tier=1))
-        # Tier 2: every token is a prefix of a token in the name, alias or detail.
-        for i in sorted(self._name_index.match_all(tokens) or ()):
+        scored.extend(self._address_matches(spelt, tier=1))
+        # Tier 2: every word starts a word of the name, an alias or the detail.
+        for i in sorted(self._name_index.match_all(spelt) or ()):
             add_name(i, 2)
         # Tier 3: fuzzy, only when the exact tiers left room.
         if len(scored) < MAX_RESULTS:
-            fixed = self._fuzzy_tokens(tokens)
-            if fixed != tokens:
+            fixed = self._fuzzy(typed, spelt)
+            if fixed is not None:
                 scored.extend(self._address_matches(fixed, tier=3))
                 for i in sorted(self._name_index.match_all(fixed) or ()):
                     add_name(i, 3)
@@ -485,31 +540,34 @@ class SearchIndex:
         return [result for _, result in scored[:MAX_RESULTS]]
 
     def _address_matches(
-        self, tokens: Sequence[str], *, tier: int
+        self, spelt: Sequence[Options], *, tier: int
     ) -> list[tuple[tuple[Any, ...], SearchResult]]:
-        number, street_tokens = split_house_number(tokens)
-        if number is None:
+        first = next(iter(spelt[0])) if len(spelt[0]) == 1 else ""
+        if not (first.isdigit() and len(first) <= 7):
             return []
+        number = int(first)
         lo = int(np.searchsorted(self.addr_number, number, side="left"))
         hi = int(np.searchsorted(self.addr_number, number, side="right"))
         if lo == hi:
             return []
         rows = np.arange(lo, hi)
-        street_ids = self._street_index.match_all(street_tokens)
+        street_query = spelt[1:]
+        street_ids = self._street_index.match_all(street_query)
         if street_ids is not None:
             keep = np.isin(
                 self.addr_street[rows], np.fromiter(street_ids, dtype=np.int32)
             )
             rows = rows[keep]
-        wanted = set(street_tokens)
+        wanted = set().union(*street_query) if street_query else set()
         out = []
         for row in rows.tolist():
-            street = self.streets[self.addr_street[row]]
-            exact_hits = len(wanted & set(normalise(street)))
+            street_id = int(self.addr_street[row])
+            street = self.streets[street_id]
+            exact_hits = len(wanted & self._street_tokens[street_id])
             label = f"{number} {street}"
             out.append(
                 (
-                    # Exact street-word hits first, then shorter street names.
+                    # Whole street words first ("104" over "104A"), then shorter names.
                     (tier, 1, len(street) - 100 * exact_hits, label),
                     SearchResult(
                         label=label,
@@ -523,24 +581,32 @@ class SearchIndex:
         out.sort(key=lambda entry: entry[0])
         return out[:MAX_RESULTS]
 
-    def _fuzzy_tokens(self, tokens: Sequence[str]) -> list[str]:
-        """Replace each unknown word with its closest word in the vocabulary."""
-        fixed = []
-        for token in tokens:
-            if (
-                len(token) >= FUZZY_MIN_CHARS
-                and token.isalpha()
-                and not self._street_index.has_prefix(token)
-                and not self._name_index.has_prefix(token)
-            ):
-                close = difflib.get_close_matches(
-                    token, self._vocabulary, n=1, cutoff=FUZZY_CUTOFF
+    def _fuzzy(
+        self, typed: Sequence[str], spelt: Sequence[Options]
+    ) -> list[Options] | None:
+        """Each unknown word replaced by its closest indexed word; None if none changed."""
+        fixed: list[Options] = []
+        changed = False
+        for word, spellings in zip(typed, spelt, strict=True):
+            unknown = (
+                len(word) >= FUZZY_MIN_CHARS
+                and word.isalpha()
+                and not self._street_index.owners_of(spellings)
+                and not self._name_index.owners_of(spellings)
+            )
+            close = (
+                difflib.get_close_matches(
+                    word, self._vocabulary, n=1, cutoff=FUZZY_CUTOFF
                 )
-                if close:
-                    fixed.append(close[0])
-                    continue
-            fixed.append(token)
-        return fixed
+                if unknown
+                else []
+            )
+            if close:
+                fixed.append(frozenset(close))
+                changed = True
+            else:
+                fixed.append(spellings)
+        return fixed if changed else None
 
 
 # ------------------------------------------------------------------- building
@@ -555,8 +621,9 @@ def build_index(
     """Deduplicate and sort the rows into the arrays ``SearchIndex`` searches.
 
     One entry per (house number, street): the mean of its parcel points, or of its
-    suite points when the address exists only as suites (about 32,000 addresses
-    citywide, among them Edmonton City Centre and Stantec Tower).
+    suite points when the address exists only as suites. That is 58,064 of the
+    346,922 addresses citywide (November 8, 2026), among them Edmonton City Centre
+    and Stantec Tower.
     """
     parcel_pts: dict[tuple[int, str], list[tuple[float, float]]] = defaultdict(list)
     suite_pts: dict[tuple[int, str], list[tuple[float, float]]] = defaultdict(list)
