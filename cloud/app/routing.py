@@ -157,9 +157,13 @@ class Router:
             profile = self.config.profile(profile_key)
         except KeyError as error:
             raise RoutingError(str(error)) from None
-        origin = self._snap(from_lat, from_lng, "from")
-        destination = self._snap(to_lat, to_lng, "to")
-        warnings = self._snap_warnings(origin, destination)
+        # Weights first: snapping must know which paths this profile can use right now,
+        # otherwise a start inside a blocked stretch snaps to a node with no way out and
+        # the whole trip fails even though an open path is a few metres away.
+        weights = profile_weights(self.network, profile, hazards)
+        warnings: list[str] = []
+        origin = self._snap(from_lat, from_lng, "start", weights, warnings)
+        destination = self._snap(to_lat, to_lng, "end", weights, warnings)
         if origin[0] == destination[0]:
             return RouteResult(
                 profile_key,
@@ -168,14 +172,15 @@ class Router:
                 [],
                 [*warnings, "The start and end are at the same place."],
             )
-
-        weights = profile_weights(self.network, profile, hazards)
         # The plain shortest route ignores hazards (but keeps the profile's stair rule),
         # so "what did this route avoid?" and "why is it longer?" have a baseline.
         plain_weights = profile_weights(self.network, profile, NO_HAZARDS)
         plain = self._shortest(plain_weights, origin[0], destination[0])
 
-        found: list[tuple[int, ...]] = []  # node paths kept so far
+        # Each kept route is (node path, the exact edges the search used). Keeping the
+        # edges matters where two parallel edges join the same nodes: rebuilding them
+        # from the node path would pick the same edge every time and repeat a route.
+        found: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
         penalised = weights.copy()
         alt = self.config.alternates
         for _ in range(alt.attempts):
@@ -183,11 +188,13 @@ class Router:
             if path is None:
                 break
             edges = self._edges_of(path, penalised)
-            if self._distinct(edges, [self._edges_of(p, weights) for p in found]):
-                found.append(path)
+            if self._distinct(edges, [kept_edges for _, kept_edges in found]):
+                found.append((path, edges))
                 if len(found) >= alt.max_routes:
                     break
-            penalised[list(edges)] *= alt.penalty  # push the next search elsewhere
+            # Penalise every edge on the stretches just used, parallel edges included,
+            # so the next search cannot come back along the same streets.
+            penalised[self._stretch_edges(path)] *= alt.penalty
 
         if not found:
             warnings.append(
@@ -197,32 +204,57 @@ class Router:
 
         plain_edges = set(self._edges_of(plain, plain_weights)) if plain else set()
         routes = [
-            self._describe(path, weights, profile, hazards, plain_edges, plain_weights)
-            for path in found
+            self._describe(
+                path, edges, weights, profile, hazards, plain_edges, plain_weights
+            )
+            for path, edges in found
         ]
         return RouteResult(profile_key, origin, destination, routes, warnings)
 
     # -- pieces --------------------------------------------------------------
 
-    def _snap(self, lat: float, lng: float, which: str) -> tuple[int, float]:
-        node, distance = self.network.nearest_node(lat, lng)
-        if distance > self.config.snap.max_m:
+    # How many nearby nodes to consider when the nearest one has no usable path.
+    SNAP_CANDIDATES = 12
+
+    def _snap(
+        self,
+        lat: float,
+        lng: float,
+        which: str,
+        weights: np.ndarray,
+        warnings: list[str],
+    ) -> tuple[int, float]:
+        """Snap a coordinate to the nearest node that still connects to the network.
+
+        A node "connects" when at least one of its edges is usable for this profile
+        (weight above 0). Among the nearest candidates the first usable one wins; if
+        none is usable, the nearest node is returned and the search reports no route.
+        """
+        nodes, distances = self.network.nearest_nodes(lat, lng, self.SNAP_CANDIDATES)
+        nearest, nearest_m = int(nodes[0]), float(distances[0])
+        if nearest_m > self.config.snap.max_m:
             raise RoutingError(
-                f"The '{which}' point is {distance:.0f} m from the nearest walkable path "
+                f"The {which} point is {nearest_m:.0f} m from the nearest walkable path "
                 f"(limit {self.config.snap.max_m:.0f} m). Choose a point inside Edmonton."
             )
-        return node, distance
-
-    def _snap_warnings(
-        self, origin: tuple[int, float], destination: tuple[int, float]
-    ) -> list[str]:
-        out = []
-        for name, (_, distance) in (("start", origin), ("end", destination)):
-            if distance > self.config.snap.warn_m:
-                out.append(
-                    f"The {name} point is {distance:.0f} m from the nearest walkable path."
-                )
-        return out
+        chosen, chosen_m = nearest, nearest_m
+        for node, distance in zip(nodes, distances, strict=True):
+            if distance > self.config.snap.max_m:
+                break  # never snap beyond the limit, even to an open path
+            _, edge_ids = self.network.neighbors(int(node))
+            if len(edge_ids) and bool((weights[edge_ids] > 0).any()):
+                chosen, chosen_m = int(node), float(distance)
+                break
+        if chosen != nearest:
+            warnings.append(
+                f"The {which} point is inside a blocked stretch; the route {'begins' if which == 'start' else 'ends'} "
+                f"{chosen_m:.0f} m away at the nearest open path."
+            )
+        elif chosen_m > self.config.snap.warn_m:
+            warnings.append(
+                f"The {which} point is {chosen_m:.0f} m from the nearest walkable path."
+            )
+        return chosen, chosen_m
 
     def _shortest(
         self, weights: np.ndarray, src: int, dst: int
@@ -259,12 +291,30 @@ class Router:
             edges.append(min(candidates, key=lambda e: weights[e]))
         return tuple(edges)
 
+    def _stretch_edges(self, path: Sequence[int]) -> list[int]:
+        """Every edge (parallel ones too) joining consecutive nodes of a path."""
+        ids: list[int] = []
+        for u, v in pairwise(path):
+            nbrs, eids = self.network.neighbors(u)
+            ids.extend(int(e) for n, e in zip(nbrs, eids, strict=True) if n == v)
+        return ids
+
+    def _stretch(self, edge: int) -> tuple[int, int]:
+        """The undirected node pair an edge joins; parallel edges share a stretch."""
+        u, v = int(self.network.edge_u[edge]), int(self.network.edge_v[edge])
+        return (u, v) if u <= v else (v, u)
+
     def _distinct(self, edges: Sequence[int], kept: Iterable[Sequence[int]]) -> bool:
-        """True when this route shares less than the configured fraction with every kept route."""
-        length = float(self.network.edge_length_m[list(edges)].sum()) or 1.0
-        mine = set(edges)
+        """True when this route shares less than the configured fraction with every kept route.
+
+        Overlap is measured by stretch (the pair of nodes an edge joins), so a route
+        that only swaps to a parallel edge between the same nodes counts as the same.
+        """
+        lengths = self.network.edge_length_m
+        length = float(lengths[list(edges)].sum()) or 1.0
         for other in kept:
-            shared = float(self.network.edge_length_m[list(mine & set(other))].sum())
+            theirs = {self._stretch(e) for e in other}
+            shared = float(sum(lengths[e] for e in edges if self._stretch(e) in theirs))
             if shared / length >= self.config.alternates.max_shared_fraction:
                 return False
         return True
@@ -272,6 +322,7 @@ class Router:
     def _describe(
         self,
         path: tuple[int, ...],
+        edges: tuple[int, ...],
         weights: np.ndarray,
         profile: Profile,
         hazards: HazardMap,
@@ -279,7 +330,6 @@ class Router:
         plain_weights: np.ndarray,
     ) -> Route:
         net = self.network
-        edges = self._edges_of(path, weights)
         lengths = net.edge_length_m[list(edges)].astype(float)
         distance = float(lengths.sum())
         # time = length / speed x multiplier, where weight = length x multiplier.
@@ -301,6 +351,8 @@ class Router:
             for hazard in hazards.get(edge, ()):
                 if (
                     profile.multiplier(hazard.effect) != 1.0
+                    and hazard.item_id
+                    not in seen  # still crossed elsewhere: not avoided
                     and hazard.item_id not in seen_avoided
                 ):
                     seen_avoided.add(hazard.item_id)
