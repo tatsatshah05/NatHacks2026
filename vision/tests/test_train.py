@@ -322,6 +322,9 @@ def test_same_seed_gives_the_same_model(tmp_path: Path):
         ("--lr", "nan", "must be greater than 0"),
         ("--label-smoothing", "1.5", "must be between 0 and 1"),
         ("--epochs", "ten", "not a valid int"),
+        ("--seed", "-1", "must be between 0 and 4294967295"),
+        ("--seed", str(2**32), "must be between 0 and 4294967295"),
+        ("--seed", "1" + "0" * 400, "must be between 0 and 4294967295"),
     ],
 )
 def test_cli_rejects_invalid_numbers_before_training(flag, value, message, capsys):
@@ -345,6 +348,8 @@ def test_cli_rejects_invalid_numbers_before_training(flag, value, message, capsy
         {"label_smoothing": -0.1},
         {"input_size_px": 8},
         {"arch": "resnet50"},
+        {"seed": -1},
+        {"seed": 2**32},
     ],
 )
 def test_train_config_rejects_invalid_settings(settings):
@@ -361,6 +366,15 @@ def test_train_config_accepts_the_edges_of_valid_ranges():
         epochs=1, batch_size=1, num_workers=0, latency_runs=1, label_smoothing=0.0
     )
     TrainConfig(label_smoothing=1.0, weight_decay=0.0)
+    TrainConfig(seed=0)
+    TrainConfig(seed=2**32 - 1)
+
+
+@pytest.mark.parametrize("value", ["0", "202", str(2**32 - 1)])
+def test_cli_accepts_every_seed_numpy_accepts(value):
+    from vision.train import seed_int
+
+    assert seed_int(value) == int(value)
 
 
 def test_run_rejects_rscd_per_class_below_one(tmp_path: Path):

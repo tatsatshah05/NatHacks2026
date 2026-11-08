@@ -58,6 +58,7 @@ CLASS_TO_INDEX: dict[str, int] = {label: i for i, label in enumerate(LABELS)}
 INPUT_SIZE_PX = 224
 ARCHITECTURES = ("mobilenet_v3_small", "efficientnet_b0")
 RSCD_SOURCE = "rscd"
+MAX_SEED = 2**32 - 1  # np.random.seed rejects anything outside 0..2**32 - 1
 
 # RSCD names each image class "<friction>_<material>_<unevenness>", or just the
 # friction state for snow and ice. Only the friction state matters here.
@@ -288,6 +289,8 @@ class TrainConfig:
             problems.append("num_workers must be 0 or more")
         if self.latency_runs < 1:
             problems.append("latency_runs must be at least 1")
+        if not (0 <= self.seed <= MAX_SEED):
+            problems.append(f"seed must be between 0 and {MAX_SEED}")
         if self.input_size_px < 32:
             problems.append("input_size_px must be at least 32")
         if not (math.isfinite(self.lr) and self.lr > 0):
@@ -713,7 +716,7 @@ def _number(
             ) from None
         too_low = value < minimum if inclusive else value <= minimum
         if (
-            not math.isfinite(value)
+            (isinstance(value, float) and not math.isfinite(value))
             or too_low
             or (maximum is not None and value > maximum)
         ):
@@ -730,6 +733,7 @@ positive_int = _number(int, minimum=1)
 non_negative_int = _number(int, minimum=0)
 positive_float = _number(float, minimum=0, inclusive=False)
 unit_interval = _number(float, minimum=0, maximum=1)
+seed_int = _number(int, minimum=0, maximum=MAX_SEED)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -760,7 +764,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--batch-size", type=positive_int, default=TrainConfig.batch_size
     )
     parser.add_argument("--lr", type=positive_float, default=TrainConfig.lr)
-    parser.add_argument("--seed", type=int, default=TrainConfig.seed)
+    parser.add_argument("--seed", type=seed_int, default=TrainConfig.seed)
     parser.add_argument(
         "--workers", type=non_negative_int, default=TrainConfig.num_workers
     )
