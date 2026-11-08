@@ -33,6 +33,8 @@ from pydantic import BaseModel
 from cloud.app import (
     ingest_api,
     obstructions_api,
+    push,
+    push_api,
     routing_api,
     search,
     sources,
@@ -204,9 +206,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     app.state.hazard_provider,
                     app.state.mode,
                 )
+            # OP-304: saved routes and push alerts; the watcher thread rechecks saved
+            # routes when hazards change (idle with SCHEDULER=off, as in tests).
+            app.state.push = push.start_route_watcher(
+                store.engine,
+                app.state.router,
+                app.state.hazard_provider,
+                hazard_clock=clock,
+                run=run_scheduler,
+            )
             try:
                 yield
             finally:
+                if app.state.push.watcher is not None:
+                    app.state.push.watcher.stop()
                 if scheduler is not None:
                     await scheduler.stop()
                 store.engine.dispose()
@@ -226,7 +239,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=origins,
         allow_origin_regex=origin_regex,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
     )
 
@@ -235,6 +248,7 @@ def create_app() -> FastAPI:
     app.include_router(routing_api.router)
     app.include_router(weather_service.router)
     app.include_router(ingest_api.router)
+    app.include_router(push_api.router)
     app.include_router(search.router)
     app.state.search = search.load_index()  # OP-302: prebuilt, None if missing (503)
 

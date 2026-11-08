@@ -31,20 +31,24 @@ export type PlannerQuery = {
   profile: TravelProfile;
 };
 
-export const travelProfiles: Array<{
+export const travelProfiles: ReadonlyArray<{
   id: TravelProfile;
   label: string;
-  icon: string;
-  description: string;
+  /** Reads after "routes": "3 routes for a wheelchair". */
+  phrase: string;
 }> = [
-  { id: "wheelchair", label: "Wheelchair", icon: "♿", description: "Avoid stairs and blocked paths" },
-  { id: "walker_cane", label: "Walker or cane", icon: "◒", description: "Prefer gentle, clear paths" },
-  { id: "low_vision", label: "Low vision", icon: "◉", description: "Prioritize clear crossings" },
-  { id: "standard", label: "Standard walking", icon: "●", description: "Fastest practical route" }
+  { id: "wheelchair", label: "Wheelchair", phrase: "for a wheelchair" },
+  { id: "walker_cane", label: "Walker or cane", phrase: "for a walker or cane" },
+  { id: "low_vision", label: "Low vision", phrase: "for low vision" },
+  { id: "standard", label: "Standard walking", phrase: "for standard walking" }
 ];
 
 export function profileLabel(profile: TravelProfile): string {
   return travelProfiles.find((option) => option.id === profile)?.label ?? profile;
+}
+
+export function profilePhrase(profile: TravelProfile): string {
+  return travelProfiles.find((option) => option.id === profile)?.phrase ?? `for ${profile}`;
 }
 
 export function isTravelProfile(value: string | null): value is TravelProfile {
