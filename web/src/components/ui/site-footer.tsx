@@ -12,7 +12,10 @@ export default function SiteFooter({ children }: Props) {
       <nav className={styles.links} aria-label="About OpenPath">
         <Link href="/sources">Data sources</Link>
         <Link href="/privacy">Privacy</Link>
-        <Link href="/demo">Demo</Link>
+        {/* OP-411 adds /demo on its own branch; no prefetch, so a build without it never asks for it. */}
+        <Link href="/demo" prefetch={false}>
+          Demo
+        </Link>
       </nav>
     </footer>
   );
