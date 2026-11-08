@@ -110,7 +110,7 @@ Rules for every source:
 
 1. **511 Alberta cameras** through the official API with a free developer key (10 calls per 60 seconds). The cameras are mostly on provincial highways, including the Edmonton ring road. We count how many are inside Edmonton in Phase 1 (OP-112).
 2. **City of Edmonton traffic cameras** at intersections, where crosswalks and curb ramps are. The City streams them live and does not record them. We use them only after the City gives written permission (OP-112); until then, the app links to the City's viewer.
-3. **Community photos.** A user can attach a photo to a report; the model classifies it and the photo is discarded (OP-308).
+3. **Community photos.** A user can attach a photo to a report; the model and Claude check it and the photo is discarded (OP-308).
 
 ### 7.2 Classes and training data
 
@@ -1117,6 +1117,8 @@ Discuss these as a team; the lead records each decision in this table by the tim
 **Decided:** the camera worker (OP-204) runs on one team laptop during the demo and posts to the API on Render (November 8). Render's free plan has no background workers, and the worker needs no new service this way. It runs on Tatsat's laptop, including on demo day (decided November 8; [docs/DEPLOY.md](docs/DEPLOY.md#4-camera-worker-on-demo-day)). If it stops, its readings expire after 15 minutes and the weather watch keeps running; the fallback notice in the UI is OP-412.
 
 **Decided:** the camera worker posts a reading only when the ONNX model and Claude agree (November 8, lead). Any disagreement, refusal or API error gives `unknown`. Claude Haiku 5.5 checks readings by default to keep cost down; Opus 5.5 and Sonnet 5.5 are available with `--ai-check`. Frames are sent to the Anthropic API in memory and never stored by us. Measured results are in `vision/MODEL_CARD.md`.
+
+**Decided:** community report photos (OP-308) are checked by both the ONNX model and Claude, with the camera worker's agree rule (November 8, lead). A report gets `medium` confidence only when both agree with the reported type; a disagreement, an unavailable or failing check, or an unusable photo gives `low`, the reported type is kept, and the response says why and lists the checks that answered (`photo.checked_by`). For `blocked`, which no model class can show, Claude answers "Is the walking path in this photo blocked?" and the model's class must not be `unusable`, so blocked confirmation rests on Claude alone. The API on Render installs onnxruntime, Pillow and anthropic for this (`cloud/requirements-photo-check.txt`); the setup is in [docs/DEPLOY.md](docs/DEPLOY.md#6-report-photo-check-on-render-op-308). Photos are sent to the Anthropic API in memory and never stored by us.
 
 **Decided:** saved routes and push alerts (OP-304) add three endpoints to section 10's API for the alerts page (OP-306), as a Phase 3 decision recorded with OP-304 (November 8): `GET /api/saved-routes?client_id=` and `DELETE /api/saved-routes/{id}?client_id=` to list and remove a browser's saved routes, `POST /api/push/test` for the "Send me a test alert" button, plus `GET /api/push/public-key` so the web app reads the VAPID public key at run time. There are still no accounts: the anonymous `client_id` is a random id the browser generates and keeps, and whoever holds it can list and delete that browser's routes. Limits: 10 saved routes and 5 push subscriptions per `client_id`.
 
