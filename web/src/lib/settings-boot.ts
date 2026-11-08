@@ -12,7 +12,8 @@ export const SETTINGS_STORAGE_KEY = "openpath.settings";
  * Runs in <head> before the body is parsed. It sets `data-text`, `data-motion` and
  * `data-theme` on <html> from storage and leaves them off for the defaults. Any
  * failure (blocked storage, bad JSON) leaves the defaults, which render correctly.
- * Keep it in step with `applySettings` in settings.ts.
+ * Keep it in step with `applySettings` in settings.ts. It is a constant, so a future
+ * Content-Security-Policy can allow it with `'sha256-<base64 hash of this string>'`.
  */
 export const SETTINGS_BOOT_SCRIPT = `(function(){try{var d=document.documentElement,s=JSON.parse(localStorage.getItem(${JSON.stringify(
   SETTINGS_STORAGE_KEY

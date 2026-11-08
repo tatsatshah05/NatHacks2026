@@ -95,7 +95,7 @@ Contrast is the WCAG relative-luminance ratio, measured with a script against th
 | `--caution` | Caution shape and label | `#8A5300` | 5.9 / 6.3 | `#F4B860` | 9.5 / 8.4 |
 | `--clear` | All-clear shape and label | `#1E6B3A` | 6.1 / 6.5 | `#7FD39A` | 9.3 / 8.3 |
 
-- **Theme switching.** Dark follows `prefers-color-scheme`. It is guarded by `:root:not([data-theme="light"])` and repeated under `:root[data-theme="dark"]`, so OP-307 can force either theme by setting `data-theme` on `<html>`.
+- **Theme switching.** Dark follows `prefers-color-scheme`. It is guarded by `:root:not([data-theme="light"])` and repeated under `:root[data-theme="dark"]`, so OP-307 can force either theme by setting `data-theme` on `<html>`. The Settings page does exactly that (section 9).
 - **Focus ring.** The focus ring is 3 px with a 2 px card-coloured gap, so it always sits next to card or snow, never next to the control's own fill. In light mode the focus colour on action is only 2.4:1, which is why the gap exists.
 - **Line colour.** `--line` is 1.6:1, so it is never a control border. Controls use `--muted`.
 - **Chosen state.** A chosen segment fills with `--ink` and uses `--snow` text in both themes (15.7:1 light, 15.5:1 dark). Action blue is only for actions, so a chosen option never looks like a second primary button.
@@ -120,7 +120,8 @@ Headings use letter-spacing 0. Lines never run past 70ch. Use sentence case ever
 
 | Component | Use it for | Notes |
 | --- | --- | --- |
-| `SiteHeader` | Every page | Skip link, wordmark, Plan / City / Alerts / About with `aria-current`, `ModeBadge`. Pass `current` for the active section. |
+| `SiteHeader` | Every page | Skip link, wordmark, Plan / City / Alerts / Settings / About, `ModeBadge`. Pass `current`: the link to this page gets `aria-current="page"`; `sources` and `privacy` mark About with `aria-current="true"`. The nav wraps to a second row on narrow screens and at large text sizes. |
+| `SiteFooter` | Every page | The data warning, any page-specific children, then links to Data sources and Privacy. |
 | `ModeBadge` | Inside `SiteHeader` (automatic) | Reads `GET /health`. Shows "Replay" in a bordered pill when `mode` is `replay`; nothing when live or unreachable. |
 | `Button`, `ButtonLink` | Every action | `primary` (filled action) for the one main action on a screen; `secondary` (ink outline) for the rest; `text` for quiet inline actions. 44 px minimum height, `size="large"` gives 56 px. External hrefs get `rel="noreferrer"`. |
 | `Field` | Every text input | Label above. Help and error are linked with `aria-describedby`. The error states what went wrong and what to do. |
@@ -185,3 +186,36 @@ On the route line, an avoided condition is offset to the right, and the line kin
 - Do not use `--line` as a control border.
 - Do not add motion beyond the single line reveal, and keep it off under reduced motion.
 - Do not present replayed or demo data as live.
+
+## 9. Settings and reading pages (OP-307, OP-312)
+
+**Settings live on the device.** `lib/settings.ts` keeps them in `localStorage` (`openpath.settings` as JSON, and `openpath.speak`, which OP-303 already used) and gives every component `useSettings()`. A tiny inline script in `app/layout.tsx` (`lib/settings-boot.ts`) applies them to `<html>` before the first paint, so pages never flash at the wrong size or theme. When storage is blocked, a choice lasts for the page visit and the page says so.
+
+| Setting | Values (default first) | Applied as |
+| --- | --- | --- |
+| Speak route changes | on, off | `announce.ts` speaks only when on |
+| Vibrate on route changes | on, off | `announce.ts` vibrates only when on |
+| Text size | default, large (125%), larger (150%) | `data-text` on `<html>`: the root font size, so every rem scales and layouts reflow; px targets stay at least 44 px |
+| Theme | follow the device, light, dark | `data-theme` on `<html>` (section 3) |
+| Motion | follow the device, always reduce, never reduce | `data-motion` on `<html>`; the reduced-motion rules apply under the media query unless `data-motion="full"`, and always under `data-motion="reduce"`. Script motion (map fades, fly-to) reads `useReducedMotion()` |
+| High-contrast map | off, on | `mapStyleFor(settings, dark)` in `lib/map-style.ts` |
+
+**The settings page** uses the system's own controls: switches are native checkboxes with `role="switch"` (named by their label, described by their line of help, state shown by knob position and fill plus the word On or Off), and the three-way choices are `SegmentedChoice` in the stacked layout with a one-line description each. Every change is confirmed in the status line ("Text size is now large.").
+
+**High-contrast map.** Built on the same OpenFreeMap vector tiles as the liberty style, with only land, water, roads, paths, rail and labels. Paths are dashed and roads solid, so they differ by shape. Measured with the WCAG relative-luminance formula:
+
+| Pair | Light | Ratio | Dark | Ratio |
+| --- | --- | --- | --- | --- |
+| Roads and paths on land | `#0D1F2D` on `#FFFFFF` | 16.8:1 | `#FFFFFF` on `#0D1F2D` | 16.8:1 |
+| Water on land | `#5A7FA6` on `#FFFFFF` | 4.2:1 | `#5A7FA6` on `#0D1F2D` | 4.0:1 |
+| Roads on water (bridges) | `#0D1F2D` on `#5A7FA6` | 4.0:1 | `#FFFFFF` on `#5A7FA6` | 4.2:1 |
+| Rail on land | `#4A5B6A` on `#FFFFFF` | 7.0:1 | `#A9B8C6` on `#0D1F2D` | 8.3:1 |
+| Label text on its halo | `#0D1F2D` on `#FFFFFF` | 16.8:1 | `#FFFFFF` on `#0D1F2D` | 16.8:1 |
+| Route line on land | `#1450A3` on `#FFFFFF` | 7.8:1 | `#8DB8FF` on `#0D1F2D` | 8.3:1 |
+
+The route line alone is only 2.2:1 (light) and 2.0:1 (dark) against the roads it runs over, so a page that draws a route on this style puts a land-coloured casing under it (`mapPalette(dark).routeCasing`, 2 px wider on each side). Label sizes follow the text size setting.
+
+**Reading pages** (`/about`, `/sources`, `/privacy`) share `components/reading.module.css`: one left-aligned column at a 68ch measure, the type scale in section 4, headings that stand alone, real list markers, and no hero, cards or images. The only drawn element is on `/about`: "How a route is built" is a real sequence, so it is drawn as the route line (filled start and end, open steps). `/sources` uses one table per publisher (Source, Used for, Freshness); below about 44 characters of width each row becomes a block with its column names shown, and explicit table roles keep the semantics. Freshness comes live from `GET /api/status` and `GET /api/cameras`.
+
+**Changes after the first screenshots ("remove one accessory").** The reading lists had lost their markers to Tailwind's preflight; they are back. A credit that already ended in a full stop got a second one; credits are now quoted exactly. The long "What OpenPath uses it for" column name became "Used for". Numbers and units are joined by non-breaking spaces so "30 m" never splits across lines. The explanation above the speech switches was cut to two short sentences.
+

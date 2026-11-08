@@ -188,7 +188,7 @@ export default function SettingsPage() {
         <Panel aria-labelledby="settings-changes">
           <h2 id="settings-changes">Route changes</h2>
           <p className={styles.intro}>
-            When a condition changes your route, the change is always shown on screen and read by screen readers.
+            A route change is always shown on screen and read by screen readers. These add sound and touch.
           </p>
           <div className={styles.group}>
             <SettingSwitch

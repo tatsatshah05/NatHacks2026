@@ -43,7 +43,7 @@ export default function AboutPage() {
             </li>
             <li>
               <strong>Place them on paths.</strong>
-              Each condition is matched to the OpenStreetMap paths it touches: within 30 m of a point, or 15 m of a line.
+              Each condition is matched to the OpenStreetMap paths it touches: within 30&nbsp;m of a point, or 15&nbsp;m of a line.
             </li>
             <li>
               <strong>Weigh the paths for your profile.</strong>
@@ -56,7 +56,7 @@ export default function AboutPage() {
             </li>
             <li>
               <strong>Write the report.</strong>
-              Every condition on a route or within 50 m of it, grouped as indoor, sidewalks and paths, roads and
+              Every condition on a route or within 50&nbsp;m of it, grouped as indoor, sidewalks and paths, roads and
               crossings, and weather and ice, with its source and when it was checked. Conditions a route avoids are
               marked as avoided.
             </li>
@@ -75,23 +75,20 @@ export default function AboutPage() {
           <dl className={styles.terms}>
             <dt>Wheelchair</dt>
             <dd>
-              Avoids stairs, closed paths and paths with snow. A path with ice risk counts as three times as long. Pace 1.0
-              m/s (3.6 km/h).
+              Avoids stairs, closed paths and paths with snow. A path with ice risk counts as three times as long. Pace 1.0&nbsp;m/s (3.6&nbsp;km/h).
             </dd>
             <dt>Walker or cane</dt>
             <dd>
-              Avoids stairs, closed paths and paths with ice risk. A path with snow counts as three times as long. Pace 0.9
-              m/s (3.2 km/h).
+              Avoids stairs, closed paths and paths with ice risk. A path with snow counts as three times as long. Pace 0.9&nbsp;m/s (3.2&nbsp;km/h).
             </dd>
             <dt>Low vision</dt>
             <dd>
-              Avoids closed paths. Snow counts as twice as long and ice risk as three times. Stairs are allowed. Pace 1.0 m/s
-              (3.6 km/h).
+              Avoids closed paths. Snow counts as twice as long and ice risk as three times. Stairs are allowed. Pace 1.0&nbsp;m/s
+              (3.6&nbsp;km/h).
             </dd>
             <dt>Standard</dt>
             <dd>
-              Avoids closed paths. Snow and ice risk each count as one and a half times as long. Stairs are allowed. Pace 1.3
-              m/s (4.7 km/h).
+              Avoids closed paths. Snow and ice risk each count as one and a half times as long. Stairs are allowed. Pace 1.3&nbsp;m/s (4.7&nbsp;km/h).
             </dd>
           </dl>
           <p>
@@ -106,14 +103,13 @@ export default function AboutPage() {
           </p>
           <p>
             <strong>The ice-risk watch</strong> covers the whole city. It turns on when the air or the ground is at or below
-            0 &deg;C and at least one of these is true: there was rain or snow in the last 6 hours; the air was above 0
-            &deg;C in the last 12 hours, so melted water can refreeze; or the air is within 1 &deg;C of the dew point, so
+            0&nbsp;&deg;C and at least one of these is true: there was rain or snow in the last 6 hours; the air was above 0&nbsp;&deg;C in the last 12 hours, so melted water can refreeze; or the air is within 1&nbsp;&deg;C of the dew point, so
             frost can form. Because it applies to every path equally, it is shown once above your routes and never changes
             them.
           </p>
           <p>
             <strong>A camera reading</strong> is local. A reading of ice, or of wet while the watch is on, marks ice risk on
-            crossings within 50 m of that camera, at medium confidence. Wet without freezing is ignored.
+            crossings within 50&nbsp;m of that camera, at medium confidence. Wet without freezing is ignored.
           </p>
 
           <h2 id="cameras">Road cameras and the model</h2>

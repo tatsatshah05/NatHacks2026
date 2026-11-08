@@ -27,7 +27,9 @@
 .prose h3 {
   margin: 1.75rem 0 0.5rem;
 }
+/* Tailwind's preflight removes list markers; reading lists keep them. */
 .prose ul {
+  list-style: disc;
   margin: 0 0 1rem;
   padding-left: 1.25rem;
 }

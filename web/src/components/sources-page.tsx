@@ -96,7 +96,7 @@ function SourceCell({ row }: { row: SourceRow }) {
           {typeof row.licence === "string" ? row.licence : <a href={row.licence.href}>{row.licence.text}</a>}.
         </span>
       )}
-      {row.credit && <span className={styles.credit}>Credit: {row.credit}.</span>}
+      {row.credit && <span className={styles.credit}>Credit: &ldquo;{row.credit}&rdquo;</span>}
     </>
   );
 }
@@ -121,7 +121,7 @@ function SourceTable({ section, live, now }: { section: SourceSection; live: Liv
                 Source
               </th>
               <th role="columnheader" scope="col" className={styles.colUse}>
-                What OpenPath uses it for
+                Used for
               </th>
               <th role="columnheader" scope="col">
                 Freshness
@@ -136,7 +136,7 @@ function SourceTable({ section, live, now }: { section: SourceSection; live: Liv
                 </th>
                 <td role="cell">
                   <span className={styles.cellLabel} aria-hidden="true">
-                    What OpenPath uses it for
+                    Used for
                   </span>
                   {row.usedFor}
                 </td>
