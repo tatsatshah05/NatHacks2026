@@ -264,6 +264,10 @@ def _pct(value: float | None, missing: str = "n/a") -> str:
     return missing if value is None else f"{value * 100:.1f}%"
 
 
+def _count(n: int, noun: str) -> str:
+    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+
+
 def _names(names: Sequence[str]) -> str:
     quoted = [f"`{n}`" for n in names]
     return (
@@ -294,10 +298,10 @@ def render_card(evaluation: dict[str, Any] | None) -> str:
         )
     if "train_images" in training:
         frames += (
-            f" Training: {training['train_images']} frames from "
-            f"{len(training.get('train_cameras', []))} cameras; validation: "
-            f"{training.get('val_images', 'n/a')} frames from "
-            f"{len(training.get('val_cameras', []))} cameras."
+            f" Training: {_count(training['train_images'], 'frame')} from "
+            f"{_count(len(training.get('train_cameras', [])), 'camera')}; validation: "
+            f"{_count(training.get('val_images', 0), 'frame')} from "
+            f"{_count(len(training.get('val_cameras', [])), 'camera')}."
         )
     else:
         frames += (
@@ -376,7 +380,8 @@ def render_card(evaluation: dict[str, Any] | None) -> str:
         )
         lines += [
             (
-                f"Test set: {metrics['total']} images from {len(e.get('test_cameras', []))} cameras "
+                f"Test set: {_count(metrics['total'], 'image')} from "
+                f"{_count(len(e.get('test_cameras', [])), 'camera')} "
                 f"({', '.join(f'`{c}`' for c in e.get('test_cameras', []))})."
             ),
             "",

@@ -281,7 +281,7 @@ def test_agreement_names_the_labelling_passes_not_people():
     assert "two people" not in card
     assert "Labeller names as recorded in the label CSVs" in card
     assert (
-        "Training: 40 frames from 2 cameras; validation: 6 frames from 1 cameras"
+        "Training: 40 frames from 2 cameras; validation: 6 frames from 1 camera."
         in card
     )
 
