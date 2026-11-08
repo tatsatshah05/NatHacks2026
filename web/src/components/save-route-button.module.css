@@ -1,0 +1,47 @@
+/* OP-306: "Save this route" in a route card's actions. It spans the whole actions row
+   so the inline form has room; nothing here is louder than the route line above it. */
+.save {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+.buttons {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.note,
+.error,
+.result {
+  margin: 0;
+}
+
+.note {
+  color: var(--muted);
+}
+
+.error {
+  font-weight: 700;
+}
+
+.result {
+  margin-bottom: 8px;
+}
+
+.link {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 700;
+  min-height: 44px;
+}
+
+.save :global(.status-line) {
+  margin: 0;
+}

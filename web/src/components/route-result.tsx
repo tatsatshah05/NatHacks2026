@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import SaveRouteButton from "./save-route-button";
 import Button, { ButtonLink } from "./ui/button";
 import { RouteHeading, RouteStops, routeTally } from "./ui/route-line";
 import type { PlannerQuery, RouteOut } from "@/lib/planner-types";
@@ -29,6 +30,7 @@ export default function RouteResult({ route, routeCount, query, now, appleMapsNo
         <ButtonLink variant="secondary" href={reportHref(query, route.rank)}>
           View route report<span className="sr-only"> for route {route.rank}</span>
         </ButtonLink>
+        <SaveRouteButton query={query} rank={route.rank} />
         <ButtonLink variant="secondary" href={route.google_maps_url}>
           Open in Google Maps<span className="sr-only">, route {route.rank}</span>
         </ButtonLink>
