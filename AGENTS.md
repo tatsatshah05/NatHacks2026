@@ -22,7 +22,7 @@ Update this section whenever the status changes.
 - **OP-204 on this branch:** `vision/worker.py` and `vision/inference.py` prepare
   scheduled CPU inference, shared OP-112 rate limiting, in-memory frames,
   two-observation stability and a metadata-only ingest client. OP-202's trained
-  export and the OP-213 receiving API merge/deployment remain pending. Official
+  export and the OP-213 receiving API deployment remain pending (API merged). Official
   metadata is recorded (392 cameras; approximate Edmonton bbox: 19 cameras/47
   enabled views); one JPEG view was verified in memory. Tatsat accepted the
   payload; a local exact-body POST/GET/wrong-key check passes against OP-213 at
@@ -245,17 +245,17 @@ OP-204 commands (defaults perform no network calls):
 
 ```bash
 python -m vision.worker
-python -m pytest vision/tests/test_worker.py vision/tests/test_worker_inference.py -q
+python -m pytest vision/tests/test_worker.py vision/tests/test_worker_inference.py vision/tests/test_worker_review.py -q
 ```
 
-After OP-202's model export and a permitted direct 511 image response are ready,
+The direct 511 JPEG response is verified. After OP-202's trained export is ready,
 use `python -m vision.worker --live --model-labels /path/to/labels.json --model-sha256 EXPECTED_SHA256 --min-score VALIDATED_SCORE`.
 It uses existing `ALBERTA_511_KEY` and `MODEL_URL`, with `--interval-s` defaulting
 to 300 seconds and an optional `--boundary` GeoJSON. `--once` runs one pass.
 `DATA_MODE=replay` prohibits live fetching. Posting additionally requires
 `--publish`, `CLOUD_URL` and `WORKER_KEY`, after OP-213's accepted endpoint is
-merged/deployed. `--once --publish` reports delivery counts and fails if nothing
-was delivered. A shared one-minute cooldown follows a 511 HTTP 429; live startup
+deployed. `--once --publish` reports delivery counts and fails only when posts
+were attempted but all failed; startup confirmation can have zero attempts. A shared one-minute cooldown follows a 511 HTTP 429; live startup
 uses OP-112's on-disk metadata cache. Replay data is never posted. See
 [docs/OP-204.md](docs/OP-204.md) for OP-202's labels.json format, expiry and remaining work.
 

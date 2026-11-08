@@ -167,8 +167,10 @@ class FrameFetcher:
                     .strip()
                     .lower()
                 )
-                if content_type not in {"image/jpeg", "image/png"}:
-                    raise FrameUnavailable("not_an_image")
+                # 511 serves unavailable-view placeholders as PNG with HTTP 200.
+                # Only JPEG is a usable frame; a placeholder must never vote.
+                if content_type != "image/jpeg":
+                    raise FrameUnavailable("camera_unavailable")
                 chunks: list[bytes] = []
                 size = 0
                 for chunk in response.iter_bytes(chunk_size=64 * 1024):
@@ -499,14 +501,27 @@ def main(argv: Sequence[str] | None = None) -> int:
                         indent=2,
                     )
                 )
-                if args.publish and worker.publish_succeeded == 0:
+                if (
+                    args.publish
+                    and worker.publish_failed
+                    and not worker.publish_succeeded
+                ):
                     return 1
             else:
                 worker.run()
         return 0
     except KeyboardInterrupt:
         return 0
-    except (OSError, ValueError, TypeError, KeyError, ImportError, httpx.HTTPError):
+    except (
+        OSError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        IndexError,
+        ImportError,
+        httpx.HTTPError,
+    ):
         # HTTP/ONNX errors may contain credentials or release URLs: print only guidance.
         print(
             "Worker startup failed; check model manifest, credentials and service availability. No frame was stored.",

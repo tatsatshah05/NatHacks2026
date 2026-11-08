@@ -151,7 +151,7 @@ def configure_live_cli(
 
 
 @pytest.mark.parametrize(
-    "succeeded,failed,exit_code", [(0, 2, 1), (0, 0, 1), (1, 1, 0), (1, 0, 0)]
+    "succeeded,failed,exit_code", [(0, 2, 1), (0, 0, 0), (1, 1, 0), (1, 0, 0)]
 )
 def test_once_publish_reports_actual_delivery_and_honest_exit_status(
     monkeypatch: pytest.MonkeyPatch,
@@ -244,15 +244,52 @@ def test_malformed_replay_is_usage_error_without_traceback(
     assert "Traceback" not in capsys.readouterr().err
 
 
+@pytest.mark.parametrize(
+    "payload", [{}, [], {"type": "Polygon", "coordinates": [[[1]]]}]
+)
 def test_incomplete_boundary_has_sanitised_live_startup_error(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    payload: object,
 ) -> None:
+    real_worker = worker.CameraWorker
     argv, _ = configure_live_cli(monkeypatch, tmp_path, succeeded=0, failed=0)
+    camera_worker, _, _ = make_worker([])
+    monkeypatch.setattr(worker, "CameraAdapter", lambda *a, **k: camera_worker.adapter)
+    monkeypatch.setattr(worker, "CameraWorker", real_worker)
     boundary = tmp_path / "boundary.json"
-    boundary.write_text("{}")
+    boundary.write_text(json.dumps(payload))
     assert worker.main([*argv, "--boundary", str(boundary)]) == 1
     output = capsys.readouterr().err
     assert "Worker startup failed" in output and "Traceback" not in output
+
+
+@pytest.mark.parametrize("content_type", ["image/png", "text/html", "image/webp", ""])
+def test_non_jpeg_placeholder_cannot_confirm_a_previous_snow_vote(
+    content_type: str,
+) -> None:
+    responses = iter(
+        [
+            httpx.Response(
+                200, content=b"snow", headers={"content-type": "image/jpeg"}
+            ),
+            httpx.Response(
+                200, content=b"placeholder", headers={"content-type": content_type}
+            ),
+            httpx.Response(
+                200, content=b"placeholder", headers={"content-type": content_type}
+            ),
+        ]
+    )
+    camera_worker, _, _ = make_worker(
+        ["snow_covered"], handler=lambda req: next(responses)
+    )
+    assert not camera_worker.cycle()
+    assert not camera_worker.cycle()
+    result = camera_worker.cycle()[0]
+    assert result.label == "unknown" and result.reason == "camera_unavailable"
+    assert camera_worker.stability.states[result.source_ref].confirmed == "unknown"
 
 
 @pytest.mark.parametrize("first", ["metadata", "image"])

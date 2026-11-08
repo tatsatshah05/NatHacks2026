@@ -83,7 +83,7 @@ def make_worker(labels: list[str], *, handler=None, cameras=None):
         return httpx.Response(
             200,
             content=f"distinct-frame-{frame_number}".encode(),
-            headers={"content-type": "image/png"},
+            headers={"content-type": "image/jpeg"},
         )
 
     client = httpx.Client(transport=httpx.MockTransport(transport))
@@ -258,7 +258,7 @@ def test_frame_download_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
     client = httpx.Client(
         transport=httpx.MockTransport(
             lambda req: httpx.Response(
-                200, content=b"large", headers={"content-type": "image/png"}
+                200, content=b"large", headers={"content-type": "image/jpeg"}
             )
         )
     )
@@ -426,7 +426,7 @@ def test_failed_post_retries_identical_frame_without_refreshing_timestamp() -> N
     camera_worker.frames.client = httpx.Client(
         transport=httpx.MockTransport(
             lambda req: httpx.Response(
-                200, content=b"distinct-frame-2", headers={"content-type": "image/png"}
+                200, content=b"distinct-frame-2", headers={"content-type": "image/jpeg"}
             )
         )
     )
@@ -444,7 +444,7 @@ def test_real_decode_and_quality_gate_replace_dry_with_unknown() -> None:
     camera_worker, clock, _ = make_worker(
         [],
         handler=lambda req: httpx.Response(
-            200, content=next(images), headers={"content-type": "image/png"}
+            200, content=next(images), headers={"content-type": "image/jpeg"}
         ),
     )
     camera_worker.classifier = OnnxClassifier(
