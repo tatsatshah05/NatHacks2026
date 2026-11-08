@@ -25,8 +25,8 @@ Where hazards come from
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from itertools import pairwise
 from dataclasses import dataclass, field
+from itertools import pairwise
 
 import numpy as np
 from scipy.sparse.csgraph import dijkstra
