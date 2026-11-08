@@ -53,6 +53,7 @@ function byAttention(routes: SavedRoute[]): SavedRoute[] {
 }
 
 function countText(count: number): string {
+  if (count === 0) return "No saved routes yet. Plan a trip and choose Save this route.";
   return count === 1 ? "1 saved route." : `${count} saved routes.`;
 }
 
@@ -286,7 +287,6 @@ export default function AlertsPage() {
 
             {routes !== null && routes.length === 0 && !listError && (
               <div className={styles.empty}>
-                <p>No saved routes yet. Plan a trip and choose Save this route.</p>
                 <ButtonLink variant="secondary" href="/">
                   Plan a trip
                 </ButtonLink>

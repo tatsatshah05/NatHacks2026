@@ -69,11 +69,7 @@
 }
 
 .empty {
-  margin-top: 12px;
-}
-
-.empty p {
-  margin-bottom: 12px;
+  margin-top: 4px;
 }
 
 .state p {
