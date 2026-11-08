@@ -88,8 +88,9 @@ export default function PrivacyPage() {
           <p>
             <strong>Not about you.</strong> The server also keeps the city&rsquo;s barriers from its public sources and the
             latest road-condition reading for each public 511 Alberta camera: a label such as dry, wet or ice, a score, the
-            camera&rsquo;s position and the times of the reading, plus one item count per data source and day, so it can notice
-            when a feed breaks. Never an image, and nothing from you.
+            camera&rsquo;s position and the times of the reading, and one sentence on whether a vehicle in view appeared to
+            have lost control, plus one item count per data source and day, so it can notice when a feed breaks. Never an
+            image, and nothing from you.
           </p>
           <p>
             <strong>Rate limits.</strong> To stop floods, the server counts how many reports, saved routes and alert

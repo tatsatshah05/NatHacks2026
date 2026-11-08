@@ -166,7 +166,9 @@ def test_sqlite_backup_wipe_restore_gives_the_same_rows(
     assert manifest["tables"] == {name: len(rows) for name, rows in before.items()}
     printed = capsys.readouterr().out
     assert printed.startswith("BACKUP sqlite ")
-    assert "3 tables, 4 rows" in printed
+    # obstruction, camera_reading, camera_incident (OP-415, empty here) and the
+    # saved routes table; the rows are the three obstructions and one reading.
+    assert "4 tables, 4 rows" in printed
 
     # Wipe: every row goes, and a row the backup never saw arrives.
     with closing(sqlite3.connect(db_file)) as conn:

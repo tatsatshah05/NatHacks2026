@@ -29,10 +29,26 @@ MAX_MODEL_BYTES = 128 * 1024 * 1024
 
 
 @dataclass(frozen=True)
+class Incident:
+    """OP-415: whether a vehicle in the frame appears to have lost control.
+
+    Answered by the Claude check (vision/ai_check.py) in the same call that agrees
+    or disagrees with the model's label; a display-only signal whose accuracy is not
+    measured. ``detail`` is one plain sentence of at most 200 characters.
+    """
+
+    seen: bool
+    detail: str
+
+
+@dataclass(frozen=True)
 class Prediction:
     label: str
     score: float | None = None
     reason: str | None = None
+    # None whenever the Claude check did not run (the model said unknown, the
+    # check is off or unavailable) or its answer carried no usable incident field.
+    incident: Incident | None = None
 
 
 class Classifier(Protocol):

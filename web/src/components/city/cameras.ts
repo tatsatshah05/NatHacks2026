@@ -43,3 +43,16 @@ export function groupCameras(features: readonly CameraFeature[]): CameraGroup[] 
 export function latestFrame(group: CameraGroup): string {
   return group.views.map((view) => view.properties.observed_at).reduce((a, b) => (a > b ? a : b));
 }
+
+export type CameraIncident = NonNullable<CameraReading["incident"]>;
+
+/**
+ * OP-415: the newest view answer saying a vehicle in view appeared to have lost control,
+ * or null. One line per camera, never per view; display only and unverified.
+ */
+export function latestIncident(group: CameraGroup): CameraIncident | null {
+  return group.views
+    .map((view) => view.properties.incident ?? null)
+    .filter((incident): incident is CameraIncident => incident !== null && incident.seen)
+    .reduce<CameraIncident | null>((newest, incident) => (!newest || incident.observed_at > newest.observed_at ? incident : newest), null);
+}

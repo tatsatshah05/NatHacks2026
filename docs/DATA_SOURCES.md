@@ -170,17 +170,18 @@ shared app's sources page when integrated.
 
 ## Parcel Addresses, LRT Stations and Named Places: Search (OP-302, Matthew)
 
-**What it is.** The index behind `GET /api/search?q=`, which turns typed text into a point to route from or to. It has three parts:
+**What it is.** The index behind `GET /api/search?q=`, which turns typed text into a point to route from or to. It has four parts:
 
 - **Addresses:** the City's Parcel Addresses (dataset `ut27-nrpn`, updated weekly).
 - **LRT stations and stops:** the City's LRT Stations and Stops (dataset `fhxi-cnhe`).
 - **Named places:** about fifty well-known destinations from `config/places.json`.
+- **Points of interest:** named shops, restaurants, clinics, libraries, parks and other places from OpenStreetMap (OP-416; its own section follows this one).
 
-**How we access it.** `scripts/build_search_index.py` reads both datasets once, on a laptop, from the City open data API (`https://data.edmonton.ca/resource/<id>.json`, paged with `$limit`/`$offset`, sending `SOCRATA_APP_TOKEN` as `X-App-Token` when it is set). It writes `cloud/data/search.npz`, which is committed. The API loads that file at startup (`cloud/app/search.py`). No external geocoder is ever called, and nothing is downloaded at request time. `python scripts/build_search_index.py --fixtures` builds a small index offline from the recorded sample.
+**How we access it.** `scripts/build_search_index.py` reads both City datasets once, on a laptop, from the City open data API (`https://data.edmonton.ca/resource/<id>.json`, paged with `$limit`/`$offset`, sending `SOCRATA_APP_TOKEN` as `X-App-Token` when it is set), then the points of interest from the Overpass API (`--no-pois` skips them). It writes `cloud/data/search.npz`, which is committed. The API loads that file at startup (`cloud/app/search.py`). No external geocoder is ever called, and nothing is downloaded at request time. `python scripts/build_search_index.py --fixtures` builds a small index offline from the recorded samples.
 
 **Licence and attribution.** City of Edmonton Open Data Terms of Use (the dataset metadata lists "See Terms of Use" and attribution "City of Edmonton"). Shown as "City of Edmonton Open Data" on `/sources` and with search results. The index stores public address points only: no owner names or other personal information.
 
-**Update cadence.** Rebuild weekly, or when a new address is missing. Run `python scripts/build_search_index.py --write-places` (20 seconds on November 8, almost all of it downloading), check the printed counts, and commit `cloud/data/search.npz` and `config/places.json`.
+**Update cadence.** Rebuild weekly, or when a new address is missing. Run `python scripts/build_search_index.py --write-places` (20 seconds on November 8 for the City data, almost all of it downloading; the Overpass read for the points of interest adds about a minute, see OP-416 below), check the printed counts, and commit `cloud/data/search.npz` and `config/places.json`.
 
 **What the index holds.**
 
@@ -213,6 +214,50 @@ The target is under 200 ms for the top 8 results. These measurements are from on
 - A street with no house number ("jasper ave") finds no addresses, only places and stations whose names or addresses contain those words.
 - House numbers with a letter suffix ("1A Sir Winston Churchill Square") are not in the dataset's numeric `house_number`, so places at such addresses are left out (the Law Courts).
 - Some well-known sites have no matching parcel address: the Valley Zoo, Louise McKinney Park, Victoria Park and the Old Strathcona Farmers' Market. They are left out of `config/places.json` rather than given a guessed point. Whyte Avenue is a street, so its place uses one Whyte Avenue parcel near 104 Street.
+
+## OpenStreetMap Points of Interest: Search (OP-416, Tatsat)
+
+**What it is.** The shops, restaurants, cafes, clinics, pharmacies, libraries, community centres, places of worship, parks and other named places that `GET /api/search?q=` finds by name ("chipotle", "audreys", "pharmacy"). User research on November 8, 2026 found people typing shop names into From and To and getting nothing, because the index held only addresses, LRT stations and the places in `config/places.json`.
+
+**How we access it.** `scripts/build_search_index.py` (the same build step as the addresses, on a laptop) sends one query to the public Overpass API (`https://overpass-api.de/api/interpreter`) for every named feature with an `amenity`, `shop`, `healthcare`, `tourism`, `leisure` or `office` tag inside the city boundary, asking for centres only (`out center`), never geometry. The boundary is the one the walking network is built on: OSMnx's geocode of "Edmonton, Alberta, Canada" (`scripts/build_graph.py`), which is why the script needs `scripts/requirements-graph.txt` in the build venv, as `make graph` does. OSMnx and shapely are never installed on Render; the API only loads the committed `cloud/data/search.npz`. If the whole-city request fails or is rate limited, the script waits (honouring `Retry-After`) and reads the boundary's bounding box as 2 by 2 tiles instead, down to three levels. Responses are cached in `--cache-dir` (`--fresh` re-reads), and `--no-pois` leaves the points of interest out.
+
+**Licence and attribution.** OpenStreetMap data is © OpenStreetMap contributors, under the [Open Database License (ODbL)](https://www.openstreetmap.org/copyright). Shown as "© OpenStreetMap contributors" on `/sources` (the "OpenStreetMap points of interest" row) and recorded in the index manifest (`osm_attribution`, `sources.points_of_interest`). Only names, categories and points are kept: no contributor names, no edit history, no personal information.
+
+**Update cadence.** Rebuilt with the rest of the index, weekly or when a place is missing: `python scripts/build_search_index.py` (with `--write-places` when the City data moved a place). Commit `cloud/data/search.npz`. The manifest records the extraction time (`points_of_interest.extracted_at`) and the OpenStreetMap data timestamp (`osm_base`).
+
+**What the index holds.** Each point of interest is a `place` result (no new `kind`), labelled with the OpenStreetMap `name`, whose `detail` is "<Category>, <address>" ("Fast food, 8611 112 Street NW"), so a chain's locations can be told apart. `parse_poi_elements` in `cloud/app/search.py` decides:
+
+- **Category:** plain English for the first POI tag that names a destination, in the order amenity, shop, healthcare, tourism, leisure, office (`CATEGORY_LABELS`, about 230 entries: Restaurant, Cafe, Pharmacy, Clinic, Library, Grocery store, Park, Place of worship). An unmapped value falls back to the tag value with underscores replaced ("Frozen yogurt").
+- **Address:** `addr:housenumber addr:street` as OpenStreetMap spells it when both tags exist; otherwise the nearest indexed parcel address within 150 m (a scipy k-d tree over the address points); otherwise the category alone.
+- **Aliases:** `brand` when it differs from the name, `short_name` and `alt_name`, so "tims" does not find Tim Hortons but "starbucks" finds a Starbucks Reserve Roastery.
+- **Dropped:** features with no name; parking, street furniture and machines (`NOT_DESTINATIONS`: parking, bench, waste basket, vending machine, ATM, drinking water, toilets, shelter, charging station and similar, plus `fixme`, `disused` and `vacant`); `public_transport=station` (the City's LRT list covers stations); a feature of the same name within 50 m of one already kept (the building and the shop inside it); and a feature named like a station or a `config/places.json` place or alias within 1 km of it (OpenStreetMap's own Rogers Place, City Hall and Churchill Square), so the curated entry with the checked coordinate answers alone. The script prints every count.
+
+**Ranking.** Tiers, best first; within a tier, stations and config places come before points of interest, then shorter labels first. (0) The whole query starts a label, or a curated alias from `config/places.json`. (1) The whole query starts an OpenStreetMap alias. (2) Addresses by house number and street. (3) Every query word starts a word of the label, an alias or the detail, which is how a category word ("pharmacy") or an address word ("tim hortons 104 ave") finds places. (4) Fuzzy: a misspelt word is corrected first against the street, station and config place words (the whole vocabulary before this story) and only then against the words that points of interest alone use, so "rogres" still gives Rogers Place (not a shop whose "progress" is a closer match) and "chipotel" gives Chipotle. So "churchill" still gives Churchill Stop, Churchill Station and Sir Winston Churchill Square first, and "10220 104 ave" still gives the address first.
+
+**Measured on November 8, 2026** (live build, `python scripts/build_search_index.py`, started 21:03:02 UTC on one laptop, Apple M4, macOS; Overpass read at 21:03:29 UTC against OpenStreetMap data of 21:02:51 UTC; index written 21:04:26 UTC, of which 7.9 s was parsing and building):
+
+| Measurement | Value |
+| --- | --- |
+| Overpass requests | 1 (the whole boundary answered; no tiling was needed) |
+| Elements returned / outside the exact boundary | 9,411 / 24 |
+| Dropped: not a destination / station / duplicate within 50 m / duplicate of a config place or station | 336 / 26 / 120 / 48 |
+| Nameless | 0 (the query asks only for named features) |
+| Points of interest kept | 8,857 (3,716 with an OpenStreetMap address, 4,951 with the nearest parcel address, 190 with the category alone) |
+| Distinct categories | 357 |
+| Index counts | 346,922 addresses, 29 stations, 54 config places, 8,857 points of interest |
+| File size | 2,582,953 bytes (was 1,749,459) |
+| Load time (`SEARCH index loaded` log line, 3 runs) | 24 to 26 ms (was 21 to 22 ms; 104 to 107 ms before the name lookups were prebuilt into the file) |
+| Search time, 200 realistic queries in process (`python -m cloud.app.search --bench`) | p50 0.12 ms, p95 3.25 ms, max 10.07 ms (the first misspelt query builds the fuzzy vocabularies, about 9 ms once; a misspelt query then takes about 3.5 ms) |
+
+The format version of `search.npz` is now 2: `name_group` marks points of interest, and the name lookup arrays (`name_tok`, `alias_tok`, `word_tok` with their owners) are built at build time and stored, which is what keeps the load under 100 ms.
+
+**Recorded sample.** `cloud/tests/fixtures/osm_pois/elements.json` holds one unmodified Overpass response for the downtown box of the Parcel Addresses sample (latitude 53.539 to 53.548, longitude -113.500 to -113.485): 322 named features, recorded on November 8, 2026 at 20:49:33 UTC (`manifest.json` has the query, the OpenStreetMap data timestamp and the SHA-256 hash). Of them 285 are kept, 18 are not destinations, 1 is a station, 3 are duplicates and 15 duplicate config places. Tests and `--fixtures` builds use it; they never call the network.
+
+**Known limits.**
+- OpenStreetMap coverage is uneven: a shop that nobody has mapped is not found, and an address tag may be missing or spelt differently ("82 Avenue North-west").
+- A chain with more than eight locations shows its first eight by label order; adding a street word ("tim hortons 104 ave") narrows it.
+- Two different places with the same name within 50 m are merged, and a feature named like a config place within 1 km is dropped even if it is a different place.
+- Categories come from the first tag in a fixed order, so a building tagged both as a mall and as an office is a shopping mall.
 
 ## ETS GTFS Schedule (OP-311)
 

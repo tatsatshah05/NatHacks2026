@@ -19,7 +19,7 @@ from cloud.app.camera_readings import MAX_LIFETIME
 from cloud.app.main import create_app
 from vision import worker
 from vision.cameras import API_URL, CameraAdapter, RateLimiter
-from vision.inference import Prediction
+from vision.inference import Incident, Prediction
 from vision.tests.test_worker import CAMERA, Clock
 from vision.worker import CameraWorker, FrameFetcher, HttpPublisher, Reading
 
@@ -137,6 +137,34 @@ def test_confirmed_reading_is_accepted_and_listed_field_by_field(
         "attribution",
     ):
         assert properties[name] == body[name], name
+    # OP-415: the check did not run, so the body has no incident and the API says null.
+    assert "incident" not in reading.payload()
+    assert properties["incident"] is None
+    assert api.get("/api/status").json()["cameras"]["incidents"] == 0
+
+
+def test_a_reading_with_the_checks_incident_answer_is_shown_and_counted(
+    api: TestClient,
+) -> None:
+    """OP-415: the same worker path, with the Claude answer riding on the prediction."""
+    seen = Incident(True, "A car sits across both lanes facing the barrier.")
+    camera_worker = live_worker(api, [Prediction("wet", 0.91, incident=seen)] * 2)
+    reading = confirmed(camera_worker)
+    assert camera_worker.publish_succeeded == 1
+    body = reading.payload()
+    assert body["incident"] == {
+        "seen": True,
+        "detail": "A car sits across both lanes facing the barrier.",
+    }
+    (feature,) = api.get("/api/cameras").json()["features"]
+    incident = feature["properties"]["incident"]
+    assert incident == {
+        "seen": True,
+        "detail": "A car sits across both lanes facing the barrier.",
+        "observed_at": body["observed_at"],
+    }
+    status = api.get("/api/status").json()["cameras"]
+    assert status["incidents"] == 1 and status["usable"] == 1
 
 
 def test_unknown_reading_without_a_score_is_accepted(api: TestClient) -> None:

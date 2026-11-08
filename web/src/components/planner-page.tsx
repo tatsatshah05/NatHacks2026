@@ -42,6 +42,7 @@ import {
 } from "@/lib/planner-types";
 import { isCityWide, plural } from "@/lib/report-format";
 import { parseTripParams, plannerHref, reportHref } from "@/lib/route-link";
+import { prefersReducedMotion } from "@/lib/settings";
 import styles from "./planner-page.module.css";
 
 // MapLibre is large and needs the browser; load it after the form is usable, and only
@@ -74,10 +75,6 @@ type Pending = { query: PlannerQuery; slow: boolean };
 function saveAction(route: RouteOut, query: PlannerQuery): ReactNode {
   if (route.lrt) return null;
   return <SaveRouteButton query={query} rank={route.rank} />;
-}
-
-function reducedMotion(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export default function PlannerPage() {
@@ -292,7 +289,8 @@ export default function PlannerPage() {
     setSelectedRank(rank);
     const map = mapRef.current;
     if (!map) return;
-    map.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+    // The OP-307 setting ("Always reduce") counts as well as the system preference.
+    map.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
     map.focus({ preventScroll: true });
   }, []);
 

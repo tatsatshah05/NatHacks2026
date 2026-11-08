@@ -357,3 +357,15 @@ a.mapHint {
 .views li {
   max-width: 70ch;
 }
+/* OP-415: one line per camera with a possible vehicle incident; the same text as the views. */
+.incident {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 0;
+  max-width: 70ch;
+}
+.incidentIcon {
+  flex: none;
+  margin-top: 2px;
+}

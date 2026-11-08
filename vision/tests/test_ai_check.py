@@ -14,16 +14,19 @@ from PIL import Image
 from vision.ai_check import (
     BLOCKED_QUESTION,
     BLOCKED_SCHEMA,
+    INCIDENT_RULES,
     LABELS,
     REPORT_LABEL_SCHEMA,
+    SCHEMA,
     AgreeingClassifier,
     AiBlocked,
     AiLabel,
     ClaudeCheck,
     _report_photo_prompt,
     _system_prompt,
+    parse_incident,
 )
-from vision.inference import Prediction
+from vision.inference import Incident, Prediction
 
 
 def jpeg() -> bytes:
@@ -295,10 +298,12 @@ PROMPT_SNAPSHOT = Path(__file__).parent / "fixtures" / "camera_system_prompt.txt
 
 
 def test_the_camera_system_prompt_is_unchanged() -> None:
-    """Snapshot taken from the code before report photos were added (OP-308).
+    """Snapshot taken from the code before report photos were added (OP-308), then
+    regenerated once for OP-415, which added INCIDENT_RULES before the closing line.
 
-    If LABELS.md or NIGHT_RULES change on purpose, regenerate the fixture with
-    ``_system_prompt()`` and review the diff: it changes what the camera worker asks.
+    If LABELS.md, NIGHT_RULES or INCIDENT_RULES change on purpose, regenerate the
+    fixture with ``_system_prompt()`` and review the diff: it changes what the camera
+    worker asks.
     """
     snapshot = PROMPT_SNAPSHOT.read_text(encoding="utf-8")
     assert _system_prompt() == snapshot
@@ -308,6 +313,11 @@ def test_the_camera_system_prompt_is_unchanged() -> None:
 
 
 def test_the_camera_request_is_unchanged() -> None:
+    """The one request the camera worker sends, pinned field by field.
+
+    OP-415 added the required ``incident`` object to the schema (one call still
+    answers both questions); everything else is as it was.
+    """
     client, messages = fake_client(
         response(json.dumps({"label": "dry", "reason": "Matte."}))
     )
@@ -316,6 +326,27 @@ def test_the_camera_request_is_unchanged() -> None:
     assert check.subject == "camera_frame"
     assert check.label(frame).label == "dry"
     (request,) = messages.requests
+    incident_schema = {
+        "type": "object",
+        "properties": {
+            "seen": {
+                "type": "boolean",
+                "description": (
+                    "True only when a vehicle in the frame appears to have lost "
+                    "control: skidded, spun, left the road or stopped after a collision."
+                ),
+            },
+            "detail": {
+                "type": "string",
+                "description": (
+                    "One short sentence: what shows it, or that no vehicle appears to "
+                    "have lost control."
+                ),
+            },
+        },
+        "required": ["seen", "detail"],
+        "additionalProperties": False,
+    }
     assert request == {
         "model": "claude-haiku-5-5",
         "max_tokens": 2048,
@@ -354,13 +385,129 @@ def test_the_camera_request_is_unchanged() -> None:
                             "type": "string",
                             "description": "One short sentence: what on the road shows this.",
                         },
+                        "incident": incident_schema,
                     },
-                    "required": ["label", "reason"],
+                    "required": ["label", "reason", "incident"],
                     "additionalProperties": False,
                 },
             },
         },
     }
+
+
+# ------------------------------------------------- vehicle incidents (OP-415)
+
+
+def answer(incident: object = "omit", label: str = "wet") -> str:
+    data: dict[str, object] = {"label": label, "reason": "Long streaks."}
+    if incident != "omit":
+        data["incident"] = incident
+    return json.dumps(data)
+
+
+def test_the_incident_answer_rides_along_in_the_same_call() -> None:
+    client, messages = fake_client(
+        response(
+            answer({"seen": True, "detail": "A car sits across both lanes."}),
+        )
+    )
+    got = ClaudeCheck("claude-haiku-5-5", client=client).label(jpeg())
+    assert got is not None and got.label == "wet"
+    assert got.incident == Incident(True, "A car sits across both lanes.")
+    assert len(messages.requests) == 1  # no extra call for the second question
+
+
+def test_a_quiet_frame_says_so() -> None:
+    client, _ = fake_client(
+        response(answer({"seen": False, "detail": "Traffic moves normally."}))
+    )
+    got = ClaudeCheck("claude-haiku-5-5", client=client).label(jpeg())
+    assert got is not None and got.incident == Incident(
+        False, "Traffic moves normally."
+    )
+
+
+@pytest.mark.parametrize(
+    "incident",
+    [
+        "omit",  # the field is missing
+        None,
+        "yes",
+        [],
+        {"seen": True},  # no detail
+        {"detail": "x"},  # no seen
+        {"seen": "true", "detail": "x"},  # not a JSON boolean
+        {"seen": 1, "detail": "x"},
+        {"seen": True, "detail": 7},
+    ],
+)
+def test_a_missing_or_malformed_incident_is_no_information(incident) -> None:
+    """Never a crash, never an incident, and the label is still read."""
+    client, messages = fake_client(response(answer(incident)))
+    got = ClaudeCheck("claude-haiku-5-5", client=client).label(jpeg())
+    assert got is not None and got.label == "wet"
+    assert got.incident is None
+    assert len(messages.requests) == 1
+
+
+def test_the_detail_becomes_one_line_of_at_most_200_characters() -> None:
+    long = "A truck\nlies on its  side\tin the ditch. " * 12
+    got = parse_incident({"seen": True, "detail": long})
+    assert got is not None and got.seen is True
+    assert "\n" not in got.detail and "\t" not in got.detail and "  " not in got.detail
+    assert len(got.detail) == 200
+    assert parse_incident({"seen": False, "detail": ""}) == Incident(False, "")
+
+
+def test_the_prompt_asks_the_incident_question_and_asks_for_restraint() -> None:
+    prompt = _system_prompt()
+    assert INCIDENT_RULES.strip() in prompt
+    assert "lost control" in INCIDENT_RULES and "Unsure" in INCIDENT_RULES
+    assert "incident" in SCHEMA["required"]
+    # The answer is always shaped, so the model cannot drop the question.
+    assert SCHEMA["properties"]["incident"]["required"] == ["seen", "detail"]
+
+
+@pytest.mark.parametrize(
+    ("model_label", "claude", "expected", "reason", "incident"),
+    [
+        # Agreement: the label is posted and the incident rides along.
+        ("dry", AiLabel("dry", "x", incident=Incident(True, "Car in ditch.")), "dry", None, Incident(True, "Car in ditch.")),
+        ("dry", AiLabel("dry", "x", incident=Incident(False, "Normal.")), "dry", None, Incident(False, "Normal.")),
+        # Agreement without an incident answer: nothing changes.
+        ("dry", AiLabel("dry", "x"), "dry", None, None),
+        # Disagreement stays unknown; the check ran, so its answer still rides along.
+        ("dry", AiLabel("wet", "x", incident=Incident(True, "Spun out.")), "unknown", "ai_check_disagrees", Incident(True, "Spun out.")),
+        # No answer at all: unknown, no incident information.
+        ("dry", None, "unknown", "ai_check_unavailable", None),
+        # The model said unknown: no call, so no incident information.
+        ("unknown", AiLabel("dry", "x", incident=Incident(True, "x")), "unknown", None, None),
+    ],
+)  # fmt: skip
+def test_the_incident_never_changes_the_agreement_decision(
+    model_label, claude, expected, reason, incident
+) -> None:
+    check = FakeCheck(claude)
+    got = AgreeingClassifier(FakeModel(model_label), check).predict(b"frame")
+    assert got.label == expected
+    if reason:
+        assert got.reason == reason
+    assert got.incident == incident
+    assert check.calls == (0 if model_label == "unknown" else 1)
+    if expected != "unknown":
+        assert got.score == 0.9  # the model's own score and label are kept
+
+
+def test_report_photos_never_carry_an_incident() -> None:
+    client, messages = fake_client(
+        response(answer({"seen": True, "detail": "x"}, label="dry"))
+    )
+    got = ClaudeCheck("claude-haiku-5-5", client=client, subject="report_photo").label(
+        jpeg()
+    )
+    assert got is not None and got.label == "dry" and got.incident is None
+    (request,) = messages.requests
+    assert "incident" not in request["output_config"]["format"]["schema"]["properties"]
 
 
 def test_the_camera_check_never_asks_the_blocked_question() -> None:

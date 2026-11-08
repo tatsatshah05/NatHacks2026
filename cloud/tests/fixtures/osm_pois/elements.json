@@ -1,0 +1,7361 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-08T20:48:34Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 304149972,
+  "lat": 53.5433222,
+  "lon": -113.4933900,
+  "tags": {
+    "alt_name": "TD Canada Trust",
+    "amenity": "bank",
+    "brand": "TD",
+    "brand:wikidata": "Q1080670",
+    "brand:wikipedia": "en:TD Canada Trust",
+    "level": "0",
+    "name": "TD"
+  }
+},
+{
+  "type": "node",
+  "id": 304150163,
+  "lat": 53.5436406,
+  "lon": -113.4954360,
+  "tags": {
+    "brand": "Delta Hotels",
+    "brand:wikidata": "Q5254663",
+    "brand:wikipedia": "en:Delta Hotels",
+    "name": "Delta Edmonton Centre Suite Hotel",
+    "tourism": "hotel"
+  }
+},
+{
+  "type": "node",
+  "id": 632192112,
+  "lat": 53.5402379,
+  "lon": -113.4971179,
+  "tags": {
+    "name": "Alberta Place Suite Hotel",
+    "tourism": "hotel"
+  }
+},
+{
+  "type": "node",
+  "id": 632192113,
+  "lat": 53.5399956,
+  "lon": -113.4971280,
+  "tags": {
+    "amenity": "car_rental",
+    "brand": "Hertz",
+    "brand:wikidata": "Q1543874",
+    "brand:wikipedia": "en:The Hertz Corporation",
+    "name": "Hertz"
+  }
+},
+{
+  "type": "node",
+  "id": 906456384,
+  "lat": 53.5410938,
+  "lon": -113.4994980,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10404",
+    "addr:postcode": "T5J 4R5",
+    "addr:province": "AB",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "restaurant",
+    "check_date": "2026-10-13",
+    "cuisine": "indian",
+    "name": "Tiffin India's Fresh Kitchen",
+    "opening_hours": "Mo-Fr 09:00-21:00; Sa-Su 12:00-21:00",
+    "phone": "+1-780-244-8433",
+    "website": "https://www.tiffinfreshkitchen.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 909346696,
+  "lat": 53.5431348,
+  "lon": -113.4976520,
+  "tags": {
+    "amenity": "fast_food",
+    "brand": "Subway",
+    "brand:wikidata": "Q244457",
+    "brand:wikipedia": "en:Subway (restaurant)",
+    "cuisine": "sandwich",
+    "name": "Subway",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 1053340522,
+  "lat": 53.5411022,
+  "lon": -113.4951211,
+  "tags": {
+    "amenity": "cafe",
+    "brand": "Tim Hortons",
+    "brand:wikidata": "Q175106",
+    "brand:wikipedia": "en:Tim Hortons",
+    "check_date": "2026-08-09",
+    "cuisine": "coffee_shop",
+    "drive_through": "no",
+    "internet_access": "wlan",
+    "level": "0",
+    "name": "Tim Hortons",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 1063793980,
+  "lat": 53.5433936,
+  "lon": -113.4976240,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Old Spaghetti Factory",
+    "website": "https://www.oldspaghettifactory.ca/locations/alberta/edmonton__downtown_/"
+  }
+},
+{
+  "type": "node",
+  "id": 1369388537,
+  "lat": 53.5448109,
+  "lon": -113.4862510,
+  "tags": {
+    "amenity": "pharmacy",
+    "healthcare": "pharmacy",
+    "name": "Family Drugs"
+  }
+},
+{
+  "type": "node",
+  "id": 1369388570,
+  "lat": 53.5449990,
+  "lon": -113.4888315,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Zinc Restaurant",
+    "website": "https://www.zincrestaurant.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 1369388583,
+  "lat": 53.5448751,
+  "lon": -113.4860174,
+  "tags": {
+    "amenity": "fast_food",
+    "cuisine": "chinese",
+    "name": "Kam Wah B.B.Q. Specialty"
+  }
+},
+{
+  "type": "node",
+  "id": 1369388595,
+  "lat": 53.5450823,
+  "lon": -113.4863661,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "greek",
+    "name": "Oil Lamp Eatery"
+  }
+},
+{
+  "type": "node",
+  "id": 1772989474,
+  "lat": 53.5394363,
+  "lon": -113.4994759,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10010",
+    "addr:postcode": "T5J 0Z1",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "restaurant",
+    "cuisine": "indian",
+    "name": "Desi-Licious",
+    "phone": "+1-780-204 3374",
+    "website": "https://desi-licious.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 1955858979,
+  "lat": 53.5414141,
+  "lon": -113.4989980,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10115",
+    "addr:postcode": "T5J 0Z9",
+    "addr:province": "AB",
+    "addr:street": "104 Street",
+    "amenity": "bar",
+    "check_date": "2026-08-13",
+    "email": "info@tzin.ca",
+    "name": "Tzin Wine and Tapas",
+    "opening_hours": "Su,Mo off; Tu-Th 16:00-23:00; Fr-Sa 16:00-24:00",
+    "phone": "+1 780-428-8946",
+    "website": "https://tzin.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 1955872537,
+  "lat": 53.5420339,
+  "lon": -113.4994620,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10150",
+    "addr:postcode": "T5J 1A7",
+    "addr:province": "AB",
+    "addr:street": "104 Street",
+    "check_date": "2026-08-13",
+    "name": "Foosh",
+    "opening_hours": "We-Fr 12:00-18:00; Sa 11:00-17:00; Su 12:00-17:00; Mo-Tu off",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 1956057545,
+  "lat": 53.5408226,
+  "lon": -113.4986025,
+  "tags": {
+    "addr:housenumber": "10345",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "restaurant",
+    "name": "Corso 32"
+  }
+},
+{
+  "type": "node",
+  "id": 1956057780,
+  "lat": 53.5407716,
+  "lon": -113.4986706,
+  "tags": {
+    "addr:housenumber": "10347",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "restaurant",
+    "name": "Phat Noodle"
+  }
+},
+{
+  "type": "node",
+  "id": 1956058500,
+  "lat": 53.5407670,
+  "lon": -113.4981140,
+  "tags": {
+    "addr:housenumber": "10309",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "cafe",
+    "brand": "Second Cup",
+    "brand:wikidata": "Q862180",
+    "brand:wikipedia": "en:Second Cup",
+    "check_date": "2026-08-13",
+    "cuisine": "coffee_shop",
+    "internet_access": "wlan",
+    "name": "Second Cup",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 1956642696,
+  "lat": 53.5404943,
+  "lon": -113.4989953,
+  "tags": {
+    "addr:housenumber": "10041",
+    "addr:street": "104 Street",
+    "amenity": "bar",
+    "name": "Cask and Barrel"
+  }
+},
+{
+  "type": "node",
+  "id": 2088212339,
+  "lat": 53.5441757,
+  "lon": -113.4887747,
+  "tags": {
+    "amenity": "cafe",
+    "cuisine": "coffee_shop",
+    "name": "L'Espresso Cafe"
+  }
+},
+{
+  "type": "node",
+  "id": 2088213707,
+  "lat": 53.5456642,
+  "lon": -113.4899011,
+  "tags": {
+    "amenity": "parking_entrance",
+    "name": "City Hall Parkade",
+    "parking": "underground"
+  }
+},
+{
+  "type": "node",
+  "id": 2280113041,
+  "lat": 53.5407991,
+  "lon": -113.4935656,
+  "tags": {
+    "addr:housenumber": "137",
+    "addr:postcode": "T5C 3C8",
+    "addr:street": "Jasper Avenue",
+    "alberta_school_number": "7722",
+    "amenity": "school",
+    "email": "learningstorelondonderry@epsb.ca",
+    "fax": "+1-780-473-2533",
+    "name": "Learning Store at Londonderry",
+    "operator": "Edmonton Public Schools",
+    "operator:short": "EPSB",
+    "operator:type": "public",
+    "operator:wikidata": "Q5339084",
+    "operator:wikipedia": "en:Edmonton Public Schools",
+    "phone": "+1-780-457-3467",
+    "source:addr": "Edmonton Public Schools / data.edmonton.ca",
+    "website": "https://outreach.epsb.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 2541904420,
+  "lat": 53.5424630,
+  "lon": -113.4990033,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housename": "2",
+    "addr:housenumber": "10169",
+    "addr:street": "104 Street NW",
+    "amenity": "cafe",
+    "check_date": "2026-08-13",
+    "cuisine": "cheese",
+    "name": "Cavern",
+    "phone": "+1-780-455-1336",
+    "source": "http://thecavern.ca",
+    "website": "http://thecavern.ca"
+  }
+},
+{
+  "type": "node",
+  "id": 2822040265,
+  "lat": 53.5412873,
+  "lon": -113.4906850,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-08-09",
+    "layer": "-1",
+    "name": "The Underground Tap & Grill"
+  }
+},
+{
+  "type": "node",
+  "id": 3239067371,
+  "lat": 53.5425005,
+  "lon": -113.4903696,
+  "tags": {
+    "access": "customers",
+    "addr:city": "Edmonton",
+    "amenity": "parking_entrance",
+    "fee": "yes",
+    "name": "Library Parkade Entrance",
+    "parking": "underground"
+  }
+},
+{
+  "type": "node",
+  "id": 3242994761,
+  "lat": 53.5436658,
+  "lon": -113.4950280,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10200",
+    "addr:postcode": "T5J 4B7",
+    "addr:street": "102 Avenue NW",
+    "amenity": "clinic",
+    "brand": "LASIK MD",
+    "brand:wikidata": "Q3205934",
+    "email": "info@lasikmd.com",
+    "fax": "+1-780-702-0336",
+    "healthcare": "clinic",
+    "healthcare:speciality": "ophthalmology",
+    "name": "LASIK MD",
+    "phone": "+1-780-702-2020",
+    "website": "http://www.lasikmd.com/edmonton"
+  }
+},
+{
+  "type": "node",
+  "id": 3308022145,
+  "lat": 53.5421014,
+  "lon": -113.4912939,
+  "tags": {
+    "amenity": "pub",
+    "check_date": "2026-10-13",
+    "name": "Craft Beer Market",
+    "opening_hours": "Su-Th 11:00-12:00, Fr,Sa 11:00-01:30"
+  }
+},
+{
+  "type": "node",
+  "id": 3773896308,
+  "lat": 53.5413600,
+  "lon": -113.4913959,
+  "tags": {
+    "addr:floor": "-1",
+    "amenity": "food_court",
+    "check_date": "2026-07-04",
+    "delivery": "no",
+    "drive_through": "no",
+    "layer": "-1",
+    "name": "Underground Food Court",
+    "smoking": "no",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 3773896311,
+  "lat": 53.5400591,
+  "lon": -113.4949986,
+  "tags": {
+    "amenity": "fast_food",
+    "name": "Food Court"
+  }
+},
+{
+  "type": "node",
+  "id": 4224183590,
+  "lat": 53.5413687,
+  "lon": -113.4901404,
+  "tags": {
+    "addr:street": "100 Street NW",
+    "amenity": "restaurant",
+    "brand": "Ruth's Chris Steak House",
+    "brand:wikidata": "Q7382829",
+    "brand:wikipedia": "en:Ruth's Chris Steak House",
+    "cuisine": "american;steak_house",
+    "name": "Ruth's Chris Steak House"
+  }
+},
+{
+  "type": "node",
+  "id": 4224189691,
+  "lat": 53.5429085,
+  "lon": -113.4854975,
+  "tags": {
+    "addr:housenumber": "10133",
+    "addr:street": "97 Street NW",
+    "amenity": "restaurant",
+    "name": "New Tan Restaurant",
+    "opening_hours": "Mo,We-Sa 10:30-19:00; Tu 10:30-14:00; Sa 10:00-19:00; Su 10:00-18:00"
+  }
+},
+{
+  "type": "node",
+  "id": 4224189692,
+  "lat": 53.5427885,
+  "lon": -113.4854516,
+  "tags": {
+    "addr:housenumber": "10133",
+    "addr:street": "97 Street NW",
+    "name": "Inn & Suites",
+    "tourism": "hotel"
+  }
+},
+{
+  "type": "node",
+  "id": 4224189693,
+  "lat": 53.5433068,
+  "lon": -113.4855125,
+  "tags": {
+    "addr:street": "97 Street NW",
+    "amenity": "restaurant",
+    "cuisine": "coffee_shop;sandwich",
+    "internet_access": "wlan",
+    "name": "The Nook Cafe",
+    "outdoor_seating": "yes",
+    "shop": "bakery",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 4224200994,
+  "lat": 53.5441970,
+  "lon": -113.4860390,
+  "tags": {
+    "addr:street": "97 Street NW",
+    "amenity": "pharmacy",
+    "healthcare": "pharmacy",
+    "name": "Market Drugs Medical",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 4224394423,
+  "lat": 53.5413635,
+  "lon": -113.4918535,
+  "tags": {
+    "addr:housenumber": "101115",
+    "addr:street": "100A Street NW",
+    "amenity": "cafe",
+    "name": "Aroma",
+    "opening_hours": "Mo-Th 10:00-23:00; Fr,Sa 10:00-24:00"
+  }
+},
+{
+  "type": "node",
+  "id": 4224424197,
+  "lat": 53.5456569,
+  "lon": -113.4916062,
+  "tags": {
+    "addr:housenumber": "10008",
+    "addr:street": "103 Avenue NW",
+    "name": "Allen's Deli Convenience Store",
+    "opening_hours": "Mo-Su 09:00-21:00",
+    "shop": "convenience"
+  }
+},
+{
+  "type": "node",
+  "id": 4224480790,
+  "lat": 53.5447410,
+  "lon": -113.4934123,
+  "tags": {
+    "addr:floor": "1;2",
+    "addr:housenumber": "10335",
+    "addr:street": "101 Street NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-21",
+    "cuisine": "steak_house",
+    "level": "1;2",
+    "name": "Chop Steakhouse"
+  }
+},
+{
+  "type": "node",
+  "id": 4224501490,
+  "lat": 53.5452576,
+  "lon": -113.4930772,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10235",
+    "addr:postcode": "T5J 3E8",
+    "addr:province": "AB",
+    "addr:street": "101 Street NW",
+    "addr:unit": "195",
+    "amenity": "pub",
+    "check_date": "2026-08-19",
+    "name": "O'Byrne’s Ice District",
+    "opening_hours": "Mo-Fr 11:00-24:00; Sa-Su 11:00-26:00",
+    "website": "https://www.obyrnes.com/ice-district-page"
+  }
+},
+{
+  "type": "node",
+  "id": 4224518591,
+  "lat": 53.5411949,
+  "lon": -113.4918828,
+  "tags": {
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "fast_food",
+    "brand": "Subway",
+    "brand:wikidata": "Q244457",
+    "brand:wikipedia": "en:Subway (restaurant)",
+    "cuisine": "sandwich",
+    "name": "Subway",
+    "opening_hours": "Mo-Fr 07:00-23:00; Sa,Su 08:00-22:00",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 4224680589,
+  "lat": 53.5421486,
+  "lon": -113.4902502,
+  "tags": {
+    "amenity": "clock",
+    "artwork_type": "architecture",
+    "date": "no",
+    "display": "analog",
+    "name": "Clock",
+    "support": "pedestal",
+    "visibility": "street"
+  }
+},
+{
+  "type": "node",
+  "id": 4263873695,
+  "lat": 53.5396831,
+  "lon": -113.4958074,
+  "tags": {
+    "amenity": "fast_food",
+    "cuisine": "italian_pizza",
+    "name": "Chicago Deep Dish Pizza"
+  }
+},
+{
+  "type": "node",
+  "id": 4263873699,
+  "lat": 53.5422687,
+  "lon": -113.4994484,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10156",
+    "addr:postcode": "T5J 1A7",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "pub",
+    "check_date": "2026-08-13",
+    "internet_access": "wlan",
+    "name": "Kelly's Pub",
+    "opening_hours": "Mo-Su 11:00-26:00",
+    "phone": "+1-780-451-8825"
+  }
+},
+{
+  "type": "node",
+  "id": 4263876391,
+  "lat": 53.5444510,
+  "lon": -113.4976739,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10266",
+    "addr:postcode": "t5j0y8",
+    "addr:province": "AB",
+    "addr:street": "103 Street NW",
+    "amenity": "bar",
+    "check_date": "2026-08-21",
+    "name": "The Whiskey Barn",
+    "website": "https://smokebar.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 4263876393,
+  "lat": 53.5407399,
+  "lon": -113.4939850,
+  "tags": {
+    "amenity": "bank",
+    "brand": "RBC",
+    "brand:en": "RBC Royal Bank",
+    "brand:fr": "RBC Banque Royale",
+    "brand:wikidata": "Q735261",
+    "brand:wikipedia": "en:Royal Bank of Canada",
+    "name": "RBC Royal Bank",
+    "name:en": "RBC Royal Bank",
+    "name:fr": "RBC Banque Royale",
+    "official_name": "Royal Bank of Canada"
+  }
+},
+{
+  "type": "node",
+  "id": 4263876593,
+  "lat": 53.5407416,
+  "lon": -113.4945206,
+  "tags": {
+    "amenity": "fast_food",
+    "check_date": "2026-08-09",
+    "cuisine": "asian",
+    "name": "Wok Box"
+  }
+},
+{
+  "type": "node",
+  "id": 4263876692,
+  "lat": 53.5412229,
+  "lon": -113.4990330,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10111",
+    "addr:postcode": "T5J 0Z9",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "check_date": "2026-08-13",
+    "drink:beer": "bottled",
+    "drink:wine": "bottled",
+    "drive_through": "no",
+    "email": "info@devinewines.ca",
+    "name": "Devine Wines",
+    "opening_hours": "Mo,Tu 11:00-18:00; We-Sa 11:00-19:00; Su 12:00-18:00; PH 12:00-17:00; Dec 25 off; Dec 26 off; Jan 1 off",
+    "phone": "+1 780-421-9463",
+    "shop": "alcohol",
+    "website": "https://devinewines.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 4263876693,
+  "lat": 53.5408810,
+  "lon": -113.4922585,
+  "tags": {
+    "name": "Union Bank Inn",
+    "tourism": "hotel"
+  }
+},
+{
+  "type": "node",
+  "id": 4263896991,
+  "lat": 53.5458017,
+  "lon": -113.4994514,
+  "tags": {
+    "check_date": "2026-10-02",
+    "check_date:opening_hours": "2026-10-02",
+    "fee": "no",
+    "name": "Neon Sign Museum",
+    "opening_hours": "Mo-Su,PH 00:00+",
+    "operator": "City of Edmonton",
+    "tourism": "museum",
+    "website": "https://www.edmonton.ca/city_government/edmonton_archives/neon-sign-museum.aspxhttps://www.edmonton.ca/city_government/edmonton_archives/neon-sign-museum.aspx"
+  }
+},
+{
+  "type": "node",
+  "id": 4263898591,
+  "lat": 53.5407667,
+  "lon": -113.4994960,
+  "tags": {
+    "amenity": "pharmacy",
+    "brand": "Shoppers Drug Mart",
+    "brand:wikidata": "Q1820137",
+    "brand:wikipedia": "en:Shoppers Drug Mart",
+    "check_date": "2026-10-13",
+    "healthcare": "pharmacy",
+    "name": "Shoppers Drug Mart",
+    "opening_hours": "Mo-Fr 07:00-20:00; Sa,Su 09:00-17:00",
+    "website": "https://www.shoppersdrugmart.ca/en/store-locator/store/2379",
+    "website:en": "https://www.shoppersdrugmart.ca/en/store-locator/store/2379",
+    "website:fr": "https://www.shoppersdrugmart.ca/fr/store-locator/store/2379"
+  }
+},
+{
+  "type": "node",
+  "id": 4263899389,
+  "lat": 53.5427895,
+  "lon": -113.4921380,
+  "tags": {
+    "amenity": "fast_food",
+    "brand": "Subway",
+    "brand:wikidata": "Q244457",
+    "brand:wikipedia": "en:Subway (restaurant)",
+    "cuisine": "sandwich",
+    "name": "Subway",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 4522414267,
+  "lat": 53.5463204,
+  "lon": -113.4970312,
+  "tags": {
+    "artist_name": "John Weaver",
+    "artwork_type": "statue",
+    "name": "Wayne Gretzky statue",
+    "tourism": "artwork",
+    "wikidata": "Q26908202"
+  }
+},
+{
+  "type": "node",
+  "id": 4546582743,
+  "lat": 53.5439525,
+  "lon": -113.4903962,
+  "tags": {
+    "artwork_type": "fountain",
+    "name": "EPCOR Waterfall",
+    "tourism": "artwork",
+    "waterway": "waterfall"
+  }
+},
+{
+  "type": "node",
+  "id": 4546582744,
+  "lat": 53.5435660,
+  "lon": -113.4904563,
+  "tags": {
+    "artist_name": "Clay Ellis",
+    "artwork_type": "sculpture",
+    "name": "The Lodge",
+    "tourism": "artwork"
+  }
+},
+{
+  "type": "node",
+  "id": 4581931025,
+  "lat": 53.5458692,
+  "lon": -113.4968447,
+  "tags": {
+    "amenity": "public_hall",
+    "check_date": "2026-08-19",
+    "description": "A 4,200-square-metre (45,000 sq ft), climate-controlled facility, that spans 104 Avenue.",
+    "indoor": "yes",
+    "layer": "2",
+    "name": "Ford Hall"
+  }
+},
+{
+  "type": "node",
+  "id": 4700145913,
+  "lat": 53.5423363,
+  "lon": -113.4898650,
+  "tags": {
+    "access": "customers",
+    "addr:city": "Edmonton",
+    "amenity": "parking",
+    "fee": "yes",
+    "layer": "-1",
+    "name": "Library Parkade (Exit Only)",
+    "parking": "underground",
+    "phone": "+1-780-496-6569",
+    "surface": "concrete"
+  }
+},
+{
+  "type": "node",
+  "id": 4856907683,
+  "lat": 53.5405295,
+  "lon": -113.4964070,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10243",
+    "addr:postcode": "T5J 1X8",
+    "addr:street": "Jasper Avenue NW",
+    "name": "Garage Repairs Edmonton",
+    "phone": "+1-780-851-2325",
+    "shop": "repair",
+    "website": "https://www.gd-repairsedmonton.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 5122307024,
+  "lat": 53.5460010,
+  "lon": -113.4911080,
+  "tags": {
+    "addr:housenumber": "10111",
+    "addr:street": "104 Avenue NW",
+    "check_date:opening_hours": "2024-11-11",
+    "name": "Edmonton Service Centre",
+    "name:en": "Edmonton Service Centre",
+    "office": "government",
+    "opening_hours": "Mo-Fr 08:00-16:30",
+    "website": "https://www.edmonton.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 5178746384,
+  "lat": 53.5390824,
+  "lon": -113.4870404,
+  "tags": {
+    "direction": "135",
+    "name": "Frederick G. Todd Lookout",
+    "tourism": "viewpoint"
+  }
+},
+{
+  "type": "node",
+  "id": 5217472017,
+  "lat": 53.5398172,
+  "lon": -113.4905500,
+  "tags": {
+    "amenity": "college",
+    "name": "Robertson College",
+    "operator": "Education Canada Group"
+  }
+},
+{
+  "type": "node",
+  "id": 5217472018,
+  "lat": 53.5418010,
+  "lon": -113.4881051,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "9888",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "cafe",
+    "cuisine": "coffee_shop",
+    "name": "De Capo"
+  }
+},
+{
+  "type": "node",
+  "id": 5217484738,
+  "lat": 53.5457787,
+  "lon": -113.4952590,
+  "tags": {
+    "amenity": "restaurant",
+    "brand": "Boston Pizza",
+    "brand:wikidata": "Q894578",
+    "brand:wikipedia": "en:Tim Hortons",
+    "check_date": "2026-07-30",
+    "cuisine": "pizza",
+    "drive_through": "no",
+    "name": "Boston Pizza",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 5357800294,
+  "lat": 53.5422778,
+  "lon": -113.4928447,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10062",
+    "addr:street": "100A Street NW",
+    "addr:unit": "101",
+    "amenity": "cafe",
+    "check_date": "2026-10-13",
+    "cuisine": "coffee_shop",
+    "name": "Credo",
+    "opening_hours": "Mo-Fr 07:00-16:00",
+    "website": "http://www.credocoffee.ca"
+  }
+},
+{
+  "type": "node",
+  "id": 5357823653,
+  "lat": 53.5435721,
+  "lon": -113.4954117,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10200",
+    "addr:postcode": "T5J 4B7",
+    "addr:street": "102 Avenue NW",
+    "amenity": "cinema",
+    "brand": "Landmark Cinemas",
+    "brand:wikidata": "Q6484762",
+    "check_date": "2025-10-04",
+    "level": "3",
+    "name": "Landmark Cinemas",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "website": "https://www.landmarkcinemas.com/showtimes/edmonton-city-centre",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 5423774252,
+  "lat": 53.5423480,
+  "lon": -113.4863660,
+  "tags": {
+    "addr:housenumber": "9700",
+    "addr:street": "Jasper Avenue",
+    "addr:unit": "126",
+    "check_date": "2026-08-09",
+    "name": "Passport Office",
+    "office": "government",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 5423774253,
+  "lat": 53.5423343,
+  "lon": -113.4864251,
+  "tags": {
+    "addr:housenumber": "9700",
+    "addr:street": "Jasper Avenue",
+    "name": "Service Canada",
+    "office": "government",
+    "operator": "Service Canada",
+    "operator:wikidata": "Q3480058",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 5486521831,
+  "lat": 53.5444713,
+  "lon": -113.4861667,
+  "tags": {
+    "addr:housenumber": "10217",
+    "addr:street": "97 Street NW",
+    "amenity": "bar",
+    "name": "Bohemia"
+  }
+},
+{
+  "type": "node",
+  "id": 6249087500,
+  "lat": 53.5402478,
+  "lon": -113.4970299,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10041",
+    "addr:postcode": "T5J 0X5",
+    "addr:street": "103 Street NW",
+    "description": "Barre, Spin, HIIT and Yoga Classes.",
+    "leisure": "fitness_centre",
+    "name": "XTHERAPY Athletics",
+    "opening_hours": "Mo-Th 06:00-20:00; Fr 06:00-19:00",
+    "phone": "+1-780-905-9897",
+    "sport": "yoga",
+    "website": "https://www.xtherapy.co/"
+  }
+},
+{
+  "type": "node",
+  "id": 6336774836,
+  "lat": 53.5449894,
+  "lon": -113.4944918,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10104",
+    "addr:postcode": "T5J 0H8",
+    "addr:street": "103 Avenue NW",
+    "addr:unit": "2500 Bell Tower",
+    "name": "RSM Canada",
+    "office": "tax_advisor",
+    "website": "https://rsmcanada.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 6397453285,
+  "lat": 53.5397804,
+  "lon": -113.4920626,
+  "tags": {
+    "amenity": "college",
+    "name": "Alberta College Campus",
+    "phone": "+1-780-497-4400"
+  }
+},
+{
+  "type": "node",
+  "id": 6587704785,
+  "lat": 53.5407753,
+  "lon": -113.4984253,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "name": "Bar Bricco"
+  }
+},
+{
+  "type": "node",
+  "id": 6595452054,
+  "lat": 53.5418482,
+  "lon": -113.4994695,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:floor": "G",
+    "addr:housenumber": "10134",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "cafe",
+    "check_date": "2026-08-13",
+    "internet_access": "wlan",
+    "internet_access:fee": "customers",
+    "level": "0",
+    "name": "Credo Coffee",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "website": "https://www.credocoffee.ca"
+  }
+},
+{
+  "type": "node",
+  "id": 7115433789,
+  "lat": 53.5416577,
+  "lon": -113.4926661,
+  "tags": {
+    "addr:housenumber": "10060",
+    "addr:street": "Jasper Avenue NW",
+    "name": "EquityApproved.ca",
+    "office": "company",
+    "website": "https://equityapproved.ca"
+  }
+},
+{
+  "type": "node",
+  "id": 7412644328,
+  "lat": 53.5419570,
+  "lon": -113.4946412,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10155",
+    "addr:postcode": "T5J 4G8",
+    "addr:province": "AB",
+    "addr:street": "102 Street NW",
+    "addr:unit": "148, Commerce Place (main floor),",
+    "amenity": "restaurant",
+    "brand": "The Chopped Leaf",
+    "brand:wikidata": "Q116904982",
+    "check_date": "2026-10-13",
+    "cuisine": "salad",
+    "name": "The Chopped Leaf",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 8978079320,
+  "lat": 53.5413175,
+  "lon": -113.4930120,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10080",
+    "addr:postcode": "T5J 1V9",
+    "addr:province": "AB",
+    "addr:street": "Jasper Avenue NW",
+    "addr:unit": "909",
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "healthcare:speciality": "travel_clinic;vaccination",
+    "name": "Passport Health Downtown Edmonton Travel Clinic",
+    "operator": "Passport Health",
+    "operator:type": "private",
+    "operator:wikidata": "Q30270336",
+    "source": "Passport Health"
+  }
+},
+{
+  "type": "node",
+  "id": 9090772946,
+  "lat": 53.5428504,
+  "lon": -113.4995480,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "name": "DOSC"
+  }
+},
+{
+  "type": "node",
+  "id": 10026000507,
+  "lat": 53.5410896,
+  "lon": -113.4982910,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10328",
+    "addr:province": "Alberta",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "cuisine": "japanese",
+    "name": "Dorinku Osaka",
+    "phone": "+1 780-761-9990",
+    "website": "https://osaka.dorinku.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 10288130979,
+  "lat": 53.5459878,
+  "lon": -113.4986889,
+  "tags": {
+    "name": "Hype Fetish Sneaker Store",
+    "shop": "shoes",
+    "website": "https://hypefetish.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 10291390406,
+  "lat": 53.5405756,
+  "lon": -113.4926313,
+  "tags": {
+    "name": "DeepMind",
+    "office": "company",
+    "website": "https://www.deepmind.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 10291390407,
+  "lat": 53.5405926,
+  "lon": -113.4927797,
+  "tags": {
+    "name": "Amii (Alberta Machine Intelligence Institute)",
+    "office": "company"
+  }
+},
+{
+  "type": "node",
+  "id": 10711200342,
+  "lat": 53.5458497,
+  "lon": -113.4990164,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10359",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "bar",
+    "check_date": "2026-08-05",
+    "name": "BAIJIU",
+    "website": "https://www.baijiuyeg.com/",
+    "website:menu": "https://www.baijiuyeg.com/about"
+  }
+},
+{
+  "type": "node",
+  "id": 10857029454,
+  "lat": 53.5424324,
+  "lon": -113.4917027,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10020",
+    "addr:province": "AB",
+    "addr:street": "100A Street NW",
+    "addr:unit": "120",
+    "amenity": "restaurant",
+    "check_date": "2026-10-13",
+    "cuisine": "italian",
+    "diet:gluten_free": "yes",
+    "diet:vegetarian": "yes",
+    "name": "Bianco",
+    "phone": "+1-780-761-8838",
+    "website": "https://www.biancoeats.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 10857029455,
+  "lat": 53.5425647,
+  "lon": -113.4926495,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10174",
+    "addr:province": "AB",
+    "addr:street": "100A Street NW",
+    "amenity": "restaurant",
+    "check_date": "2026-10-13",
+    "cuisine": "breakfast",
+    "email": "kellyramsey@eatoeb.com",
+    "name": "OEB Breakfast Co.",
+    "opening_hours": "Mo-Fr 07:30-14:45; Sa,Su,PH 08:00-14:45",
+    "phone": "+1-587-520-0936",
+    "website": "https://eatoeb.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 10871686262,
+  "lat": 53.5436919,
+  "lon": -113.4911312,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:floor": ";G",
+    "addr:housenumber": "10062",
+    "addr:postcode": "T5J 2Y8",
+    "addr:province": "AB",
+    "addr:street": "102 Avenue NW",
+    "amenity": "studio",
+    "callsign": "CHFA-FM",
+    "check_date": "2026-07-26",
+    "frequency": "90.1 MHz",
+    "level": "0;0",
+    "name": "Ici Radio-Canada Edmonton",
+    "operator": "Société Radio-Canada",
+    "studio": "radio",
+    "wheelchair": "yes",
+    "wikipedia": "en:CHFA-FM"
+  }
+},
+{
+  "type": "node",
+  "id": 10871686263,
+  "lat": 53.5436971,
+  "lon": -113.4911483,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:floor": ";G",
+    "addr:housenumber": "10062",
+    "addr:postcode": "T5J 2Y8",
+    "addr:province": "AB",
+    "addr:street": "102 Avenue NW",
+    "amenity": "studio",
+    "callsign": "CBX-AM",
+    "check_date": "2026-07-26",
+    "frequency": "740 kHz;93.9 MHz",
+    "level": "0;0",
+    "name": "CBC Radio One Edmonton",
+    "operator": "Canadian Broadcasting Corporation",
+    "studio": "radio",
+    "wheelchair": "yes",
+    "wikipedia": "en:CBX (AM)"
+  }
+},
+{
+  "type": "node",
+  "id": 10871686264,
+  "lat": 53.5436840,
+  "lon": -113.4911593,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:floor": ";G",
+    "addr:housenumber": "10062",
+    "addr:postcode": "T5J 2Y8",
+    "addr:province": "AB",
+    "addr:street": "102 Avenue NW",
+    "amenity": "studio",
+    "callsign": "CBXT-DT",
+    "channel": "25",
+    "check_date": "2026-07-26",
+    "level": "0;0",
+    "name": "CBC Edmonton",
+    "operator": "Canadian Broadcasting Corporation",
+    "studio": "television",
+    "website": "https://www.cbc.ca/news/canada/edmonton",
+    "wheelchair": "yes",
+    "wikipedia": "en:CBXT-DT"
+  }
+},
+{
+  "type": "node",
+  "id": 10871686265,
+  "lat": 53.5436795,
+  "lon": -113.4911406,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:floor": ";G",
+    "addr:housenumber": "10062",
+    "addr:postcode": "T5J 2Y8",
+    "addr:province": "AB",
+    "addr:street": "102 Avenue NW",
+    "amenity": "studio",
+    "callsign": "CBXFT-DT",
+    "channel": "27",
+    "check_date": "2026-07-26",
+    "level": "0;0",
+    "name": "Ici Alberta",
+    "operator": "Société Radio-Canada",
+    "studio": "television",
+    "website": "https://ici.radio-canada.ca/alberta",
+    "wheelchair": "yes",
+    "wikipedia": "en:CBXFT-DT"
+  }
+},
+{
+  "type": "node",
+  "id": 10958146781,
+  "lat": 53.5455048,
+  "lon": -113.4940021,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10111",
+    "addr:postcode": "T5J 4X1",
+    "addr:province": "AB",
+    "addr:street": "104 Avenue NW",
+    "addr:unit": "108",
+    "amenity": "restaurant",
+    "cuisine": "indian",
+    "name": "Guru Kitchen + Bar",
+    "phone": "+1-780-399-8210",
+    "website": "https://gururestaurant.com/downtown",
+    "website:menu": "http://gururestaurant.com/downtown/#food"
+  }
+},
+{
+  "type": "node",
+  "id": 11005787214,
+  "lat": 53.5456520,
+  "lon": -113.4953432,
+  "tags": {
+    "access": "customers",
+    "amenity": "parking_entrance",
+    "description": "4 levels of underground parking with EV chargers and bicycle parking available.",
+    "level": "0",
+    "name": "Edmonton Tower Parking",
+    "parking": "underground",
+    "ref": "1057",
+    "website": "https://www.edmontonparking.preciseparklink.com/edmonton-tower"
+  }
+},
+{
+  "type": "node",
+  "id": 11285275885,
+  "lat": 53.5410928,
+  "lon": -113.4983880,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10332",
+    "addr:postcode": "T5J 1Y7",
+    "addr:province": "AB",
+    "addr:street": "Jasper Avenue NW",
+    "check_date": "2026-08-13",
+    "check_date:opening_hours": "2026-07-15",
+    "name": "Wee Book Inn",
+    "opening_hours": "Mo-Su 09:00-21:30",
+    "phone": "+1 780 423 1434",
+    "shop": "books"
+  }
+},
+{
+  "type": "node",
+  "id": 11322938844,
+  "lat": 53.5419475,
+  "lon": -113.4907002,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10132",
+    "addr:postcode": "T5J 0N8",
+    "addr:street": "100 Street NW",
+    "amenity": "restaurant",
+    "bus": "yes",
+    "name": "Woodwork",
+    "network": "ETS",
+    "opening_hours:url": "https://woodworkyeg.com/",
+    "website": "https://woodworkyeg.com/",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 11423109284,
+  "lat": 53.5439415,
+  "lon": -113.4976301,
+  "tags": {
+    "amenity": "cafe",
+    "brand": "Gong Cha",
+    "brand:wikidata": "Q5581670",
+    "brand:zh": "貢茶",
+    "cuisine": "bubble_tea",
+    "int_name": "Gong Cha",
+    "name": "Gong Cha",
+    "name:zh": "貢茶",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 11423119686,
+  "lat": 53.5447826,
+  "lon": -113.4977470,
+  "tags": {
+    "addr:floor": "2",
+    "brand": "Loblaws",
+    "brand:wikidata": "Q3257626",
+    "check_date": "2026-08-21",
+    "level": "2",
+    "name": "Loblaws",
+    "shop": "supermarket"
+  }
+},
+{
+  "type": "node",
+  "id": 11577824980,
+  "lat": 53.5472326,
+  "lon": -113.4931032,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-08-19",
+    "cuisine": "pizza",
+    "name": "Buco's Pizzeria"
+  }
+},
+{
+  "type": "node",
+  "id": 11580712886,
+  "lat": 53.5456350,
+  "lon": -113.4976741,
+  "tags": {
+    "check_date": "2026-08-19",
+    "fan": "sport",
+    "name": "ICE District Authentics - The Official Oilers Team Store",
+    "shop": "sports",
+    "sport": "ice_hockey"
+  }
+},
+{
+  "type": "node",
+  "id": 11580712888,
+  "lat": 53.5457635,
+  "lon": -113.4976609,
+  "tags": {
+    "name": "Plantlife Cannabis",
+    "shop": "cannabis"
+  }
+},
+{
+  "type": "node",
+  "id": 11580712909,
+  "lat": 53.5448050,
+  "lon": -113.4973493,
+  "tags": {
+    "artwork_type": "statue",
+    "name": "Bob and Doug McKenzie Statue",
+    "tourism": "artwork"
+  }
+},
+{
+  "type": "node",
+  "id": 11683575878,
+  "lat": 53.5424246,
+  "lon": -113.4994953,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10172",
+    "addr:postcode": "T5J 1A7",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "check_date": "2026-08-13",
+    "dry_cleaning": "yes",
+    "name": "Tony the Tailor",
+    "opening_hours": "Mo-Fr 10:00-18:00; Sa 10:00-15:00",
+    "phone": "+1-780-426-4654",
+    "shop": "tailor",
+    "website": "https://www.edmontontailor.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 11683575879,
+  "lat": 53.5425218,
+  "lon": -113.4994980,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10176",
+    "addr:postcode": "T5J 1A7",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "beauty": "nails",
+    "check_date": "2026-08-13",
+    "name": "All Style Nails",
+    "opening_hours": "Mo-We 10:00-18:00; Fr 10:00-18:00; Sa 10:00-16:00",
+    "phone": "+1-780-428-2882",
+    "shop": "beauty"
+  }
+},
+{
+  "type": "node",
+  "id": 11685419331,
+  "lat": 53.5431461,
+  "lon": -113.4999880,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10412",
+    "addr:postcode": "T5J 0B4",
+    "addr:province": "AB",
+    "addr:street": "102 Avenue NW",
+    "amenity": "fast_food",
+    "brand": "Cosmic Pizza & Donair",
+    "check_date": "2026-08-13",
+    "cuisine": "pizza;kebab;shawarma",
+    "delivery": "yes",
+    "diet:halal": "yes",
+    "drive_through": "no",
+    "email": "cosmicpizzadowntownedm@gmail.com",
+    "level": "0",
+    "name": "Cosmic Pizza & Donair",
+    "opening_hours": "Mo-We 10:30-01:00; Th 10:30-03:00; Fr,Sa 10:30-04:00; Su 11:00-01:00",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "phone": "+1-780-705-3555",
+    "smoking": "no",
+    "takeaway": "yes",
+    "website": "https://cosmicpizza.ca/location/?l=28821402",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 12049102632,
+  "lat": 53.5423738,
+  "lon": -113.4931612,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10175",
+    "addr:postcode": "T5J 0H3",
+    "addr:province": "AB",
+    "addr:street": "101 Street NW",
+    "addr:unit": "Suite 2300",
+    "email": "info@humanisadvisory.com",
+    "name": "Humanis Advisory",
+    "office": "employment_agency",
+    "opening_hours": "Mo-Fr 09:00-17:00",
+    "phone": "+1 780-554-6761",
+    "website": "https://humanisadvisory.com/contact/edmonton/"
+  }
+},
+{
+  "type": "node",
+  "id": 12269464274,
+  "lat": 53.5448988,
+  "lon": -113.4940794,
+  "tags": {
+    "amenity": "atm",
+    "cash_in": "yes",
+    "cash_out": "no",
+    "check_date:currency:XBT": "2025-12-15",
+    "currency:CAD": "yes",
+    "currency:XBT": "yes",
+    "drive_through": "no",
+    "image": "https://ca-central-1.graphassets.com/clt7qaw1t09lq07u2f6oz1lvx/cmbfjzibp2k7d08u56yam7sxy",
+    "indoor": "yes",
+    "level": "0",
+    "name": "Bitcoin Well",
+    "opening_hours": "Mo-Fr 07:30-15:30",
+    "operator": "Bitcoin Well",
+    "payment:cash": "yes",
+    "payment:onchain": "yes",
+    "source": "local knowledge;streetlevel imagery",
+    "url": "https://coinatmradar.com/bitcoin_atm/59984/bitcoin-atm-bitcoin-well-edmonton-remedy-cafe-bell-tower/",
+    "website": "https://bitcoinwell.ca/bitcoin-atm/alberta/edmonton/remedy-cafe-bell-tower-downtown"
+  }
+},
+{
+  "type": "node",
+  "id": 12352186459,
+  "lat": 53.5421140,
+  "lon": -113.4942182,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2024-11-18",
+    "cuisine": "sushi",
+    "name": "Sushi ya",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 12352186460,
+  "lat": 53.5417266,
+  "lon": -113.4941651,
+  "tags": {
+    "amenity": "fast_food",
+    "brand": "Edo Japan",
+    "brand:wikidata": "Q17492665",
+    "check_date": "2024-11-18",
+    "cuisine": "japanese",
+    "name": "Edo Japan",
+    "takeaway": "yes",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 12773030938,
+  "lat": 53.5419787,
+  "lon": -113.4990404,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10145",
+    "addr:postcode": "T5J 0Z9",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "addr:unit": "101",
+    "amenity": "fast_food",
+    "check_date": "2026-08-13",
+    "cuisine": "chicken",
+    "drive_through": "no",
+    "name": "Seoul Fried Chicken",
+    "opening_hours": "Mo-Sa 11:30-22:00; Su 11:30-20:00",
+    "phone": "+1-780-249-2096",
+    "website": "https://seoulfried.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 12832321372,
+  "lat": 53.5437041,
+  "lon": -113.4911308,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:floor": ";G",
+    "addr:housenumber": "10062",
+    "addr:postcode": "T5J 2Y8",
+    "addr:province": "AB",
+    "addr:street": "102 Avenue NW",
+    "amenity": "studio",
+    "callsign": "CBX-FM",
+    "check_date": "2026-07-26",
+    "frequency": "90.9 MHz",
+    "level": "0;0",
+    "name": "CBC Music Edmonton",
+    "operator": "Canadian Broadcasting Corporation",
+    "studio": "radio",
+    "wheelchair": "yes",
+    "wikipedia": "en:CBX-FM"
+  }
+},
+{
+  "type": "node",
+  "id": 12860318759,
+  "lat": 53.5420221,
+  "lon": -113.4870963,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "9802",
+    "addr:province": "AB",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "studio",
+    "callsign": "CKUA-FM",
+    "check_date": "2026-08-09",
+    "frequency": "94.9 MHz",
+    "name": "CKUA",
+    "operator": "CKUA Radio Network",
+    "studio": "radio",
+    "website": "https://www.ckua.com/",
+    "wikipedia": "en:CKUA-FM"
+  }
+},
+{
+  "type": "node",
+  "id": 12916790221,
+  "lat": 53.5405750,
+  "lon": -113.4935674,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-08-06",
+    "cuisine": "steak_house",
+    "name": "Von's Steakhouse & Raw Bar"
+  }
+},
+{
+  "type": "node",
+  "id": 12918837634,
+  "lat": 53.5448567,
+  "lon": -113.4987772,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10301",
+    "addr:postcode": "T5J 1B9",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "air_conditioning": "yes",
+    "check_date": "2026-08-13",
+    "name": "River City Storage",
+    "opening_hours": "Mo-Su 10:30-17:30",
+    "phone": "+1 780-425-2137",
+    "shop": "storage_rental",
+    "website": "https://www.rivercity.storage/"
+  }
+},
+{
+  "type": "node",
+  "id": 12958821995,
+  "lat": 53.5445973,
+  "lon": -113.4912509,
+  "tags": {
+    "amenity": "social_facility",
+    "name": "Sage Seniors Association",
+    "social_facility": "assisted_living",
+    "social_facility:for": "senior"
+  }
+},
+{
+  "type": "node",
+  "id": 12980500535,
+  "lat": 53.5407066,
+  "lon": -113.4898764,
+  "tags": {
+    "artist_name": "John Weaver",
+    "artwork_type": "sculpture",
+    "material": "bronze",
+    "name": "Robert Burns",
+    "note": "Some sources say that the artist is “John Warner”; this is incorrect per the artist’s signature.",
+    "start_date": "2000-01-25",
+    "tourism": "artwork"
+  }
+},
+{
+  "type": "node",
+  "id": 13025350496,
+  "lat": 53.5418375,
+  "lon": -113.4870738,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-10-16",
+    "name": "Rigoletto's"
+  }
+},
+{
+  "type": "node",
+  "id": 13027086197,
+  "lat": 53.5410963,
+  "lon": -113.4887776,
+  "tags": {
+    "addr:housenumber": "9941",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "restaurant",
+    "check_date": "2025-07-25",
+    "name": "Casablanca Donair"
+  }
+},
+{
+  "type": "node",
+  "id": 13082319130,
+  "lat": 53.5418551,
+  "lon": -113.4990467,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10137",
+    "addr:postcode": "T5J 0Z9",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "cafe",
+    "check_date": "2026-08-13",
+    "cuisine": "coffee_shop",
+    "internet_access": "wlan",
+    "name": "Fawkes Café & Bakery",
+    "opening_hours": "Mo-Su 08:00-22:00",
+    "phone": "+1-780-784-7447",
+    "website": "https://www.fawkescoffee.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 13082321243,
+  "lat": 53.5443006,
+  "lon": -113.4976725,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10262",
+    "addr:postcode": "T5J0Y8",
+    "addr:province": "AB",
+    "addr:street": "103 Street NW",
+    "amenity": "bar",
+    "name": "Honi Honi Tiki Lounge",
+    "opening_hours": "We-Sa 17:00-24:00",
+    "website": "https://honihonitiki.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 13093321671,
+  "lat": 53.5397817,
+  "lon": -113.4941200,
+  "tags": {
+    "check_date": "2025-08-23",
+    "name": "Edmonton Journal",
+    "office": "newspaper"
+  }
+},
+{
+  "type": "node",
+  "id": 13093321672,
+  "lat": 53.5407674,
+  "lon": -113.4940733,
+  "tags": {
+    "addr:housenumber": "10107",
+    "addr:street": "Jasper Avenue NW",
+    "check_date": "2026-08-09",
+    "name": "Edmonton Unlimited",
+    "office": "educational_institution",
+    "website": "https://edmontonunlimited.com",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 13093321673,
+  "lat": 53.5441224,
+  "lon": -113.4934375,
+  "tags": {
+    "addr:floor": ";G;1",
+    "addr:housenumber": "10255",
+    "addr:street": "101 Street North-west",
+    "amenity": "pharmacy",
+    "brand": "Shoppers Drug Mart",
+    "brand:wikidata": "Q1820137",
+    "check_date": "2026-10-01",
+    "healthcare": "pharmacy",
+    "level": "0;0;1",
+    "name": "Shoppers Drug Mart",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 13093321674,
+  "lat": 53.5466362,
+  "lon": -113.4943025,
+  "tags": {
+    "amenity": "events_venue",
+    "check_date": "2026-08-19",
+    "name": "Fanpark @ Ice District"
+  }
+},
+{
+  "type": "node",
+  "id": 13093321675,
+  "lat": 53.5479224,
+  "lon": -113.4939820,
+  "tags": {
+    "addr:housenumber": "10508",
+    "addr:street": "101 Street NW",
+    "amenity": "restaurant",
+    "check_date": "2025-08-23",
+    "name": "One01 Bistro"
+  }
+},
+{
+  "type": "node",
+  "id": 13137145889,
+  "lat": 53.5432203,
+  "lon": -113.4884280,
+  "tags": {
+    "amenity": "theatre",
+    "name": "Catalyst Theater"
+  }
+},
+{
+  "type": "node",
+  "id": 13137147430,
+  "lat": 53.5427038,
+  "lon": -113.4883644,
+  "tags": {
+    "amenity": "theatre",
+    "name": "Shoctor Theatre"
+  }
+},
+{
+  "type": "node",
+  "id": 13154283795,
+  "lat": 53.5404778,
+  "lon": -113.4935391,
+  "tags": {
+    "addr:housenumber": "10030",
+    "addr:street": "101 Street North-west",
+    "amenity": "fixme",
+    "check_date": "2025-09-18",
+    "fixme": "type",
+    "fixme:type": "idk",
+    "name": "Manpower"
+  }
+},
+{
+  "type": "node",
+  "id": 13154283796,
+  "lat": 53.5416741,
+  "lon": -113.4939917,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "cuisine": "steak_house",
+    "name": "Lux Steakhouse + Bar"
+  }
+},
+{
+  "type": "node",
+  "id": 13154283797,
+  "lat": 53.5425431,
+  "lon": -113.4934553,
+  "tags": {
+    "addr:housenumber": "10185",
+    "addr:street": "101 Street NW",
+    "amenity": "bank",
+    "brand": "BMO",
+    "brand:wikidata": "Q806693",
+    "check_date": "2026-03-26",
+    "check_date:opening_hours": "2026-03-26",
+    "name": "BMO",
+    "official_name": "Bank of Montreal",
+    "opening_hours": "Mo-Fr 09:30-17:00; Sa,Su off"
+  }
+},
+{
+  "type": "node",
+  "id": 13154283798,
+  "lat": 53.5458738,
+  "lon": -113.4940222,
+  "tags": {
+    "amenity": "bank",
+    "brand": "RBC",
+    "brand:en": "RBC Royal Bank",
+    "brand:fr": "RBC Banque Royale",
+    "brand:wikidata": "Q735261",
+    "check_date": "2026-08-19",
+    "check_date:opening_hours": "2026-08-19",
+    "name": "RBC Royal Bank",
+    "name:en": "RBC Royal Bank",
+    "name:fr": "RBC Banque Royale",
+    "official_name": "Royal Bank of Canada",
+    "opening_hours": "Mo-Fr 09:30-17:00"
+  }
+},
+{
+  "type": "node",
+  "id": 13164141774,
+  "lat": 53.5413275,
+  "lon": -113.4935372,
+  "tags": {
+    "addr:housenumber": "10119",
+    "addr:street": "101 Street NW",
+    "amenity": "fast_food",
+    "check_date": "2026-08-13",
+    "cuisine": "pizza",
+    "name": "Mondo Pizza"
+  }
+},
+{
+  "type": "node",
+  "id": 13179310763,
+  "lat": 53.5391875,
+  "lon": -113.4994812,
+  "tags": {
+    "amenity": "bus_station",
+    "bus": "yes",
+    "check_date": "2026-08-09",
+    "name": "Red Arrow Edmonton",
+    "operator": "Pacific Western Transportation",
+    "public_transport": "station"
+  }
+},
+{
+  "type": "node",
+  "id": 13194855288,
+  "lat": 53.5435396,
+  "lon": -113.4943383,
+  "tags": {
+    "addr:floor": "1",
+    "amenity": "bank",
+    "brand": "RBC",
+    "brand:en": "RBC Royal Bank",
+    "brand:fr": "RBC Banque Royale",
+    "brand:wikidata": "Q735261",
+    "check_date": "2026-08-21",
+    "level": "1",
+    "name": "RBC Royal Bank",
+    "name:en": "RBC Royal Bank",
+    "name:fr": "RBC Banque Royale",
+    "official_name": "Royal Bank of Canada"
+  }
+},
+{
+  "type": "node",
+  "id": 13194855289,
+  "lat": 53.5438059,
+  "lon": -113.4958182,
+  "tags": {
+    "addr:floor": "3",
+    "amenity": "bar",
+    "check_date": "2025-10-04",
+    "level": "3",
+    "name": "District 102"
+  }
+},
+{
+  "type": "node",
+  "id": 13194855291,
+  "lat": 53.5435059,
+  "lon": -113.4950104,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "bank",
+    "brand": "ATB Financial",
+    "brand:wikidata": "Q298762",
+    "check_date": "2026-08-20",
+    "level": "2",
+    "name": "ATB Financial",
+    "official_name": "Alberta Treasury Branches"
+  }
+},
+{
+  "type": "node",
+  "id": 13194855292,
+  "lat": 53.5443454,
+  "lon": -113.4943337,
+  "tags": {
+    "amenity": "bar",
+    "check_date": "2025-10-04",
+    "name": "Fennec Kitchen & Bar"
+  }
+},
+{
+  "type": "node",
+  "id": 13194867302,
+  "lat": 53.5437684,
+  "lon": -113.4939975,
+  "tags": {
+    "addr:floor": "-1",
+    "brand": "Dollarama",
+    "brand:wikidata": "Q3033947",
+    "check_date": "2026-08-20",
+    "level": "-1",
+    "name": "Dollarama",
+    "shop": "variety_store"
+  }
+},
+{
+  "type": "node",
+  "id": 13364471392,
+  "lat": 53.5410867,
+  "lon": -113.4987495,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10354",
+    "addr:postcode": "T5J 1Y7",
+    "addr:province": "AB",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "fast_food",
+    "check_date": "2026-10-13",
+    "cuisine": "burger",
+    "drive_through": "no",
+    "name": "Jack's Burger Shack",
+    "opening_hours": "Mo-Fr 11:00-19:00",
+    "phone": "+1-587-525-4889",
+    "website": "https://jacksburgershack.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 13364471393,
+  "lat": 53.5410853,
+  "lon": -113.4979076,
+  "tags": {
+    "amenity": "cafe",
+    "check_date": "2026-08-13",
+    "cuisine": "tea",
+    "name": "Russian Tea Room"
+  }
+},
+{
+  "type": "node",
+  "id": 13364471394,
+  "lat": 53.5410825,
+  "lon": -113.4979699,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "name": "Copper Branch"
+  }
+},
+{
+  "type": "node",
+  "id": 13365846076,
+  "lat": 53.5452738,
+  "lon": -113.4933438,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-08-19",
+    "cuisine": "italian",
+    "name": "Amore Pasta"
+  }
+},
+{
+  "type": "node",
+  "id": 13393668402,
+  "lat": 53.5412784,
+  "lon": -113.4935140,
+  "tags": {
+    "addr:housenumber": "10117",
+    "addr:street": "101 Street NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-09",
+    "name": "Bistro Praha"
+  }
+},
+{
+  "type": "node",
+  "id": 13456726626,
+  "lat": 53.5460343,
+  "lon": -113.4906514,
+  "tags": {
+    "artist_name": "Isla Burns",
+    "artwork_type": "sculpture",
+    "name": "Caravel (1992)",
+    "tourism": "artwork"
+  }
+},
+{
+  "type": "node",
+  "id": 13459171401,
+  "lat": 53.5405906,
+  "lon": -113.4942944,
+  "tags": {
+    "addr:housenumber": "10117",
+    "addr:postcode": "T5J 1W8",
+    "addr:street": "Jasper Avenue NW",
+    "name": "Lizotte and Associates",
+    "office": "lawyer",
+    "website": "http://www.lizotterealestate.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 13465396068,
+  "lat": 53.5428933,
+  "lon": -113.4941443,
+  "tags": {
+    "amenity": "bank",
+    "brand": "National Bank",
+    "brand:en": "National Bank",
+    "brand:fr": "Banque Nationale",
+    "brand:wikidata": "Q634298",
+    "name": "National Bank",
+    "name:en": "National Bank",
+    "name:fr": "Banque Nationale",
+    "official_name": "National Bank of Canada",
+    "official_name:en": "National Bank of Canada",
+    "official_name:fr": "Banque Nationale du Canada"
+  }
+},
+{
+  "type": "node",
+  "id": 13465396070,
+  "lat": 53.5449702,
+  "lon": -113.4976031,
+  "tags": {
+    "amenity": "bank",
+    "brand": "National Bank",
+    "brand:en": "National Bank",
+    "brand:fr": "Banque Nationale",
+    "brand:wikidata": "Q634298",
+    "name": "National Bank",
+    "name:en": "National Bank",
+    "name:fr": "Banque Nationale",
+    "official_name": "National Bank of Canada",
+    "official_name:en": "National Bank of Canada",
+    "official_name:fr": "Banque Nationale du Canada"
+  }
+},
+{
+  "type": "node",
+  "id": 13529443382,
+  "lat": 53.5408204,
+  "lon": -113.4913449,
+  "tags": {
+    "amenity": "bank",
+    "brand": "ATB Financial",
+    "brand:wikidata": "Q298762",
+    "name": "ATB Financial",
+    "official_name": "Alberta Treasury Branches"
+  }
+},
+{
+  "type": "node",
+  "id": 13529443383,
+  "lat": 53.5408236,
+  "lon": -113.4912801,
+  "tags": {
+    "brand": "Telus",
+    "brand:wikidata": "Q165858",
+    "name": "Telus",
+    "shop": "mobile_phone"
+  }
+},
+{
+  "type": "node",
+  "id": 13529443384,
+  "lat": 53.5403487,
+  "lon": -113.4910698,
+  "tags": {
+    "amenity": "food_court",
+    "name": "ATB Plaza Food Court"
+  }
+},
+{
+  "type": "node",
+  "id": 13529443385,
+  "lat": 53.5413115,
+  "lon": -113.4921601,
+  "tags": {
+    "amenity": "fast_food",
+    "cuisine": "chinese",
+    "name": "Green Onion Cake Man"
+  }
+},
+{
+  "type": "node",
+  "id": 13594613063,
+  "lat": 53.5423549,
+  "lon": -113.4960597,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10150",
+    "addr:postcode": "T5J 5E2",
+    "addr:province": "AB",
+    "addr:street": "102 St NW",
+    "addr:unit": "200",
+    "description": "This is a dedicated laboratory for processing specimens brought in from other sites.  It is not open to the public.",
+    "healthcare": "laboratory",
+    "name": "Edmonton Base Lab",
+    "operator": "Alberta Precision Laboratories"
+  }
+},
+{
+  "type": "node",
+  "id": 13594613064,
+  "lat": 53.5417361,
+  "lon": -113.4965833,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10230",
+    "addr:postcode": "T5J 4P6",
+    "addr:province": "AB",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "university",
+    "education": "university",
+    "name": "Enterprise Square",
+    "note": "up to date hours can be found at https://www.ualberta.ca/en/facilities/enterprise-square.html",
+    "opening_hours": "Mo-Fr 07:00-19:30; Sa,Su 07:00-17:00; PH 07:00-17:00",
+    "operator": "University of Alberta",
+    "operator:type": "public",
+    "website": "https://www.ualberta.ca/en/campus-life/our-campuses/enterprise-square/index.html",
+    "wikidata": "Q640694"
+  }
+},
+{
+  "type": "node",
+  "id": 13594613065,
+  "lat": 53.5427715,
+  "lon": -113.4968293,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10211",
+    "addr:postcode": "T5J 0A2",
+    "addr:province": "AB",
+    "addr:street": "102 Avenue NW",
+    "brand": "YMCA",
+    "brand:wikidata": "Q157169",
+    "brand:wikipedia": "en:YMCA",
+    "description": "Family workout centre with pool, workout area, gym and room rentals.",
+    "leisure": "sports_centre",
+    "name": "Don Wheaton Family YMCA",
+    "opening_hours": "Mo-Fr 05:30-21:00; Sa,Su 07:00-21:00",
+    "operator": "YMCA of Northern Alberta",
+    "phone": "+1-780-452-9622",
+    "sport": "swimming;fitness",
+    "website": "https://ymcanab.ca/locations/don-wheaton-family-ymca"
+  }
+},
+{
+  "type": "node",
+  "id": 13604787491,
+  "lat": 53.5411065,
+  "lon": -113.4997312,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10412",
+    "addr:postcode": "T5J 1Z3",
+    "addr:province": "AB",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "fast_food",
+    "brand": "Wayback Burgers",
+    "brand:wikidata": "Q16997570",
+    "check_date": "2026-10-13",
+    "cuisine": "burger",
+    "drive_through": "no",
+    "name": "Wayback Burgers",
+    "opening_hours": "Mo-Th 11:00-22:00; Fr 11:00-23:00; Sa 12:00-23:00; Su 12:00-22:00",
+    "outdoor_seating": "no",
+    "phone": "+1-780-423-0028",
+    "takeaway": "yes",
+    "website": "https://waybackburgers.ca/locations/ca/ab/edmonton-jasper/"
+  }
+},
+{
+  "type": "node",
+  "id": 13604787492,
+  "lat": 53.5410910,
+  "lon": -113.4988437,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10356",
+    "addr:postcode": "T5J 1Y7",
+    "addr:province": "AB",
+    "addr:street": "Jasper Avenue NW",
+    "alt_name": "Objects",
+    "amenity": "cafe",
+    "name": "Obj3cts",
+    "outdoor_seating": "no",
+    "phone": "+1-780-244-1970",
+    "website": "https://objectsedmonton.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 13604787493,
+  "lat": 53.5426693,
+  "lon": -113.4976494,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10176",
+    "addr:postcode": "T5J 0L1",
+    "addr:province": "AB",
+    "addr:street": "103 Street NW",
+    "clothes": "men",
+    "full_name": "The Helm Clothing",
+    "name": "The Helm",
+    "phone": "+1-780-425-4344",
+    "shop": "clothes",
+    "website": "https://thehelmclothing.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 13618934181,
+  "lat": 53.5415221,
+  "lon": -113.4927861,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10060",
+    "addr:postcode": "T5J 3R8",
+    "addr:province": "AB",
+    "addr:street": "Jasper Avenue NW",
+    "addr:unit": "2250",
+    "consulting": "information_technology",
+    "name": "Lantern Studios",
+    "office": "consulting",
+    "phone": "+1-877-323-3832",
+    "website": "https://lanternstudios.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 13663633901,
+  "lat": 53.5445254,
+  "lon": -113.4915194,
+  "tags": {
+    "addr:housenumber": "10010",
+    "addr:postcode": "T5J 0G5",
+    "addr:street": "102A Avenue NW",
+    "amenity": "clinic",
+    "name": "Addiction and Mental Health - Adult Community Services",
+    "name:en": "Addiction and Mental Health - Adult Community Services",
+    "phone": "+1-780-427-2736",
+    "website": "https://www.albertahealthservices.ca/findhealth/Service.aspx?id=1071423&serviceAtFacilityID=1138302"
+  }
+},
+{
+  "type": "node",
+  "id": 13683535524,
+  "lat": 53.5424498,
+  "lon": -113.4930370,
+  "tags": {
+    "name": "Enbridge",
+    "office": "company"
+  }
+},
+{
+  "type": "node",
+  "id": 13719533797,
+  "lat": 53.5415009,
+  "lon": -113.4882419,
+  "tags": {
+    "addr:housenumber": "9892",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "restaurant",
+    "check_date": "2026-10-16",
+    "name": "Hoàng Long 888",
+    "phone": "+1 780-486-6998"
+  }
+},
+{
+  "type": "node",
+  "id": 13719533798,
+  "lat": 53.5414052,
+  "lon": -113.4888676,
+  "tags": {
+    "artwork_type": "statue",
+    "name": "\"The Merchant\"",
+    "tourism": "artwork"
+  }
+},
+{
+  "type": "node",
+  "id": 13747258201,
+  "lat": 53.5425046,
+  "lon": -113.4910250,
+  "tags": {
+    "addr:housenumber": "10150",
+    "addr:postcode": "T5J 0P6",
+    "addr:street": "100 Street NW",
+    "internet_access": "wlan",
+    "name": "Open Door Group",
+    "office": "company",
+    "opening_hours": "Mo-Tu, Th-Fr 08:30-16:30; We 10:30-16:30",
+    "phone": "+1-825-468-1581",
+    "website": "https://opendoorgroup.org/"
+  }
+},
+{
+  "type": "node",
+  "id": 13988791296,
+  "lat": 53.5411555,
+  "lon": -113.4914084,
+  "tags": {
+    "addr:floor": "-1",
+    "check_date": "2026-07-04",
+    "name": "Orbits",
+    "shop": "convenience"
+  }
+},
+{
+  "type": "node",
+  "id": 13988820109,
+  "lat": 53.5411435,
+  "lon": -113.4914784,
+  "tags": {
+    "addr:floor": "-1",
+    "check_date": "2026-07-04",
+    "name": "downtown liquor",
+    "shop": "alcohol"
+  }
+},
+{
+  "type": "node",
+  "id": 14052156208,
+  "lat": 53.5436595,
+  "lon": -113.4899261,
+  "tags": {
+    "artwork_type": "mural",
+    "level": "-1",
+    "name": "YEG Dignity Mural - Our Mother As Earth",
+    "tourism": "artwork"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184651,
+  "lat": 53.5438827,
+  "lon": -113.4915612,
+  "tags": {
+    "addr:floor": "G",
+    "brand": "Winners",
+    "brand:wikidata": "Q845257",
+    "check_date": "2026-07-26",
+    "level": "0",
+    "name": "Winners",
+    "shop": "department_store"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184652,
+  "lat": 53.5438994,
+  "lon": -113.4919467,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-07-26",
+    "level": "1",
+    "name": "ACHA - African Caribbean Heritage Alliance Foundation",
+    "tourism": "gallery"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184653,
+  "lat": 53.5439304,
+  "lon": -113.4924498,
+  "tags": {
+    "addr:floor": "1",
+    "brand": "Best Buy Express",
+    "brand:wikidata": "Q3212934",
+    "check_date": "2026-07-26",
+    "level": "1",
+    "name": "Best Buy Express",
+    "shop": "electronics"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184654,
+  "lat": 53.5436238,
+  "lon": -113.4923892,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-07-26",
+    "level": "1",
+    "name": "International Clothiers",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184655,
+  "lat": 53.5439614,
+  "lon": -113.4926838,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "restaurant",
+    "check_date": "2026-07-26",
+    "level": "2",
+    "name": "Elevate Food Fare",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184656,
+  "lat": 53.5440262,
+  "lon": -113.4929821,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "fast_food",
+    "brand": "A&W",
+    "brand:wikidata": "Q2818848",
+    "check_date": "2026-07-26",
+    "cuisine": "burger",
+    "level": "2",
+    "name": "A&W",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184657,
+  "lat": 53.5440221,
+  "lon": -113.4930843,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "fast_food",
+    "brand": "Edo Japan",
+    "brand:wikidata": "Q17492665",
+    "check_date": "2026-07-26",
+    "cuisine": "japanese",
+    "level": "2",
+    "name": "Edo Japan",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184658,
+  "lat": 53.5440124,
+  "lon": -113.4931632,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "fast_food",
+    "brand": "Shanghai 360",
+    "brand:wikidata": "Q112966568",
+    "check_date": "2026-07-26",
+    "cuisine": "chinese",
+    "level": "2",
+    "name": "Shanghai 360",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184659,
+  "lat": 53.5440124,
+  "lon": -113.4932084,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "restaurant",
+    "check_date": "2026-07-26",
+    "cuisine": "greek",
+    "level": "2",
+    "name": "Opa! Of Greece"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184661,
+  "lat": 53.5440241,
+  "lon": -113.4932746,
+  "tags": {
+    "addr:floor": "2",
+    "alt_name": "Kentucky Fried Chicken",
+    "amenity": "fast_food",
+    "brand": "KFC",
+    "brand:wikidata": "Q524757",
+    "check_date": "2026-07-26",
+    "cuisine": "chicken",
+    "level": "2",
+    "name": "KFC",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184662,
+  "lat": 53.5439972,
+  "lon": -113.4933489,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "restaurant",
+    "check_date": "2026-07-26",
+    "cuisine": "indian",
+    "level": "2",
+    "name": "Shree"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184663,
+  "lat": 53.5439469,
+  "lon": -113.4934046,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "restaurant",
+    "check_date": "2026-07-26",
+    "level": "2",
+    "name": "Basil Box"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184664,
+  "lat": 53.5438386,
+  "lon": -113.4934243,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "fast_food",
+    "brand": "New York Fries",
+    "brand:wikidata": "Q7013558",
+    "check_date": "2026-07-26",
+    "cuisine": "fries",
+    "level": "2",
+    "name": "New York Fries",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184666,
+  "lat": 53.5436807,
+  "lon": -113.4934150,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "fast_food",
+    "check_date": "2026-07-26",
+    "cuisine": "mexican",
+    "level": "2",
+    "name": "Taqueria King Burrito"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184668,
+  "lat": 53.5435956,
+  "lon": -113.4929072,
+  "tags": {
+    "addr:floor": "G",
+    "amenity": "restaurant",
+    "check_date": "2026-07-26",
+    "level": "0",
+    "name": "Cafe Sole"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184669,
+  "lat": 53.5435966,
+  "lon": -113.4924727,
+  "tags": {
+    "addr:floor": "G",
+    "amenity": "bank",
+    "check_date": "2026-10-01",
+    "level": "0",
+    "name": "True North Mortgage"
+  }
+},
+{
+  "type": "node",
+  "id": 14052184670,
+  "lat": 53.5440168,
+  "lon": -113.4922955,
+  "tags": {
+    "addr:floor": "G",
+    "check_date": "2026-07-26",
+    "level": "0",
+    "name": "Revolver",
+    "phone": "+1 780-488-8262",
+    "shop": "music"
+  }
+},
+{
+  "type": "node",
+  "id": 14075840767,
+  "lat": 53.5460320,
+  "lon": -113.4989753,
+  "tags": {
+    "amenity": "bar",
+    "check_date": "2026-08-05",
+    "name": "The Druid"
+  }
+},
+{
+  "type": "node",
+  "id": 14079233397,
+  "lat": 53.5427170,
+  "lon": -113.4989711,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10181",
+    "addr:postcode": "T5J 0Z9",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "cuisine": "italian",
+    "name": "Birdog",
+    "phone": "+1-780-540-4868",
+    "website": "https://www.birdogyeg.com"
+  }
+},
+{
+  "type": "node",
+  "id": 14079364639,
+  "lat": 53.5419896,
+  "lon": -113.4994581,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10146",
+    "addr:postcode": "T5J 1A7",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "cuisine": "japanese",
+    "name": "Ramen Misoya Edmonton",
+    "phone": "+17804252990",
+    "website": "https://ramenmisoya.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 14079364642,
+  "lat": 53.5414534,
+  "lon": -113.4994306,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:floor": "G",
+    "addr:housenumber": "10114",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "cuisine": "indigenous",
+    "level": "0",
+    "name": "Bernadette's",
+    "opening_hours": "Tu-Sa 16:00+",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "phone": "+1-587-879-4317",
+    "website": "https://www.bernadettes.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 14079364643,
+  "lat": 53.5458835,
+  "lon": -113.4990153,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10359",
+    "addr:postcode": "T5J 1C1",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-19",
+    "cuisine": "mexican",
+    "name": "El Taco Loco - Downtown",
+    "phone": "+17805409312",
+    "website": "http://www.eltacolocoyeg.ca/"
+  }
+},
+{
+  "type": "node",
+  "id": 14079364644,
+  "lat": 53.5424123,
+  "lon": -113.4908551,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:floor": "G",
+    "addr:housenumber": "10150",
+    "addr:postcode": "T5J 0P6",
+    "addr:province": "AB",
+    "addr:street": "100 Street NW",
+    "addr:unit": "#101",
+    "amenity": "cafe",
+    "check_date": "2026-10-13",
+    "cuisine": "brunch;coffee_shop",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "level": "0",
+    "name": "Rosewood Foods",
+    "opening_hours": "Mo off; Tu-Fr 08:00-15:00; Sa-Su 09:00-15:00",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "phone": "+17807578030",
+    "website": "http://www.rosewoodfoods.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 14084625162,
+  "lat": 53.5410939,
+  "lon": -113.4933307,
+  "tags": {
+    "amenity": "fast_food",
+    "check_date": "2026-08-09",
+    "cuisine": "donut",
+    "name": "Top Donair"
+  }
+},
+{
+  "type": "node",
+  "id": 14092143474,
+  "lat": 53.5434176,
+  "lon": -113.4994383,
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10208",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "check_date": "2026-08-13",
+    "email": "albatrossvirtualgolf@gmail.com",
+    "leisure": "golf_course",
+    "name": "Albatross Virtual Golf",
+    "note": "hours are\n\"open\" Mo-Th,Su 10:00-23:00; Fr,Sa 10:00-24:00\n\"staffed\" Mo-Th 15:00-21:00; Fr 16:00-22:00; Sa 10:00-24:00; Su 10:00-21:00\nneed to figure which to use or if there is a way of listing both",
+    "phone": "+1-587-525-9123",
+    "website": "https://albatrossvirtualgolf.ca"
+  }
+},
+{
+  "type": "node",
+  "id": 14092143475,
+  "lat": 53.5426893,
+  "lon": -113.4994138,
+  "tags": {
+    "addr:floor": "G",
+    "addr:housenumber": "10184",
+    "addr:street": "104 Street NW",
+    "amenity": "bar",
+    "check_date": "2026-10-02",
+    "level": "0",
+    "name": "Wild Wing Bar & BBQ"
+  }
+},
+{
+  "type": "node",
+  "id": 14092177122,
+  "lat": 53.5419015,
+  "lon": -113.4994610,
+  "tags": {
+    "addr:floor": "G",
+    "addr:housenumber": "10140",
+    "addr:street": "104 Street NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "cuisine": "noodle",
+    "level": "0",
+    "name": "Chongqing Noodle"
+  }
+},
+{
+  "type": "node",
+  "id": 14092189413,
+  "lat": 53.5417495,
+  "lon": -113.4994292,
+  "tags": {
+    "addr:floor": "G",
+    "addr:housenumber": "10132",
+    "addr:street": "104 Street NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "cuisine": "seafood",
+    "level": "0",
+    "name": "Black Pearl"
+  }
+},
+{
+  "type": "node",
+  "id": 14093375695,
+  "lat": 53.5407657,
+  "lon": -113.4990488,
+  "tags": {
+    "addr:floor": "G",
+    "addr:housenumber": "10357",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "level": "0",
+    "name": "Solar"
+  }
+},
+{
+  "type": "node",
+  "id": 14093375696,
+  "lat": 53.5407784,
+  "lon": -113.4987817,
+  "tags": {
+    "addr:floor": "G",
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "level": "0",
+    "name": "Rita"
+  }
+},
+{
+  "type": "node",
+  "id": 14093375697,
+  "lat": 53.5410683,
+  "lon": -113.4981264,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-08-13",
+    "name": "Fresh Hot & Healthy"
+  }
+},
+{
+  "type": "node",
+  "id": 14105437840,
+  "lat": 53.5436880,
+  "lon": -113.4936074,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "fast_food",
+    "brand": "Booster Juice",
+    "brand:wikidata": "Q4943796",
+    "check_date": "2026-08-19",
+    "cuisine": "juice",
+    "level": "2",
+    "name": "Booster Juice",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14105437841,
+  "lat": 53.5436497,
+  "lon": -113.4935832,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "cafe",
+    "brand": "Tim Hortons",
+    "brand:wikidata": "Q175106",
+    "check_date": "2026-08-19",
+    "cuisine": "coffee_shop",
+    "level": "2",
+    "name": "Tim Hortons",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14106213329,
+  "lat": 53.5460453,
+  "lon": -113.4979655,
+  "tags": {
+    "addr:floor": "G",
+    "amenity": "bank",
+    "brand": "CIBC",
+    "brand:wikidata": "Q666694",
+    "check_date": "2026-08-19",
+    "level": "0",
+    "name": "CIBC"
+  }
+},
+{
+  "type": "node",
+  "id": 14106213330,
+  "lat": 53.5459963,
+  "lon": -113.4971218,
+  "tags": {
+    "alt_name": "TD Canada Trust",
+    "amenity": "bank",
+    "brand": "TD",
+    "brand:wikidata": "Q1080670",
+    "check_date": "2026-08-19",
+    "name": "TD"
+  }
+},
+{
+  "type": "node",
+  "id": 14106242207,
+  "lat": 53.5458612,
+  "lon": -113.4989183,
+  "tags": {
+    "addr:floor": "B",
+    "check_date": "2026-08-19",
+    "hairdresser": "barber",
+    "level": "-1",
+    "name": "Weekly Trim True",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "shop": "hairdresser",
+    "website": "https://weeklyyeg.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 14106312769,
+  "lat": 53.5464486,
+  "lon": -113.4960993,
+  "tags": {
+    "alt_name": "Servus",
+    "amenity": "bank",
+    "brand": "Servus Credit Union",
+    "brand:wikidata": "Q2274396",
+    "check_date": "2026-08-19",
+    "name": "Servus Credit Union"
+  }
+},
+{
+  "type": "node",
+  "id": 14106339153,
+  "lat": 53.5459212,
+  "lon": -113.4988910,
+  "tags": {
+    "addr:floor": "B",
+    "addr:housenumber": "10359",
+    "addr:street": "104 Street NW",
+    "amenity": "restaurant",
+    "check_date": "2026-08-19",
+    "cuisine": "ukrainian",
+    "level": "-1",
+    "name": "Ukies Yummy"
+  }
+},
+{
+  "type": "node",
+  "id": 14106345023,
+  "lat": 53.5452642,
+  "lon": -113.4978402,
+  "tags": {
+    "addr:floor": "1",
+    "amenity": "restaurant",
+    "check_date": "2026-08-19",
+    "level": "1",
+    "name": "Banquet"
+  }
+},
+{
+  "type": "node",
+  "id": 14106345024,
+  "lat": 53.5452496,
+  "lon": -113.4976667,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2026-08-19",
+    "name": "Canadian Icehouse"
+  }
+},
+{
+  "type": "node",
+  "id": 14106345025,
+  "lat": 53.5456225,
+  "lon": -113.4964698,
+  "tags": {
+    "addr:floor": "G",
+    "amenity": "restaurant",
+    "check_date": "2026-08-19",
+    "level": "0",
+    "name": "Braven"
+  }
+},
+{
+  "type": "node",
+  "id": 14107577262,
+  "lat": 53.5435933,
+  "lon": -113.4943342,
+  "tags": {
+    "addr:floor": "1",
+    "amenity": "car_rental",
+    "brand": "Budget",
+    "brand:wikidata": "Q1001437",
+    "check_date": "2026-08-20",
+    "level": "1",
+    "name": "Budget",
+    "official_name": "Budget Rent a Car"
+  }
+},
+{
+  "type": "node",
+  "id": 14107579351,
+  "lat": 53.5436962,
+  "lon": -113.4935529,
+  "tags": {
+    "addr:floor": "1;2",
+    "check_date": "2026-08-20",
+    "level": "1;2",
+    "name": "Cookies By George",
+    "shop": "bakery"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988556,
+  "lat": 53.5436869,
+  "lon": -113.4938849,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-08-21",
+    "level": "1",
+    "name": "Gadget Care",
+    "shop": "mobile_phone_accessories"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988557,
+  "lat": 53.5436117,
+  "lon": -113.4935737,
+  "tags": {
+    "addr:floor": "1",
+    "amenity": "cafe",
+    "brand": "Tim Hortons",
+    "brand:wikidata": "Q175106",
+    "check_date": "2026-08-21",
+    "cuisine": "coffee_shop",
+    "level": "1",
+    "name": "Tim Hortons",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988558,
+  "lat": 53.5437417,
+  "lon": -113.4935970,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-08-21",
+    "level": "1",
+    "name": "Cookies By George",
+    "shop": "pastry"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988559,
+  "lat": 53.5437225,
+  "lon": -113.4937102,
+  "tags": {
+    "addr:floor": "1",
+    "amenity": "fast_food",
+    "brand": "Booster Juice",
+    "brand:wikidata": "Q4943796",
+    "check_date": "2026-08-21",
+    "cuisine": "juice",
+    "level": "1",
+    "name": "Booster Juice",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988560,
+  "lat": 53.5435282,
+  "lon": -113.4946373,
+  "tags": {
+    "addr:floor": "2",
+    "check_date": "2026-08-21",
+    "level": "2",
+    "name": "Dreamscape Designs",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988561,
+  "lat": 53.5435184,
+  "lon": -113.4947559,
+  "tags": {
+    "addr:floor": "2",
+    "check_date": "2026-08-21",
+    "level": "2",
+    "name": "Unified",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988563,
+  "lat": 53.5436916,
+  "lon": -113.4952247,
+  "tags": {
+    "addr:floor": "2",
+    "check_date": "2026-08-21",
+    "level": "2",
+    "name": "Talbots",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988564,
+  "lat": 53.5425354,
+  "lon": -113.4951643,
+  "tags": {
+    "addr:floor": "2",
+    "check_date": "2026-08-21",
+    "level": "2",
+    "name": "Vanderbergs Jewelers",
+    "shop": "jewelry"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988565,
+  "lat": 53.5424291,
+  "lon": -113.4949020,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "cafe",
+    "check_date": "2026-08-21",
+    "cuisine": "coffee_shop",
+    "level": "2",
+    "name": "Ace Coffee"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988567,
+  "lat": 53.5424004,
+  "lon": -113.4946797,
+  "tags": {
+    "addr:floor": "2",
+    "check_date": "2026-08-21",
+    "level": "2",
+    "name": "Cartier",
+    "shop": "optician"
+  }
+},
+{
+  "type": "node",
+  "id": 14110988568,
+  "lat": 53.5428490,
+  "lon": -113.4969921,
+  "tags": {
+    "addr:floor": "G;1",
+    "amenity": "restaurant",
+    "check_date": "2026-08-21",
+    "level": "0;1",
+    "name": "Sprout & Avocado"
+  }
+},
+{
+  "type": "node",
+  "id": 14123673184,
+  "lat": 53.5451063,
+  "lon": -113.4959277,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "bank",
+    "brand": "Scotiabank",
+    "brand:wikidata": "Q451476",
+    "check_date": "2026-08-21",
+    "level": "2",
+    "name": "Scotiabank"
+  }
+},
+{
+  "type": "node",
+  "id": 14123673185,
+  "lat": 53.5456645,
+  "lon": -113.4953040,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "cafe",
+    "brand": "Tim Hortons",
+    "brand:wikidata": "Q175106",
+    "check_date": "2026-08-21",
+    "cuisine": "coffee_shop",
+    "level": "2",
+    "name": "Tim Hortons",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14123673186,
+  "lat": 53.5456598,
+  "lon": -113.4952324,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "fast_food",
+    "brand": "Subway",
+    "brand:wikidata": "Q244457",
+    "check_date": "2026-08-21",
+    "cuisine": "sandwich",
+    "level": "2",
+    "name": "Subway",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14123673187,
+  "lat": 53.5456738,
+  "lon": -113.4943084,
+  "tags": {
+    "addr:floor": "2",
+    "check_date": "2026-08-21",
+    "government": "register_office",
+    "level": "2",
+    "name": "Edmonton Service Centre",
+    "office": "government"
+  }
+},
+{
+  "type": "node",
+  "id": 14123673188,
+  "lat": 53.5450636,
+  "lon": -113.4945266,
+  "tags": {
+    "addr:floor": "2",
+    "addr:housenumber": "10104",
+    "addr:street": "103 Avenue NW",
+    "check_date": "2026-08-21",
+    "level": "2",
+    "name": "Alinio",
+    "shop": "massage"
+  }
+},
+{
+  "type": "node",
+  "id": 14123673189,
+  "lat": 53.5449179,
+  "lon": -113.4943070,
+  "tags": {
+    "addr:floor": "2",
+    "addr:housenumber": "10104",
+    "addr:street": "103 Avenue NW",
+    "amenity": "fixme",
+    "check_date": "2026-08-21",
+    "fixme": "type",
+    "fixme:type": "business",
+    "level": "2",
+    "name": "Edmonton Downtown Business Association",
+    "website": "https://edmontondowntown.com"
+  }
+},
+{
+  "type": "node",
+  "id": 14123673190,
+  "lat": 53.5448227,
+  "lon": -113.4931303,
+  "tags": {
+    "addr:floor": "G;1",
+    "amenity": "cafe",
+    "check_date": "2026-08-21",
+    "level": "0;1",
+    "name": "Cookie Love Cafe"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810212,
+  "lat": 53.5436456,
+  "lon": -113.4920449,
+  "tags": {
+    "addr:floor": "2",
+    "check_date": "2026-10-01",
+    "level": "2",
+    "name": "Paladin Security",
+    "office": "security"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810213,
+  "lat": 53.5437117,
+  "lon": -113.4922165,
+  "tags": {
+    "addr:floor": "2",
+    "check_date": "2026-10-01",
+    "email": "info@escapehour.ca",
+    "leisure": "escape_game",
+    "level": "2",
+    "name": "EscapeHour",
+    "opening_hours": "Mo 15:00-21:00; Tu-Fr 12:00-22:00; Sa-Su 11:00-22:00",
+    "phone": "+1 780-901-5888",
+    "website": "https://escapehour.com"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810224,
+  "lat": 53.5439921,
+  "lon": -113.4926838,
+  "tags": {
+    "addr:floor": "G",
+    "check_date": "2026-10-01",
+    "level": "0",
+    "name": "GLAM Shoes",
+    "shop": "shoes"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810225,
+  "lat": 53.5436966,
+  "lon": -113.4925041,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "SRS Brow Bar",
+    "shop": "beauty"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810227,
+  "lat": 53.5436471,
+  "lon": -113.4934329,
+  "tags": {
+    "addr:floor": "G",
+    "check_date": "2026-10-01",
+    "level": "0",
+    "name": "Shefield & Sons",
+    "shop": "tobacco"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810229,
+  "lat": 53.5436088,
+  "lon": -113.4926355,
+  "tags": {
+    "artwork_type": "statue",
+    "level": "G",
+    "name": "Bryson The Sight Seeking Bison",
+    "tourism": "artwork"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810230,
+  "lat": 53.5436510,
+  "lon": -113.4923242,
+  "tags": {
+    "addr:floor": "1",
+    "brand": "Ardene",
+    "brand:wikidata": "Q2860764",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "Ardene",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810231,
+  "lat": 53.5437451,
+  "lon": -113.4923803,
+  "tags": {
+    "addr:floor": "1",
+    "brand": "Freedom Mobile",
+    "brand:wikidata": "Q8023931",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "Freedom Mobile",
+    "shop": "mobile_phone"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810232,
+  "lat": 53.5438533,
+  "lon": -113.4923928,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "government": "register_office",
+    "level": "1",
+    "name": "Accu-Search Registries Inc",
+    "office": "government"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810233,
+  "lat": 53.5439789,
+  "lon": -113.4927567,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "Ilahui",
+    "shop": "collector"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810234,
+  "lat": 53.5439600,
+  "lon": -113.4928711,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "Table Top Board Games & Puzzles",
+    "shop": "games"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810235,
+  "lat": 53.5440223,
+  "lon": -113.4928949,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "Mint Dry Cleaning Co",
+    "shop": "laundry"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810238,
+  "lat": 53.5441639,
+  "lon": -113.4929156,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "Herrington's Luxury Floral Design",
+    "shop": "interior_decoration"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810240,
+  "lat": 53.5440723,
+  "lon": -113.4930522,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "hairdresser": "barber",
+    "level": "1",
+    "name": "Denim & Smith Barbershops",
+    "shop": "hairdresser"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810241,
+  "lat": 53.5436362,
+  "lon": -113.4931412,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "Purdy's",
+    "shop": "chocolate"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810243,
+  "lat": 53.5438590,
+  "lon": -113.4932333,
+  "tags": {
+    "addr:floor": "1",
+    "amenity": "fast_food",
+    "check_date": "2026-10-01",
+    "cuisine": "juice",
+    "level": "1",
+    "name": "Jusfruit"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810246,
+  "lat": 53.5435965,
+  "lon": -113.4928488,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "Eternal Flame",
+    "shop": "candles"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810247,
+  "lat": 53.5436060,
+  "lon": -113.4927376,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "Da Pop Up Shop",
+    "shop": "collector"
+  }
+},
+{
+  "type": "node",
+  "id": 14240810248,
+  "lat": 53.5436060,
+  "lon": -113.4926391,
+  "tags": {
+    "addr:floor": "1",
+    "check_date": "2026-10-01",
+    "level": "1",
+    "name": "Infiniti Leather",
+    "shop": "leather"
+  }
+},
+{
+  "type": "node",
+  "id": 14240834805,
+  "lat": 53.5447880,
+  "lon": -113.4933948,
+  "tags": {
+    "addr:floor": "1",
+    "amenity": "cafe",
+    "check_date": "2026-10-01",
+    "cuisine": "coffee_shop",
+    "level": "1",
+    "name": "Hakubaku Coffee"
+  }
+},
+{
+  "type": "node",
+  "id": 14240834806,
+  "lat": 53.5450662,
+  "lon": -113.4932757,
+  "tags": {
+    "addr:floor": "G",
+    "amenity": "restaurant",
+    "brand": "Delicious Pho",
+    "brand:wikidata": "Q114794842",
+    "check_date": "2026-10-01",
+    "cuisine": "vietnamese",
+    "level": "0",
+    "name": "Delicious Pho"
+  }
+},
+{
+  "type": "node",
+  "id": 14244310882,
+  "lat": 53.5446295,
+  "lon": -113.4861467,
+  "tags": {
+    "addr:housenumber": "10225",
+    "addr:street": "97 St NW",
+    "amenity": "bar",
+    "name": "Club 97"
+  }
+},
+{
+  "type": "node",
+  "id": 14281324591,
+  "lat": 53.5418709,
+  "lon": -113.4947674,
+  "tags": {
+    "check_date": "2026-10-13",
+    "name": "Winston's",
+    "shop": "convenience"
+  }
+},
+{
+  "type": "node",
+  "id": 14281324592,
+  "lat": 53.5420757,
+  "lon": -113.4947536,
+  "tags": {
+    "addr:floor": "G",
+    "amenity": "cafe",
+    "brand": "Starbucks",
+    "brand:wikidata": "Q37158",
+    "check_date": "2026-10-13",
+    "cuisine": "coffee_shop",
+    "level": "0",
+    "name": "Starbucks",
+    "official_name": "Starbucks Coffee",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14281416477,
+  "lat": 53.5414880,
+  "lon": -113.4919979,
+  "tags": {
+    "addr:floor": "G",
+    "amenity": "fast_food",
+    "check_date": "2026-10-13",
+    "cuisine": "pizza",
+    "level": "0",
+    "name": "Great Canadian Pizza & Donair"
+  }
+},
+{
+  "type": "node",
+  "id": 14281416478,
+  "lat": 53.5415164,
+  "lon": -113.4919084,
+  "tags": {
+    "check_date": "2026-10-13",
+    "name": "Fire & Flower",
+    "shop": "cannabis"
+  }
+},
+{
+  "type": "way",
+  "id": 35008768,
+  "center": {
+    "lat": 53.5454381,
+    "lon": -113.4901751
+  },
+  "nodes": [
+    410630579,
+    3115854583,
+    410630583,
+    2088213707,
+    4479301179,
+    2354439728,
+    410630585,
+    3314636571,
+    3314636570,
+    3314636561,
+    3314636562,
+    410630588,
+    410630565,
+    410630564,
+    410630590,
+    410630592,
+    410630594,
+    3314636236,
+    3314636238,
+    410630596,
+    410630556,
+    1154973730,
+    1154973875,
+    3314636422,
+    1154973839,
+    3314636430,
+    410630560,
+    1154973792,
+    1154973863,
+    1154973787,
+    1154973848,
+    410630562,
+    410630567,
+    7834242463,
+    7834242462,
+    410630569,
+    410630571,
+    410630573,
+    1154973671,
+    1154973673,
+    1154973743,
+    1154973888,
+    410630575,
+    410630578,
+    410630579
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "1",
+    "addr:postcode": "T5J 2R7",
+    "addr:street": "Sir Winston Churchill Square NW",
+    "amenity": "townhall",
+    "architect": "Gene Dub",
+    "building": "civic",
+    "building:architecture": "postmodern",
+    "building:levels": "3",
+    "building:levels:underground": "2",
+    "construction_date": "1992-08-26",
+    "contact:foursquare": "https://www.foursquare.com/v/4b081b81f964a520ed0323e3",
+    "fax": "+1-780-496-5618",
+    "height": "15",
+    "image": "File:Edmonton City Hall.jpg",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "internet_access:operator": "Open_City_Wi-Fi",
+    "name": "Edmonton City Hall",
+    "opening_hours": "Mo-Fr 07:00-20:00; Sa 09:00-17:00; Su 11:00-17:00; PH off",
+    "operator": "City of Edmonton",
+    "operator:wikidata": "Q5339025",
+    "source:height": "wikidata",
+    "start_date": "1992-08-28",
+    "toilets:wheelchair": "yes",
+    "townhall:type": "city",
+    "website": "https://www.edmonton.ca/attractions_events/city-hall.aspx",
+    "wheelchair": "yes",
+    "wheelchair:description": "TOILET FEATURES.baby changing facilites:water fountain:height of toilets:distance between toilet and wall:",
+    "wikidata": "Q5339024",
+    "wikimedia_commons": "Category:Edmonton City Hall",
+    "wikipedia": "en:Edmonton City Hall"
+  }
+},
+{
+  "type": "way",
+  "id": 35010744,
+  "center": {
+    "lat": 53.5460310,
+    "lon": -113.4882745
+  },
+  "nodes": [
+    410655373,
+    410655371,
+    410655404,
+    13674332943,
+    410655403,
+    410655374,
+    13674332966,
+    410655401,
+    410655400,
+    410655375,
+    13674332916,
+    13674332917,
+    410655376,
+    410655378,
+    13674332967,
+    13674332968,
+    13674332970,
+    13674332969,
+    13674332971,
+    13674332972,
+    13674332974,
+    13674332973,
+    410655399,
+    410655398,
+    13674332918,
+    13674332920,
+    13674332921,
+    13674332919,
+    410655396,
+    13674332963,
+    410655395,
+    410655394,
+    13674332960,
+    1743821421,
+    1743821402,
+    410655393,
+    13674332937,
+    410655391,
+    410655390,
+    13674332936,
+    13674332911,
+    410655379,
+    410655380,
+    13674332915,
+    410655373
+  ],
+  "tags": {
+    "amenity": "courthouse",
+    "indoor": "area",
+    "name": "Provincial Court of Alberta",
+    "operator": "Government of Alberta",
+    "wheelchair": "yes",
+    "wikidata": "Q7252625",
+    "wikipedia": "en:Provincial Court of Alberta"
+  }
+},
+{
+  "type": "way",
+  "id": 44164795,
+  "center": {
+    "lat": 53.5405863,
+    "lon": -113.4878255
+  },
+  "nodes": [
+    561039678,
+    561039679,
+    4715929085,
+    561039680,
+    561039681,
+    561039682,
+    561039683,
+    561039678
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "1",
+    "addr:postcode": "T5J 2E7",
+    "addr:street": "Thornton Court NW",
+    "brand": "Courtyard",
+    "brand:wikidata": "Q1053170",
+    "brand:wikipedia": "en:Courtyard by Marriott",
+    "building": "hotel",
+    "building:height": "39",
+    "building:levels": "11",
+    "check_date": "2026-08-08",
+    "height": "39.3",
+    "name": "Courtyard Marriott Edmonton",
+    "official_name": "Courtyard by Marriott",
+    "roof:colour": "grey",
+    "roof:shape": "flat",
+    "tourism": "hotel"
+  }
+},
+{
+  "type": "way",
+  "id": 84084175,
+  "center": {
+    "lat": 53.5473381,
+    "lon": -113.4862998
+  },
+  "nodes": [
+    3314637304,
+    3314637316,
+    3314637301,
+    978171889,
+    978171887,
+    978171886,
+    978171885,
+    978171884,
+    978171883,
+    978171882,
+    978171899,
+    978171898,
+    978171897,
+    978171896,
+    3314637152,
+    4570961081,
+    4570961080,
+    978171894,
+    4570961082,
+    3314637266,
+    978171893,
+    978171892,
+    978171890,
+    3314637298,
+    978171891,
+    3314637307,
+    4570961079,
+    4570961078,
+    4570961077,
+    3314637324,
+    4570961076,
+    3314637304
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10365",
+    "addr:postcode": "T5J 5A6",
+    "addr:province": "AB",
+    "addr:street": "97 Street NW",
+    "building": "service",
+    "building:colour": "lightblue",
+    "building:levels": "10",
+    "building:material": "concrete/glass",
+    "check_date": "2026-08-08",
+    "government": "government",
+    "height": "35.8",
+    "name": "John E. Brownlee Building",
+    "office": "government",
+    "opening_hours": "Mo-Fr 08:15-15:00",
+    "phone": "+1-780-427-3441",
+    "roof:colour": "grey",
+    "roof:levels": "0",
+    "roof:material": "concrete",
+    "roof:shape": "flat",
+    "source": "Yahoo"
+  }
+},
+{
+  "type": "way",
+  "id": 90757295,
+  "center": {
+    "lat": 53.5426506,
+    "lon": -113.4943988
+  },
+  "nodes": [
+    1053340530,
+    14003699691,
+    14003699693,
+    14003699692,
+    1053340540,
+    14003699697,
+    14003699699,
+    14003699698,
+    1053340542,
+    14003699700,
+    14003761702,
+    14003761701,
+    14003761703,
+    14003761705,
+    14003761704,
+    14098043175,
+    14003761706,
+    14003761708,
+    14003761707,
+    1328052105,
+    1053340558,
+    14003699689,
+    1328052111,
+    1053340560,
+    1328052112,
+    1328052103,
+    1053340578,
+    1053340579,
+    1053340580,
+    14003699687,
+    14003699688,
+    14003699686,
+    14003699684,
+    14003699685,
+    14003699683,
+    14003699681,
+    14003699682,
+    14003699680,
+    1053340592,
+    14003699694,
+    14003699696,
+    14003699695,
+    1053340530
+  ],
+  "tags": {
+    "addr:housenumber": "10180",
+    "addr:street": "101 Street NW",
+    "building": "office",
+    "building:colour": "#32548d",
+    "building:levels": "36",
+    "building:material": "glass",
+    "height": "146.4",
+    "name": "National Bank Centre",
+    "office": "commercial",
+    "old_name": "Manulife Place",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat",
+    "source": "Bing",
+    "website": "https://manulifeplace.com/about/",
+    "wikidata": "Q1325540",
+    "wikipedia": "en:National Bank Centre"
+  }
+},
+{
+  "type": "way",
+  "id": 90757308,
+  "center": {
+    "lat": 53.5417149,
+    "lon": -113.4946788
+  },
+  "nodes": [
+    1053340620,
+    13936568153,
+    13936568154,
+    13936568155,
+    13936568156,
+    1053340621,
+    4421977767,
+    13936568151,
+    13936568152,
+    4421977766,
+    4421977763,
+    4421977765,
+    4421977764,
+    4421977757,
+    4421977758,
+    4421977759,
+    4421977760,
+    4421977761,
+    4421977762,
+    7836277519,
+    7836277522,
+    4421977774,
+    4421977773,
+    4421977756,
+    1053340614,
+    4422004893,
+    4422004892,
+    4422004891,
+    4422004901,
+    7837920689,
+    7837920692,
+    7837920693,
+    7837920694,
+    7837920695,
+    7837920696,
+    7837920698,
+    7837920697,
+    7837920690,
+    7837920691,
+    3239067374,
+    4422004898,
+    4422004897,
+    4422004896,
+    4422004895,
+    4422004890,
+    13936568131,
+    13936568132,
+    11599040956,
+    4421944445,
+    1053340633,
+    14003761714,
+    4421944442,
+    5150103134,
+    5150103145,
+    13936568135,
+    13936568133,
+    13936568134,
+    7837906781,
+    13936568137,
+    13936568136,
+    7837906784,
+    5150103146,
+    4421944443,
+    7836277534,
+    7836277533,
+    13936568147,
+    13936568150,
+    7836277532,
+    7836277531,
+    1053340620
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10150",
+    "addr:street": "Jasper Avenue NW",
+    "building": "retail",
+    "building:colour": "#b57865",
+    "check_date": "2026-10-13",
+    "height": "11",
+    "min_height": "0.0",
+    "name": "The Shops at Commerce Place",
+    "operator": "The Shops at Commerce Place",
+    "roof:colour": "#cfb997",
+    "roof:shape": "flat",
+    "shop": "mall",
+    "source": "Yahoo;Bing",
+    "website": "http://www.shopcommerceplace.com/",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 90757314,
+  "center": {
+    "lat": 53.5430192,
+    "lon": -113.4910848
+  },
+  "nodes": [
+    1053340644,
+    1053340646,
+    14018808289,
+    1053340649,
+    4535121265,
+    14018669024,
+    4535121264,
+    4535121263,
+    4535121256,
+    4535121257,
+    4535121258,
+    4535121259,
+    4535121260,
+    1064663113,
+    4535121262,
+    1053340644
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "9",
+    "addr:postcode": "T5J 0R2",
+    "addr:street": "Sir Winston Churchill Square NW",
+    "amenity": "bank",
+    "atm": "yes",
+    "brand": "National Bank",
+    "brand:en": "National Bank",
+    "brand:fr": "Banque Nationale",
+    "brand:wikidata": "Q634298",
+    "brand:wikipedia": "en:National Bank of Canada",
+    "building": "commercial",
+    "building:levels": "3",
+    "building:material": "concrete",
+    "historic": "protected_building",
+    "name": "National Bank",
+    "name:en": "National Bank",
+    "name:fr": "Banque Nationale",
+    "official_name": "National Bank of Canada",
+    "official_name:en": "National Bank of Canada",
+    "official_name:fr": "Banque Nationale du Canada",
+    "old_name": "Churchill Wire Centre",
+    "opening_hours": "Su-Th 09:00-17:00",
+    "operator": "National Bank of Canada",
+    "source": "Yahoo",
+    "wikidata": "Q41796662"
+  }
+},
+{
+  "type": "way",
+  "id": 90757323,
+  "center": {
+    "lat": 53.5440612,
+    "lon": -113.4942475
+  },
+  "nodes": [
+    1053340714,
+    1053340716,
+    1053340718,
+    14003761788,
+    3112202062,
+    1053340725,
+    1053340728,
+    14098043173,
+    3112202060,
+    13944231011,
+    1053340729,
+    3112202065,
+    13944231012,
+    1053340732,
+    1053340735,
+    3112202057,
+    304150006,
+    1053340738,
+    1053340741,
+    3112201912,
+    1053340714
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10250",
+    "addr:street": "101 Street NW",
+    "building": "commercial",
+    "building:levels": "19",
+    "building:material": "glass",
+    "height": "74.2",
+    "name": "HSBC Place",
+    "office": "yes",
+    "roof:shape": "flat",
+    "source": "Yahoo",
+    "website": "http://www.aspenpropertiesltd.com/properties/hsbc.html"
+  }
+},
+{
+  "type": "way",
+  "id": 160836790,
+  "center": {
+    "lat": 53.5392371,
+    "lon": -113.4916675
+  },
+  "nodes": [
+    1728520800,
+    3067416817,
+    3067416814,
+    3067416812,
+    1728520738,
+    1728520642,
+    3067418268,
+    1728520822,
+    3067416807,
+    1728520687,
+    5296266729,
+    2357256182,
+    2357256181,
+    11810589102,
+    1728520746,
+    1728520636,
+    1728520699,
+    1728520652,
+    1728520800
+  ],
+  "tags": {
+    "leisure": "park",
+    "name": "McDougall Park"
+  }
+},
+{
+  "type": "way",
+  "id": 160836792,
+  "center": {
+    "lat": 53.5395719,
+    "lon": -113.4901402
+  },
+  "nodes": [
+    5296573435,
+    1728520718,
+    1728520689,
+    6996587619,
+    1728520634,
+    6996587620,
+    6996587621,
+    6996587622,
+    1728520608,
+    1728520606,
+    6996626327,
+    6996587623,
+    1728520768,
+    1728520586,
+    1728520756,
+    1728520728,
+    1728520714,
+    6996626328,
+    1728520679,
+    1728520708,
+    1728520596,
+    1728520672,
+    1728520794,
+    6996626331,
+    1728520697,
+    1728520740,
+    6996626330,
+    1728520622,
+    6996626329,
+    6271652879,
+    1728520720,
+    1728520675,
+    1728520604,
+    1728520681,
+    6595763813,
+    6595763814,
+    6595763815,
+    5282382725,
+    13529443386,
+    6595763808,
+    12051831178,
+    6595763809,
+    5276359273,
+    6595763816,
+    5282382726,
+    6595763810,
+    5282382724,
+    6595763811,
+    5282382723,
+    5296573431,
+    5296573432,
+    5296573433,
+    5296573434,
+    5296573435
+  ],
+  "tags": {
+    "leisure": "park",
+    "name": "Rossdale Park 1"
+  }
+},
+{
+  "type": "way",
+  "id": 160836793,
+  "center": {
+    "lat": 53.5392074,
+    "lon": -113.4947638
+  },
+  "nodes": [
+    5415338749,
+    3067563184,
+    1728520772,
+    3067563179,
+    3067598186,
+    1728520824,
+    13434000885,
+    1728520640,
+    1728520826,
+    1728520814,
+    1728520645,
+    1728520796,
+    3067598177,
+    3067598185,
+    3067563180,
+    5415338749
+  ],
+  "tags": {
+    "leisure": "park",
+    "name": "Veterans Park"
+  }
+},
+{
+  "type": "way",
+  "id": 160836794,
+  "center": {
+    "lat": 53.5395807,
+    "lon": -113.4997758
+  },
+  "nodes": [
+    1728520764,
+    1728520818,
+    2351703648,
+    1728520643,
+    1728520685,
+    1728520764
+  ],
+  "tags": {
+    "leisure": "park",
+    "name": "Beatrice Carmichael Park"
+  }
+},
+{
+  "type": "way",
+  "id": 198720128,
+  "center": {
+    "lat": 53.5429546,
+    "lon": -113.4897187
+  },
+  "nodes": [
+    10272090207,
+    2088216622,
+    2305545284,
+    2305545283,
+    4700145944,
+    2088216624,
+    2088216614,
+    14003761749,
+    14018669025,
+    10272090207
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10212",
+    "addr:postcode": "T5J 5A3",
+    "addr:street": "Sir Winston Churchill Square NW",
+    "amenity": "library",
+    "building": "civic",
+    "building:colour": "#a06a2d",
+    "building:levels": "4",
+    "building:material": "metal",
+    "building:min_level": "0",
+    "height": "14.3",
+    "min_height": "0.0",
+    "name": "Stanley A. Milner Library",
+    "opening_date": "1967-09-22",
+    "opening_hours": "Mo-Fr 09:00-21:00 off; Sa 09:00-16:00; Su 10:00-17:00",
+    "operator": "Edmonton Public Library",
+    "operator:short": "EPL",
+    "operator:type": "public",
+    "operator:wikidata": "Q5339083",
+    "phone": "+1-780-496-7000",
+    "website": "https://www.epl.ca/locations/EPLMNA/",
+    "wikidata": "Q7599420",
+    "wikipedia": "en:Stanley A. Milner Library"
+  }
+},
+{
+  "type": "way",
+  "id": 198826612,
+  "center": {
+    "lat": 53.5402979,
+    "lon": -113.4893876
+  },
+  "nodes": [
+    3304676055,
+    3304676063,
+    3304676052,
+    2089084223,
+    2089084225,
+    2089084246,
+    3304676018,
+    2089084287,
+    7836353014,
+    7836353013,
+    7836353012,
+    7836353011,
+    2089084279,
+    3304676013,
+    7836353010,
+    2089084274,
+    2089084206,
+    2089084262,
+    2089084265,
+    3304675953,
+    7836352988,
+    13894666587,
+    3304676015,
+    2089084241,
+    2089084233,
+    13894666586,
+    3304676035,
+    2089084255,
+    3304676039,
+    2089084263,
+    7836353015,
+    3304676048,
+    4480957834,
+    4480957833,
+    3304676055
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10065",
+    "addr:postcode": "T5J 0N6",
+    "addr:street": "100 Street NW",
+    "brand": "Fairmont",
+    "brand:wikidata": "Q1393345",
+    "building": "hotel",
+    "building:colour": "#eee1ce",
+    "building:levels": "1",
+    "building:material": "sandstone",
+    "construction_date": "1915",
+    "fax": "+1-780-429-6481",
+    "height": "47",
+    "historic": "protected_building",
+    "internet_access": "wlan",
+    "internet_access:fee": "yes",
+    "name": "Fairmont Hotel MacDonald",
+    "operator": "AccorHotels",
+    "phone": "+1-780-424-5181",
+    "phone:tollfree": "+1-866-540-4468",
+    "roof:colour": "#808000",
+    "rooms": "198",
+    "source": "Bing",
+    "source:name": "local_knowledge",
+    "stars": "4",
+    "tourism": "hotel",
+    "website": "https://www.fairmont.com/macdonald-edmonton/",
+    "wikidata": "Q3145578",
+    "wikipedia": "en:Hotel Macdonald"
+  }
+},
+{
+  "type": "way",
+  "id": 208362407,
+  "center": {
+    "lat": 53.5429768,
+    "lon": -113.4879647
+  },
+  "nodes": [
+    2186629912,
+    2186629944,
+    5382140735,
+    2186629930,
+    3314633460,
+    3239067375,
+    3314635368,
+    3314635371,
+    2186629883,
+    2186629874,
+    3314635581,
+    3314635567,
+    2186629920,
+    3314635587,
+    3314635602,
+    2186629941,
+    3314635607,
+    2186629971,
+    3314635608,
+    3314635605,
+    2186629969,
+    2186629939,
+    2186629924,
+    2186629918,
+    2186629879,
+    2186629897,
+    2186629894,
+    2186629891,
+    2186629903,
+    2186629858,
+    2186629882,
+    2186629872,
+    2186629831,
+    3314635364,
+    3314635363,
+    2186629965,
+    2186629912
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "9828",
+    "addr:postcode": "T5J 3C6",
+    "addr:street": "101A Avenue NW",
+    "amenity": "theatre",
+    "building": "commercial",
+    "check_date": "2026-08-08",
+    "name": "Citadel Theatre",
+    "opening_date": "1965-11-10",
+    "operator": "The Citadel Theatre",
+    "website": "https://www.citadeltheatre.com/",
+    "wikidata": "Q5122386",
+    "wikipedia": "en:Citadel Theatre"
+  }
+},
+{
+  "type": "way",
+  "id": 221525672,
+  "center": {
+    "lat": 53.5449546,
+    "lon": -113.4885878
+  },
+  "nodes": [
+    2305545243,
+    2305545244,
+    2305545245,
+    2305545247,
+    2305545250,
+    12459380267,
+    12459380268,
+    2305545249,
+    2305545248,
+    2305545251,
+    2305545252,
+    2305545253,
+    2305545254,
+    2305545255,
+    2305545256,
+    12459380269,
+    2305545258,
+    2305545262,
+    2305545263,
+    2305545240,
+    2305545241,
+    2305545242,
+    2305545243
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "2",
+    "addr:postcode": "T5J 2C1",
+    "addr:street": "Sir Winston Churchill Square NW",
+    "building": "public",
+    "check_date": "2026-07-19",
+    "check_date:opening_hours": "2026-07-19",
+    "fee": "yes",
+    "museum_type": "art",
+    "name": "Art Gallery of Alberta",
+    "opening_hours": "We, Fr-Su 11:00-17:00; Th 11:00-19:00",
+    "operator": "Government of Alberta",
+    "tourism": "museum",
+    "website": "https://www.youraga.ca/",
+    "wheelchair": "yes",
+    "wikidata": "Q705545",
+    "wikipedia": "en:Art Gallery of Alberta"
+  }
+},
+{
+  "type": "way",
+  "id": 221525673,
+  "center": {
+    "lat": 53.5441839,
+    "lon": -113.4875565
+  },
+  "nodes": [
+    3314635669,
+    3314635696,
+    3314635697,
+    2305545276,
+    2305545277,
+    2305545278,
+    2305545280,
+    3314635737,
+    3314635738,
+    2305545281,
+    2305545282,
+    2305545264,
+    3314635867,
+    3314635870,
+    14004025928,
+    2305545266,
+    2305545270,
+    2305545271,
+    14004025959,
+    14004025958,
+    2305545272,
+    14004025957,
+    14004025960,
+    14004025962,
+    14004025961,
+    14004025946,
+    14004025947,
+    14004025949,
+    14004025950,
+    14004025951,
+    14004025952,
+    14004025948,
+    14004025953,
+    14004025954,
+    14004025955,
+    14004025956,
+    14004025945,
+    14004025932,
+    14004025944,
+    14004025943,
+    14004025942,
+    14004025941,
+    14004025940,
+    14004025933,
+    14004025939,
+    14004025938,
+    14004025937,
+    14004025936,
+    14004025935,
+    14004025934,
+    14004025931,
+    14004025930,
+    14004025929,
+    3314635887,
+    2305545273,
+    2305545274,
+    3314635741,
+    3314635739,
+    3314635729,
+    3314635709,
+    3314635713,
+    3314635710,
+    3314635706,
+    3314635694,
+    3314635699,
+    3314635698,
+    3314635695,
+    2305545275,
+    3314635669
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "4",
+    "addr:postcode": "T5J 4X8",
+    "addr:street": "Sir Winston Churchill Square NW",
+    "amenity": "theatre",
+    "building": "commercial",
+    "email": "box.office@winspearcentre.com",
+    "name": "Francis Winspear Centre for Music",
+    "opening_date": "1997-09",
+    "operator": "Winspear Centre",
+    "phone": "+1-780-428-1414",
+    "theatre:genre": "philharmonic",
+    "website": "https://www.winspearcentre.com/",
+    "wheelchair": "yes",
+    "wikidata": "Q5482825",
+    "wikipedia": "en:Francis Winspear Centre for Music"
+  }
+},
+{
+  "type": "way",
+  "id": 222646872,
+  "center": {
+    "lat": 53.5437446,
+    "lon": -113.4903643
+  },
+  "nodes": [
+    2315915947,
+    2315915948,
+    2315915949,
+    2315915950,
+    2315915951,
+    2315915943,
+    2315915944,
+    2315915945,
+    2315915946,
+    2315915947
+  ],
+  "tags": {
+    "building": "retail",
+    "building:levels": "2",
+    "building:material": "brick",
+    "name": "Edmonton Arts Council Shop & Services",
+    "operator": "Edmonton Arts Council",
+    "roof:levels": "0",
+    "roof:shape": "skillion",
+    "shop": "ticket",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 224805103,
+  "center": {
+    "lat": 53.5397586,
+    "lon": -113.4931040
+  },
+  "nodes": [
+    3304675909,
+    4479023311,
+    4479023312,
+    14005513086,
+    3304675940,
+    4479023315,
+    4479023313,
+    4479023314,
+    3304675941,
+    2336547990,
+    4479023309,
+    4479023316,
+    4479023317,
+    4479023310,
+    2336547989,
+    2336547988,
+    4479023321,
+    4479023318,
+    4479023319,
+    4479023320,
+    2336547999,
+    2336547998,
+    2336547997,
+    2336547991,
+    2336547995,
+    3304675909
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10086",
+    "addr:postcode": "T5J 2B7",
+    "addr:street": "MacDonald Drive NW",
+    "amenity": "place_of_worship",
+    "building": "church",
+    "building:levels": "4",
+    "building:material": "brick",
+    "denomination": "united",
+    "height": "18.5",
+    "name": "McDougall United Church",
+    "phone": "+1-780-428-1818",
+    "religion": "christian",
+    "roof:colour": "#65000B",
+    "roof:levels": "1",
+    "roof:shape": "flat",
+    "website": "https://www.mcdougallunited.com/",
+    "wikidata": "Q6800994",
+    "wikipedia": "en:McDougall United Church"
+  }
+},
+{
+  "type": "way",
+  "id": 224805108,
+  "center": {
+    "lat": 53.5401229,
+    "lon": -113.4950519
+  },
+  "nodes": [
+    2336548019,
+    2336548020,
+    2336548021,
+    2336548022,
+    4518483458,
+    2336548019
+  ],
+  "tags": {
+    "amenity": "parking",
+    "building": "parking",
+    "building:levels": "6",
+    "building:material": "concrete",
+    "name": "Parking Garage",
+    "parking": "multi-storey",
+    "roof:levels": "0",
+    "roof:shape": "flat",
+    "surface": "concrete"
+  }
+},
+{
+  "type": "way",
+  "id": 224805109,
+  "center": {
+    "lat": 53.5405885,
+    "lon": -113.4950373
+  },
+  "nodes": [
+    2336548023,
+    2336548024,
+    2336548025,
+    2336548027,
+    2336548023
+  ],
+  "tags": {
+    "leisure": "park",
+    "name": "Abbey Glen Park"
+  }
+},
+{
+  "type": "way",
+  "id": 224805110,
+  "center": {
+    "lat": 53.5412149,
+    "lon": -113.4940627
+  },
+  "nodes": [
+    4421977779,
+    4421977777,
+    4421977778,
+    4421977776,
+    4421977772,
+    2336548031,
+    2336548032,
+    2336548033,
+    4421977780,
+    4421977779
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10102",
+    "addr:postcode": "T5J 1W5",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "bank",
+    "atm": "yes",
+    "building": "office",
+    "building:levels": "5",
+    "drive_through": "no",
+    "height": "7.50",
+    "name": "Canadian Imperial Bank of Commerce (Old Block)",
+    "name_1": "Commerce Place Banking Centre (CIBC)",
+    "operator": "CIC",
+    "roof:colour": "grey",
+    "roof:shape": "flat",
+    "website": "http://www.edmontonmapsheritage.ca/location/canadian-imperial-bank-of-commerce/"
+  }
+},
+{
+  "type": "way",
+  "id": 225752534,
+  "center": {
+    "lat": 53.5457468,
+    "lon": -113.4929557
+  },
+  "nodes": [
+    2345081719,
+    2345081720,
+    2345081721,
+    2345081722,
+    2345081719
+  ],
+  "tags": {
+    "access": "customers",
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10301",
+    "addr:postcode": "T5J 0G7",
+    "addr:street": "101 Street NW",
+    "amenity": "parking",
+    "brand": "Impark",
+    "brand:wikidata": "Q6006077",
+    "capacity": "132",
+    "fee": "yes",
+    "name": "Lot #287",
+    "operator": "Impark",
+    "operator:wikidata": "Q6006077",
+    "parking": "surface",
+    "surface": "asphalt"
+  }
+},
+{
+  "type": "way",
+  "id": 225752542,
+  "center": {
+    "lat": 53.5440113,
+    "lon": -113.4998580
+  },
+  "nodes": [
+    2345081748,
+    2345081749,
+    2345081750,
+    2345081751,
+    2345081748
+  ],
+  "tags": {
+    "access": "yes",
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10238",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "parking",
+    "building": "parking",
+    "building:levels": "7",
+    "capacity": "366",
+    "charge": "4.50 CAD/hour",
+    "fee": "yes",
+    "name": "Revillon Parkade",
+    "opening_hours": "Mo-Fr 05:00-22:00; Su,Sa 07:00-21:00",
+    "operator": "Vibe Parking",
+    "operator:type": "private",
+    "parking": "multi-storey",
+    "surface": "concrete",
+    "website": "https://vibeparking.com/revillon-parkade-10238-104-street-lot-28/"
+  }
+},
+{
+  "type": "way",
+  "id": 225923574,
+  "center": {
+    "lat": 53.5421474,
+    "lon": -113.4979459
+  },
+  "nodes": [
+    2347577224,
+    2088221999,
+    2347577229,
+    2347577225,
+    2347577224
+  ],
+  "tags": {
+    "addr:housenumber": "10154",
+    "addr:street": "103 Street NW",
+    "building": "yes",
+    "building:levels": "4",
+    "height": "17",
+    "name": "Morris Lofts",
+    "office": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 225923583,
+  "center": {
+    "lat": 53.5458103,
+    "lon": -113.4997546
+  },
+  "nodes": [
+    2347577283,
+    2347577285,
+    2347577287,
+    5910765570,
+    2347577289,
+    2347577283
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10405",
+    "addr:postcode": "T6J 2Y4",
+    "addr:street": "104 Street NW",
+    "building": "industrial",
+    "building:levels": "3",
+    "check_date": "2026-10-02",
+    "check_date:opening_hours": "2026-10-02",
+    "name": "Telus Main Wire Centre",
+    "office": "telecommunication",
+    "opening_hours:signed": "no"
+  }
+},
+{
+  "type": "way",
+  "id": 226322095,
+  "center": {
+    "lat": 53.5392545,
+    "lon": -113.4997680
+  },
+  "nodes": [
+    2351703648,
+    2351703649,
+    2351703650,
+    2351703651,
+    2351703652,
+    1728520643,
+    2351703648
+  ],
+  "tags": {
+    "brand": "Holiday Inn Express",
+    "brand:wikidata": "Q5880423",
+    "building": "hotel",
+    "check_date": "2026-08-09",
+    "name": "Holiday Inn Express",
+    "tourism": "hotel"
+  }
+},
+{
+  "type": "way",
+  "id": 226322112,
+  "center": {
+    "lat": 53.5397167,
+    "lon": -113.4968641
+  },
+  "nodes": [
+    2351703714,
+    2351703715,
+    2351703716,
+    2351703717,
+    2351703730,
+    2351703718,
+    2351703719,
+    2351703714
+  ],
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "building:levels": "2",
+    "building:material": "brick",
+    "denomination": "anglican",
+    "name": "All Saints Anglican Cathedral",
+    "religion": "christian",
+    "wikidata": "Q4729304",
+    "wikipedia": "en:All Saints' Anglican Cathedral, Edmonton"
+  }
+},
+{
+  "type": "way",
+  "id": 226322818,
+  "center": {
+    "lat": 53.5406696,
+    "lon": -113.4808724
+  },
+  "nodes": [
+    10096966175,
+    10096966174,
+    10096966186,
+    10096966190,
+    10096966203,
+    10096966181,
+    10096966197,
+    10098545506,
+    10096966196,
+    4480974126,
+    4480974127,
+    4480974124,
+    4531636146,
+    4531636145,
+    4480974125,
+    4531636144,
+    2351709233,
+    6669910286,
+    6669910287,
+    2351709234,
+    2351709235,
+    2351709236,
+    2351709237,
+    2351709238,
+    2351709219,
+    2351709220,
+    2351709221,
+    2351709222,
+    2351709223,
+    1647504869,
+    6271652866,
+    2351709225,
+    6271652868,
+    6271652869,
+    2351709226,
+    6271652867,
+    6271652870,
+    6271652871,
+    277424386,
+    6271652872,
+    6271652873,
+    6271652874,
+    4480974128,
+    4480974130,
+    4480974129,
+    277424389,
+    4480974132,
+    6271655191,
+    277424390,
+    4480974133,
+    277424393,
+    277424394,
+    10096966173,
+    10096966175
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "9999",
+    "addr:street": "Grierson Hill Road NW",
+    "leisure": "park",
+    "name": "Louise McKinney Riverfront Park",
+    "opening_hours": "Mo-Su 05:00-23:00",
+    "phone": "+1-780-442-5311",
+    "source:addr": "https://www.edmonton.ca/activities_parks_recreation/parks_rivervalley/louise-mckinney-riverfront-park",
+    "website": "https://www.edmonton.ca/activities_parks_recreation/parks_rivervalley/louise-mckinney-riverfront-park.aspx",
+    "wikidata": "Q16894343",
+    "wikipedia": "en:Louise McKinney Riverfront Park"
+  }
+},
+{
+  "type": "way",
+  "id": 323689452,
+  "center": {
+    "lat": 53.5418954,
+    "lon": -113.4916232
+  },
+  "nodes": [
+    3304676227,
+    3304676228,
+    3304676230,
+    3304676247,
+    3304676246,
+    3304676251,
+    3304676289,
+    3304676292,
+    3304676291,
+    3304676290,
+    3304676293,
+    3304676294,
+    3304676296,
+    3304676299,
+    3304676298,
+    3304676295,
+    3304676300,
+    3304676225,
+    3304676216,
+    3304676219,
+    3304676218,
+    3304676220,
+    3304676227
+  ],
+  "tags": {
+    "access": "customers",
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10135",
+    "addr:postcode": "T5J 0N7",
+    "addr:street": "100A Street NW",
+    "amenity": "parking",
+    "brand": "Impark",
+    "brand:wikidata": "Q6006077",
+    "building": "transportation",
+    "fee": "yes",
+    "name": "Impark (Parking)",
+    "operator": "Impark",
+    "operator:type": "private",
+    "operator:wikidata": "Q6006077",
+    "parking": "multi-storey",
+    "supervised": "yes",
+    "surface": "concrete"
+  }
+},
+{
+  "type": "way",
+  "id": 323689467,
+  "center": {
+    "lat": 53.5414706,
+    "lon": -113.4899343
+  },
+  "nodes": [
+    3304676209,
+    3304676215,
+    3304676170,
+    14167085790,
+    13894666591,
+    3304676164,
+    3304676209
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "9990",
+    "addr:postcode": "T5J 1P7",
+    "addr:street": "Jasper Avenue NW",
+    "building": "commercial",
+    "building:colour": "beige clair",
+    "building:levels": "7",
+    "building:material": "concrete",
+    "height": "25.0",
+    "historic": "protected_building",
+    "min_height": "0.0",
+    "name": "World Trade Centre",
+    "office": "company",
+    "old_name": "Imperial Bank of Canada Building",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat",
+    "wikidata": "Q41796726"
+  }
+},
+{
+  "type": "way",
+  "id": 323689488,
+  "center": {
+    "lat": 53.5420185,
+    "lon": -113.4895783
+  },
+  "nodes": [
+    1420663361,
+    7838488794,
+    7838488793,
+    7838488792,
+    7838488791,
+    7838488790,
+    6104603451,
+    14018669027,
+    3304676304,
+    7838488796,
+    3304676308,
+    7838488817,
+    3304676257,
+    7838488818,
+    7838488795,
+    3304676240,
+    1420663361
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10135",
+    "addr:postcode": "T5J 0N7",
+    "addr:street": "100 Street NW",
+    "brand": "Westin",
+    "brand:wikidata": "Q1969162",
+    "brand:wikipedia": "en:Westin Hotels & Resorts",
+    "building": "hotel",
+    "building:levels": "21",
+    "building:material": "brick",
+    "check_date": "2026-10-13",
+    "fax": "+1-780-428-1454",
+    "internet_access": "wlan",
+    "internet_access:fee": "customers",
+    "name": "The Westin Edmonton",
+    "operator": "Marriott International",
+    "phone": "+1-780-426-3636",
+    "roof:levels": "1",
+    "roof:shape": "flat",
+    "rooms": "399",
+    "tourism": "hotel",
+    "website": "http://www.thewestinedmonton.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 324786133,
+  "center": {
+    "lat": 53.5428877,
+    "lon": -113.4866387
+  },
+  "nodes": [
+    3314633455,
+    7837920755,
+    12479294189,
+    7837920780,
+    7837920764,
+    12479384761,
+    11958791448,
+    7837920763,
+    3314633445,
+    12479294188,
+    3314633443,
+    3314633442,
+    3314633439,
+    3314633437,
+    3314633435,
+    3314633434,
+    3314633433,
+    3314633432,
+    3314633431,
+    12479294199,
+    3314633430,
+    7837920767,
+    7837920768,
+    7837920798,
+    7837920799,
+    7837920766,
+    3314635654,
+    3314635661,
+    3314635656,
+    3314635652,
+    3314635648,
+    3314635643,
+    3314635641,
+    3314635638,
+    3314635636,
+    3314635635,
+    3314635637,
+    7838470475,
+    3314635626,
+    12479384743,
+    12479384733,
+    3314635632,
+    7838470476,
+    3314635649,
+    3314635655,
+    3314635659,
+    3314635662,
+    3314635664,
+    3314635668,
+    3314635675,
+    3314635687,
+    3314635693,
+    3314635700,
+    3314635678,
+    3314635685,
+    6104602722,
+    6104602723,
+    3314633454,
+    3314633440,
+    3314633438,
+    12479294198,
+    3314633441,
+    3314633444,
+    3314633446,
+    3314633447,
+    3314633448,
+    3314633451,
+    3314633453,
+    3314633452,
+    3314633449,
+    3314633455
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housename": "Canada Place",
+    "addr:housenumber": "9700",
+    "addr:postcode": "T5J 4E6",
+    "addr:street": "Jasper Avenue NW",
+    "building": "government",
+    "building:colour": "#e9c9ca",
+    "building:material": "glass",
+    "designation": "Federal Government Building",
+    "government": "government",
+    "name": "Canada Place Service Canada Centre",
+    "office": "government",
+    "opening_hours": "Mo-Fr 08:30-16:00",
+    "operator": "Goverment of Canada",
+    "roof:colour": "purple",
+    "roof:material": "glass",
+    "roof:orientation": "along/across",
+    "roof:shape": "half-hipped",
+    "website": "https://www.servicecanada.gc.ca/tbsc-fsco/sc-dsp.jsp?lang=eng&rc=4754",
+    "wheelchair": "yes",
+    "wikidata": "Q5029411",
+    "wikipedia": "en:Canada Place (Edmonton)"
+  }
+},
+{
+  "type": "way",
+  "id": 324786162,
+  "center": {
+    "lat": 53.5471562,
+    "lon": -113.4890773
+  },
+  "nodes": [
+    11747317451,
+    3314637069,
+    5460949534,
+    5460949533,
+    5460949545,
+    11747317364,
+    11747317468,
+    11747317339,
+    5460949546,
+    11747317340,
+    5460949544,
+    11747317341,
+    11747317467,
+    5460949543,
+    5460949537,
+    5460949541,
+    5460949540,
+    5460949539,
+    11747317466,
+    11747317342,
+    11747317343,
+    11747317344,
+    5460949538,
+    5460949536,
+    11747317465,
+    5460949548,
+    5460949547,
+    11747317345,
+    11747317346,
+    11747317347,
+    11747317464,
+    11747317463,
+    11747317462,
+    5460949549,
+    5460949554,
+    5460949553,
+    5460949552,
+    5460949551,
+    5460949550,
+    11747317461,
+    11747317460,
+    11747317348,
+    5460949535,
+    3314637267,
+    11747317459,
+    11747317458,
+    5460949526,
+    5460949527,
+    3314635202,
+    11747317457,
+    11747317456,
+    3314637278,
+    3314637269,
+    5460949528,
+    5460949530,
+    5460949529,
+    11747317452,
+    11747317278,
+    12459323909,
+    3314637098,
+    11747317455,
+    11244330361,
+    3314637079,
+    3314637066,
+    5460949531,
+    5460949532,
+    11747317448,
+    12139035353,
+    11747317365,
+    11747317451
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "9810",
+    "addr:postcode": "T5J 0G2",
+    "addr:province": "AB",
+    "addr:street": "103A Avenue NW",
+    "building": "civic",
+    "building:levels": "2",
+    "fee": "yes",
+    "name": "Royal Alberta Museum",
+    "operator": "Government of Alberta",
+    "tourism": "museum",
+    "website": "https://royalalbertamuseum.ca/",
+    "wheelchair": "yes",
+    "wikidata": "Q2170950",
+    "wikipedia": "en:Royal Alberta Museum"
+  }
+},
+{
+  "type": "way",
+  "id": 324786165,
+  "center": {
+    "lat": 53.5477193,
+    "lon": -113.4848281
+  },
+  "nodes": [
+    868645138,
+    3314635192,
+    3314635197,
+    3314635200,
+    3314635206,
+    3314635225,
+    3314635234,
+    3314635220,
+    3314635222,
+    3314635226,
+    3314635230,
+    3314635219,
+    3314635217,
+    3314635214,
+    3314635216,
+    3314635188,
+    3314635190,
+    3314637291,
+    3314637273,
+    3314637276,
+    3314637271,
+    3314637277,
+    3314637275,
+    3314637281,
+    3314637279,
+    3314637296,
+    868645138
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "9620",
+    "addr:postcode": "T5H 0H7",
+    "addr:province": "AB",
+    "addr:street": "103A Avenue NW",
+    "amenity": "police",
+    "building": "public",
+    "building:levels": "4",
+    "building:material": "concrete",
+    "name": "Downtown Division Station",
+    "opening_hours": "Mo-Su 08:00-20:00",
+    "operator": "Edmonton Police Service",
+    "operator:short": "EPS",
+    "operator:wikidata": "Q5339081",
+    "roof:shape": "flat",
+    "source": "CanVec 6.0 - NRCan",
+    "website": "https://www.edmontonpolice.ca/ContactEPS/EPSPoliceStations/DowntownDivision"
+  }
+},
+{
+  "type": "way",
+  "id": 324786184,
+  "center": {
+    "lat": 53.5455158,
+    "lon": -113.4877859
+  },
+  "nodes": [
+    3314636630,
+    3314636414,
+    3314636397,
+    6104472690,
+    13674332964,
+    13674332914,
+    3314636628,
+    13674332912,
+    6104472691,
+    13674332913,
+    3314636630
+  ],
+  "tags": {
+    "amenity": "courthouse",
+    "indoor": "area",
+    "name": "Court of King's Bench of Alberta",
+    "operator": "Government of Alberta",
+    "wheelchair": "yes",
+    "wikidata": "Q5178402"
+  }
+},
+{
+  "type": "way",
+  "id": 324786213,
+  "center": {
+    "lat": 53.5436474,
+    "lon": -113.4894259
+  },
+  "nodes": [
+    3314635671,
+    3314635666,
+    3314635682,
+    4546583405,
+    12459312192,
+    4546583404,
+    12459312194,
+    4546583407,
+    14003761786,
+    12459312193,
+    4546583406,
+    14003761785,
+    3314635650,
+    3314635644,
+    3314635671
+  ],
+  "tags": {
+    "amenity": "cafe",
+    "building": "yes",
+    "name": "Three Bananas Cafe",
+    "toilets:wheelchair": "yes",
+    "website": "https://threebananas.ca/",
+    "wheelchair": "yes",
+    "wheelchair:description": "Door non automatic and key required. Heavy doorHand paper dispenser not working and mounted for standing heightDark interior"
+  }
+},
+{
+  "type": "way",
+  "id": 430134134,
+  "center": {
+    "lat": 53.5451502,
+    "lon": -113.4929846
+  },
+  "nodes": [
+    14005207274,
+    3314636426,
+    14005513093,
+    4531167665,
+    14005207273,
+    3314636364,
+    4531167657,
+    14005207272,
+    14005207271,
+    14005207270,
+    14005207281,
+    14005207280,
+    14005513090,
+    14005513091,
+    14005207274
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10235",
+    "addr:postcode": "T5J 0G5",
+    "addr:street": "101 Street NW",
+    "building": "office",
+    "check_date": "2026-07-08",
+    "name": "MNP Tower",
+    "office": "commercial",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat",
+    "wikidata": "Q14246365",
+    "wikipedia": "en:MNP Tower (Edmonton)"
+  }
+},
+{
+  "type": "way",
+  "id": 437046635,
+  "center": {
+    "lat": 53.5400839,
+    "lon": -113.4913984
+  },
+  "nodes": [
+    4348805312,
+    4348805318,
+    4348805313,
+    4700146045,
+    4700146044,
+    4700146046,
+    4700146047,
+    4348805314,
+    4348805316,
+    4348805312
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10020",
+    "addr:postcode": "T5J 2N1",
+    "addr:street": "100 Street NW",
+    "building": "commercial",
+    "building:colour": "lightyellow",
+    "building:levels": "34",
+    "building:material": "concrete/glass",
+    "complete": "1971",
+    "height": "134.4",
+    "min_height": "-3.0",
+    "name": "ATB Plaza South Tower",
+    "office": "company",
+    "old_name": "Telus House;AGT Tower",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat",
+    "start_date": "1969",
+    "wheelchair": "yes",
+    "wikidata": "Q2402453",
+    "wikipedia": "en:ATB Place"
+  }
+},
+{
+  "type": "way",
+  "id": 437046636,
+  "center": {
+    "lat": 53.5407333,
+    "lon": -113.4907826
+  },
+  "nodes": [
+    4518500644,
+    4700146116,
+    13894666588,
+    4700146063,
+    4700146069,
+    13894666590,
+    4518500646,
+    4518500647,
+    4518500649,
+    4518500648,
+    3304676096,
+    4518500644
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10025",
+    "addr:postcode": "T5J 2N3",
+    "addr:street": "Jasper Avenue NW",
+    "building": "commercial",
+    "building:colour": "lightyellow",
+    "building:levels": "24",
+    "building:material": "concrete/glass",
+    "check_date": "2026-04-09",
+    "complete": "1969",
+    "height": "90.3",
+    "min_height": "0.0",
+    "name": "ATB Plaza North Tower",
+    "office": "company",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat",
+    "start_date": "1967",
+    "wheelchair": "yes",
+    "wikidata": "Q2402453",
+    "wikipedia": "en:ATB Place"
+  }
+},
+{
+  "type": "way",
+  "id": 440538612,
+  "center": {
+    "lat": 53.5472041,
+    "lon": -113.4965272
+  },
+  "nodes": [
+    4382805076,
+    12832321439,
+    5910765890,
+    5910765582,
+    4382805301,
+    4382805302,
+    4382805088,
+    14005110118,
+    4382805289,
+    4382805074,
+    4382805295,
+    12832321412,
+    4382805076
+  ],
+  "tags": {
+    "landuse": "commercial",
+    "name": "Ice District",
+    "operator": "Ice District Properties",
+    "phone": "+1-780-423-5525",
+    "source": "bing;Ice District Open house;local knowledge",
+    "tourism": "attraction",
+    "website": "https://icedistrict.com/",
+    "wikidata": "Q23074085",
+    "wikipedia": "en:Ice District"
+  }
+},
+{
+  "type": "way",
+  "id": 440538614,
+  "center": {
+    "lat": 53.5452245,
+    "lon": -113.4951962
+  },
+  "nodes": [
+    4382805316,
+    2345081699,
+    4382805315,
+    4382805317,
+    4382805316
+  ],
+  "tags": {
+    "access": "customers",
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10104",
+    "addr:postcode": "T5J 3R6",
+    "addr:street": "103 Avenue NW",
+    "amenity": "parking",
+    "brand": "Impark",
+    "brand:wikidata": "Q6006077",
+    "building": "parking",
+    "building:levels": "2",
+    "capacity": "393",
+    "charge": "26.00 CAD/day",
+    "description": "Parking Lot #493",
+    "fee": "yes",
+    "lit": "yes",
+    "name": "Bell Tower Parkade",
+    "opening_hours": "24/7",
+    "operator": "Impark",
+    "operator:wikidata": "Q6006077",
+    "parking": "underground",
+    "roof:colour": "grey",
+    "roof:shape": "flat",
+    "supervised": "yes",
+    "surface": "paved",
+    "website": "https://parking.impark.com/edmonton-parking-lot-493/"
+  }
+},
+{
+  "type": "way",
+  "id": 444741471,
+  "center": {
+    "lat": 53.5426132,
+    "lon": -113.4946633
+  },
+  "nodes": [
+    4422004883,
+    4422004884,
+    4422004905,
+    14005513096,
+    13936568159,
+    13936568162,
+    11599040942,
+    14003761710,
+    14003761711,
+    14003761712,
+    14003761713,
+    4422004906,
+    4422004898,
+    4422004897,
+    4422004896,
+    4422004895,
+    4422004890,
+    13936568131,
+    13936568132,
+    11599040956,
+    4421944445,
+    1053340633,
+    13936568127,
+    13936568126,
+    13936568130,
+    13936568125,
+    13936568124,
+    2347577105,
+    13936568123,
+    13936568122,
+    4422004885,
+    4422004886,
+    4422004887,
+    6512128282,
+    4422004888,
+    4422004889,
+    14123673183,
+    4422004883
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10180",
+    "addr:postcode": "T5J 3S4",
+    "addr:street": "101 Street NW",
+    "building": "commercial",
+    "building:colour": "grey",
+    "building:material": "concrete",
+    "height": "6.50",
+    "min_height": "0.0",
+    "name": "National Bank Centre (Podium)",
+    "old_name": "Manulife Place (Podium)",
+    "opening_hours": "Mo-Sa 10:00-17:30; Th,Fr 10:00-20:00; Su 12:00-17:00",
+    "operator": "National Bank of Canada",
+    "roof:colour": "grey",
+    "roof:shape": "flat",
+    "shop": "mall",
+    "toilets": "yes",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 448626254,
+  "center": {
+    "lat": 53.5466117,
+    "lon": -113.4977940
+  },
+  "nodes": [
+    4456222575,
+    4456264694,
+    4456222576,
+    4456264693,
+    4456225306,
+    4456264695,
+    5242029818,
+    5242029819,
+    5242029820,
+    4456222577,
+    4456222579,
+    5242029817,
+    5242032521,
+    4456264697,
+    4456225309,
+    4456222581,
+    4456264698,
+    4456222582,
+    4456264699,
+    6595763787,
+    4456225308,
+    4456264700,
+    6595763788,
+    4456222583,
+    4456222585,
+    5242032522,
+    5242032523,
+    4456264712,
+    4456222586,
+    4456264711,
+    4456222587,
+    5242032525,
+    5242032526,
+    5242032524,
+    5242032527,
+    4456264709,
+    4456225304,
+    4456264713,
+    4456225305,
+    5242032528,
+    5242032529,
+    4456222588,
+    6361321368,
+    4581946111,
+    1743821453,
+    4281858025,
+    4456264707,
+    4456283941,
+    4456225289,
+    7835652825,
+    4456225290,
+    14005110143,
+    4456264706,
+    6595763795,
+    6595763796,
+    4456225293,
+    6595763794,
+    4456225294,
+    4456264704,
+    6595763793,
+    4456225295,
+    6595763792,
+    4456264703,
+    14005110144,
+    6595763791,
+    6595763790,
+    6595763789,
+    4456225296,
+    4456225297,
+    4456264708,
+    5242032533,
+    4592728996,
+    4456225298,
+    6943777964,
+    4456283939,
+    5242032532,
+    4456264702,
+    4456225300,
+    4456225307,
+    4456225301,
+    4456225302,
+    4456222575
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10220",
+    "addr:postcode": "T5J 4Y8",
+    "addr:province": "AB",
+    "addr:street": "104 Avenue NW",
+    "amenity": "music_venue",
+    "building": "stadium",
+    "building:colour": "silver",
+    "capacity": "20,734",
+    "capacity_1": "18,641",
+    "height": "43.0",
+    "leisure": "stadium",
+    "min_height": "0.0",
+    "name": "Rogers Place",
+    "operator": "Oilers Entertainment Group",
+    "roof:colour": "steel",
+    "roof:height": "7.00",
+    "smoking": "no",
+    "sport": "multi",
+    "website": "https://www.rogersplace.com/",
+    "wikidata": "Q5339036",
+    "wikipedia": "en:Rogers Place"
+  }
+},
+{
+  "type": "way",
+  "id": 448626255,
+  "center": {
+    "lat": 53.5467516,
+    "lon": -113.4961277
+  },
+  "nodes": [
+    4456225305,
+    4456225310,
+    4456225311,
+    6512128283,
+    6595763797,
+    6595763798,
+    4456222588,
+    5242032529,
+    5242032528,
+    4456225305
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10224",
+    "addr:postcode": "T5J 4Y8",
+    "addr:province": "AB",
+    "addr:street": "104 Avenue NW",
+    "amenity": "casino",
+    "building": "commercial",
+    "check_date": "2026-08-19",
+    "height": "15.0",
+    "name": "Grand Villa Edmonton Casino",
+    "opening_hours": "Mo-Su 10:00-15:00",
+    "operator": "Gateway Casinos",
+    "website": "https://grandvillacasinoedmonton.com/",
+    "wikidata": "Q24191926",
+    "wikipedia": "en:Grand Villa Edmonton Casino"
+  }
+},
+{
+  "type": "way",
+  "id": 448626256,
+  "center": {
+    "lat": 53.5473564,
+    "lon": -113.4962438
+  },
+  "nodes": [
+    4456225305,
+    4456225310,
+    4456225312,
+    4456225313,
+    4456222587,
+    5242032525,
+    5242032526,
+    5242032524,
+    5242032527,
+    4456264709,
+    4456225304,
+    4456264713,
+    4456225305
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10245",
+    "addr:postcode": "T5H 2R8",
+    "addr:street": "105 Avenue NW",
+    "building": "sports_centre",
+    "height": "15.0",
+    "leisure": "ice_rink",
+    "name": "Downtown Community Arena",
+    "operator": "City of Edmonton",
+    "phone": "+1-780-442-4546",
+    "seasonal": "no",
+    "smoking": "no",
+    "sport": "ice_hockey;multi",
+    "website": "https://www.edmonton.ca/activities_parks_recreation/downtown-community-arena.aspx",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 452522350,
+  "center": {
+    "lat": 53.5426562,
+    "lon": -113.4910097
+  },
+  "nodes": [
+    4493116849,
+    4535121253,
+    4535121251,
+    4535121255,
+    14018808290,
+    4535121254,
+    4535121252,
+    4493116853,
+    4493116851,
+    4493116852,
+    4493116849
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10162",
+    "addr:postcode": "T5H 3B5",
+    "addr:street": "100 Street NW",
+    "amenity": "restaurant",
+    "building": "commercial",
+    "building:levels": "3",
+    "building:material": "concrete/glass",
+    "building:min_level": "0",
+    "check_date": "2025-12-09",
+    "cuisine": "italian",
+    "height": "10.7",
+    "name": "Sorrentino's Bistro Bar",
+    "opening_hours": "Mo-Fr 11:00-15:00,17:00-22:00; Sa 17:00-22:00; Su 16:00-21:00",
+    "phone": "+1-780-474-6466",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat",
+    "toilets:wheelchair": "yes",
+    "wheelchair": "yes",
+    "wheelchair:description": "The washroom is accessible. Through 2 doors can access the toilet. The stall might be tight for a larger electric wheelchair or scooter"
+  }
+},
+{
+  "type": "way",
+  "id": 455446660,
+  "center": {
+    "lat": 53.5457058,
+    "lon": -113.4946459
+  },
+  "nodes": [
+    4382805083,
+    14005110152,
+    14005110153,
+    14005110154,
+    4281803642,
+    4382805084,
+    4518523549,
+    7834242469,
+    7834242470,
+    7188845533,
+    7834242471,
+    7834242468,
+    11005787214,
+    4382805079,
+    7834242472,
+    7834242473,
+    4518534763,
+    4382805080,
+    7834242474,
+    7834242475,
+    4382805085,
+    4382805081,
+    14005513084,
+    4382805082,
+    7834242476,
+    4382805083
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10111",
+    "addr:postcode": "T5J 4X1",
+    "addr:street": "104 Avenue NW",
+    "building": "civic",
+    "building:levels": "25",
+    "building:material": "glass",
+    "check_date": "2026-08-19",
+    "check_date:opening_hours": "2024-11-11",
+    "government": "local_government",
+    "name": "Edmonton Tower",
+    "office": "government",
+    "opening_date": "2016",
+    "opening_hours:signed": "no",
+    "roof:levels": "0",
+    "roof:shape": "flat",
+    "wikidata": "Q24191580",
+    "wikipedia": "en:Edmonton Tower"
+  }
+},
+{
+  "type": "way",
+  "id": 463571208,
+  "center": {
+    "lat": 53.5472530,
+    "lon": -113.4928224
+  },
+  "nodes": [
+    4588380807,
+    4588380809,
+    4588380811,
+    4588380812,
+    4588380807
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10423",
+    "addr:postcode": "T5H 0E7",
+    "addr:street": "101 Street NW",
+    "addr:unit": "220",
+    "amenity": "childcare",
+    "level": "2;3",
+    "name": "Little Scholars Childcare",
+    "opening_hours": "Mo-Fr 07:00-17:30",
+    "website": "https://www.educationaldaycare.ca/epcor.html"
+  }
+},
+{
+  "type": "way",
+  "id": 476422392,
+  "center": {
+    "lat": 53.5424871,
+    "lon": -113.4913538
+  },
+  "nodes": [
+    1420663364,
+    4700145983,
+    4700145984,
+    4700145985,
+    1420663364
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10012",
+    "addr:postcode": "T5J 0P5",
+    "addr:street": "101A Avenue NW",
+    "amenity": "pub",
+    "building": "retail",
+    "building:levels": "2",
+    "check_date": "2026-10-13",
+    "name": "The Sherlock Holmes Pub",
+    "opening_hours": "Mo-Su 11:00-15:00",
+    "outdoor_seating": "yes",
+    "phone": "+1-780-426-7784",
+    "roof:levels": "0",
+    "roof:shape": "gabled",
+    "website": "https://www.skipthedishes.com/sherlock-holmes-downtown"
+  }
+},
+{
+  "type": "way",
+  "id": 476422441,
+  "center": {
+    "lat": 53.5414012,
+    "lon": -113.4918505
+  },
+  "nodes": [
+    4700146175,
+    4700146176,
+    4700146177,
+    4700146182,
+    4700146178,
+    4700146196,
+    4700146179,
+    4700146175
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10115",
+    "addr:postcode": "T5J 2W2",
+    "addr:street": "100A Street NW",
+    "building": "commercial",
+    "building:colour": "beige",
+    "building:levels": "6",
+    "building:material": "concrete",
+    "building:min_level": "0",
+    "height": "21.5",
+    "min_height": "0.0",
+    "name": "belairdirect",
+    "office": "yes",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat"
+  }
+},
+{
+  "type": "way",
+  "id": 476422448,
+  "center": {
+    "lat": 53.5414622,
+    "lon": -113.4910525
+  },
+  "nodes": [
+    4700146180,
+    4700146197,
+    14186976323,
+    14187004255,
+    4700146198,
+    4700146192,
+    4700146180
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10012",
+    "addr:postcode": "T5J 1R2",
+    "addr:street": "Jasper Avenue NW",
+    "building": "commercial",
+    "building:colour": "beige",
+    "building:levels": "2.5",
+    "building:material": "masonry",
+    "building:min_level": "0",
+    "height": "7.5",
+    "min_height": "0.0",
+    "name": "Design Group Staffing Inc",
+    "office": "company",
+    "opening_hours": "Mo-Fr 08:30-17:00",
+    "phone": "+1-780-428-1505",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat"
+  }
+},
+{
+  "type": "way",
+  "id": 476426045,
+  "center": {
+    "lat": 53.5407249,
+    "lon": -113.4917866
+  },
+  "nodes": [
+    4700171367,
+    4700171701,
+    4700171368,
+    14005552024,
+    14005552023,
+    4700171369,
+    14005552022,
+    14005552021,
+    14005552020,
+    4700171376,
+    14005552019,
+    14005552018,
+    4700171696,
+    4700171695,
+    4700171375,
+    4700171377,
+    4700171374,
+    14005552017,
+    14005552014,
+    14005552016,
+    14005552015,
+    14005552012,
+    14005552013,
+    4700171372,
+    4700171379,
+    4700171373,
+    4700171371,
+    14005552011,
+    4700171370,
+    14005552010,
+    14005489387,
+    4700171698,
+    4700171367
+  ],
+  "tags": {
+    "leisure": "park",
+    "name": "Telus Park",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 476797578,
+  "center": {
+    "lat": 53.5450372,
+    "lon": -113.4964944
+  },
+  "nodes": [
+    4281858024,
+    14005110129,
+    14005110130,
+    14005110128,
+    5008393648,
+    5008393651,
+    5008393652,
+    5891914272,
+    5008393647,
+    14005110126,
+    5891914273,
+    14005110125,
+    5008393650,
+    14005110123,
+    7188845535,
+    14005110121,
+    14005110122,
+    5008393646,
+    4702679323,
+    14005110120,
+    7835652849,
+    5008393654,
+    14113901055,
+    5008393653,
+    14005110119,
+    5008393655,
+    4702679324,
+    13041837986,
+    11580712885,
+    13041837985,
+    11244330355,
+    14005110127,
+    4281858024
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10104",
+    "addr:postcode": "T5J 0K4",
+    "addr:province": "AB",
+    "addr:street": "103 Avenue NW",
+    "building": "office",
+    "building:colour": "#00101c",
+    "building:levels": "66",
+    "building:material": "glass",
+    "check_date": "2026-08-19",
+    "height": "250.8",
+    "name": "Stantec Tower",
+    "office": "mixed_use",
+    "website": "https://www.stantec.com/en/projects/canada-projects/s/stantec-tower-edmonton",
+    "wikidata": "Q21092654",
+    "wikipedia": "en:Stantec Tower"
+  }
+},
+{
+  "type": "way",
+  "id": 476797583,
+  "center": {
+    "lat": 53.5457647,
+    "lon": -113.4962477
+  },
+  "nodes": [
+    4281858025,
+    4456264707,
+    4456283941,
+    4456225289,
+    7835652825,
+    14005110139,
+    14005110140,
+    7835652826,
+    14005110141,
+    14005110142,
+    7188775059,
+    14005110137,
+    14005110138,
+    7835652827,
+    7835652828,
+    14005110133,
+    4716294588,
+    7835652839,
+    7188845534,
+    14005110124,
+    4716294589,
+    7188845532,
+    4702679325,
+    7835652838,
+    4281858025
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10360",
+    "addr:postcode": "T5J 4Y8",
+    "addr:province": "AB",
+    "addr:street": "102 Street NW",
+    "air_conditioning": "yes",
+    "brand": "JW Marriott",
+    "brand:wikidata": "Q1067636",
+    "brand:wikipedia": "en:JW Marriott Hotels",
+    "building": "hotel",
+    "building:colour": "#00021c",
+    "building:levels": "2",
+    "check_date": "2026-08-19",
+    "fax": "+1-780-784-7951",
+    "name": "JW Marriott Edmonton Ice District & Residences",
+    "opening_date": "2019",
+    "operator": "Marriott",
+    "phone": "+1-780-297-9300",
+    "rooms": "322",
+    "tourism": "hotel",
+    "website": "https://www.marriott.com/hotels/travel/yegjw-jw-marriott-edmonton-ice-district/",
+    "wikidata": "Q24191576",
+    "wikipedia": "en:JW Marriott Edmonton Ice District & Residences"
+  }
+},
+{
+  "type": "way",
+  "id": 531738508,
+  "center": {
+    "lat": 53.5452386,
+    "lon": -113.4942082
+  },
+  "nodes": [
+    304150110,
+    14005207231,
+    14005207232,
+    14005207233,
+    14005207234,
+    14167193945,
+    5910766015,
+    5910766014,
+    14005207229,
+    14005207230,
+    1154973740,
+    1154973684,
+    304150110
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10310",
+    "addr:postcode": "T5J 4X1",
+    "addr:street": "101 Street NW",
+    "amenity": "restaurant",
+    "branch": "Bell Tower",
+    "brand": "Joey",
+    "brand:wikidata": "Q24191943",
+    "building": "yes",
+    "building:levels": "1",
+    "cuisine": "regional",
+    "name": "Joey",
+    "opening_hours": "Mo-Sa 11:00-01:00; Su 11:00-24:00",
+    "phone": "+1-780-990-5639",
+    "smoking": "outside",
+    "website": "https://joeyrestaurants.com/location/joey-bell-tower"
+  }
+},
+{
+  "type": "way",
+  "id": 555310223,
+  "center": {
+    "lat": 53.5416071,
+    "lon": -113.4997870
+  },
+  "nodes": [
+    5357855875,
+    5357855876,
+    5357855877,
+    5357855878,
+    5357855875
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10124",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "leisure": "park",
+    "name": "Michael Phair Park",
+    "wikidata": "Q139974807"
+  }
+},
+{
+  "type": "way",
+  "id": 693626003,
+  "center": {
+    "lat": 53.5435544,
+    "lon": -113.4958677
+  },
+  "nodes": [
+    6512128275,
+    6512128276,
+    6512128277,
+    7834242394,
+    7834242395,
+    6512128278,
+    6512128279,
+    13944197384,
+    13944197387,
+    13944197385,
+    13944197386,
+    13944197383,
+    13944197382,
+    13944197389,
+    13944197388,
+    13944197390,
+    13944197381,
+    5146142053,
+    6512128275
+  ],
+  "tags": {
+    "brand": "Delta Hotels",
+    "brand:wikidata": "Q5254663",
+    "brand:wikipedia": "en:Delta Hotels",
+    "building": "yes",
+    "building:levels": "7",
+    "building:min_level": "3",
+    "name": "Delta Hotel",
+    "roof:colour": "grey",
+    "tourism": "hotel"
+  }
+},
+{
+  "type": "way",
+  "id": 743356234,
+  "center": {
+    "lat": 53.5457236,
+    "lon": -113.4882078
+  },
+  "nodes": [
+    3314636630,
+    3314636414,
+    3314636397,
+    6104472690,
+    13674332910,
+    13674332965,
+    6104472687,
+    13674332915,
+    410655373,
+    410655371,
+    410655404,
+    13674332943,
+    410655403,
+    410655374,
+    13674332966,
+    410655401,
+    410655400,
+    410655375,
+    13674332916,
+    13674332917,
+    410655376,
+    410655378,
+    13674332967,
+    13674332968,
+    13674332970,
+    13674332969,
+    13674332971,
+    13674332972,
+    13674332974,
+    13674332973,
+    410655399,
+    410655398,
+    13674332918,
+    13674332920,
+    13674332921,
+    13674332919,
+    410655396,
+    13674332963,
+    410655395,
+    410655394,
+    13674332960,
+    1743821421,
+    1743821402,
+    410655393,
+    13674332937,
+    13674332938,
+    13674332913,
+    3314636630
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "1A",
+    "addr:postcode": "T5J 0R2",
+    "addr:street": "Sir Winston Churchill Square NW",
+    "amenity": "courthouse",
+    "building": "government",
+    "building:colour": "snow",
+    "height": "21.0",
+    "name": "Law Courts",
+    "operator": "Goverment of Alberta",
+    "roof:colour": "grey",
+    "roof:shape": "flat",
+    "website": "https://albertacourts.ca/pc/court-practice-and-schedules/locations-map/location-detail/edmonton",
+    "wheelchair": "yes",
+    "wikidata": "Q6503008",
+    "wikipedia": "en:Law Courts (Edmonton)"
+  }
+},
+{
+  "type": "way",
+  "id": 1152594137,
+  "center": {
+    "lat": 53.5398471,
+    "lon": -113.4961172
+  },
+  "nodes": [
+    10720415513,
+    10720415515,
+    2351703704,
+    2351703703,
+    10720415513
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10030",
+    "addr:postcode": "T5J 0V6",
+    "addr:province": "Alberta",
+    "addr:street": "102 Street NW",
+    "amenity": "theatre",
+    "building": "yes",
+    "check_date": "2026-08-09",
+    "name": "The Starlite Room",
+    "website": "https://www.starliteroom.ca/"
+  }
+},
+{
+  "type": "way",
+  "id": 1213671934,
+  "center": {
+    "lat": 53.5470356,
+    "lon": -113.4946796
+  },
+  "nodes": [
+    11244330346,
+    11244330347,
+    11244330348,
+    13465396072,
+    13465396071,
+    11244330349,
+    11244330350,
+    11244330351,
+    11244330352,
+    11244330353,
+    11244330346
+  ],
+  "tags": {
+    "leisure": "park",
+    "name": "ICE District Fan Park",
+    "official_name": "Scotiabank Fan Park"
+  }
+},
+{
+  "type": "way",
+  "id": 1213671935,
+  "center": {
+    "lat": 53.5465311,
+    "lon": -113.4951985
+  },
+  "nodes": [
+    11244330353,
+    11244330354,
+    11244330349,
+    11244330350,
+    11244330351,
+    11244330352,
+    11244330353
+  ],
+  "tags": {
+    "leisure": "dog_park",
+    "name": "104th Avenue Off-Leash Dog Park",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1231908718,
+  "center": {
+    "lat": 53.5417350,
+    "lon": -113.4987592
+  },
+  "nodes": [
+    11425676418,
+    11425676419,
+    2347577150,
+    11425676420,
+    11425676418
+  ],
+  "tags": {
+    "access": "yes",
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10135",
+    "addr:province": "AB",
+    "addr:street": "104 Street NW",
+    "amenity": "parking",
+    "capacity": "28",
+    "charge": "8.00 CAD/hr",
+    "fee": "yes",
+    "name": "10135-104 Street – Lot 4",
+    "opening_hours": "Mo 00:00-06:00,18:00-24:00; Tu 00:00-06:00,18:00-24:00; We 00:00-06:00,18:00-24:00; Th 00:00-06:00,18:00-24:00; Fr 00:00-06:00,18:00-24:00; Sa 00:00-24:00; Su 00:00-24:00",
+    "operator": "Vibe Parking",
+    "operator:type": "private",
+    "parking": "surface",
+    "payment:sms": "yes",
+    "phone": "+1-866-363-4188",
+    "surface": "asphalt",
+    "website": "https://vibeparking.com/surface-parking-10135-104-street-lot-4/"
+  }
+},
+{
+  "type": "way",
+  "id": 1243704692,
+  "center": {
+    "lat": 53.5437520,
+    "lon": -113.4979149
+  },
+  "nodes": [
+    11559743663,
+    11559743664,
+    11559743665,
+    11559743666,
+    11559743663
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10232",
+    "addr:postcode": "T5J0Y8",
+    "addr:province": "AB",
+    "addr:street": "103 Street NW",
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "International Buddhist Progress Society Edmonton",
+    "name:zh": "佛光山愛民頓講堂",
+    "religion": "buddhist"
+  }
+},
+{
+  "type": "way",
+  "id": 1288944252,
+  "center": {
+    "lat": 53.5411562,
+    "lon": -113.4859582
+  },
+  "nodes": [
+    11952194085,
+    12051824064,
+    12051824063,
+    11952194086,
+    11952194087,
+    11952194088,
+    11952194089,
+    4480958472,
+    12479384762,
+    4480958477,
+    4480958474,
+    4480958473,
+    4480958475,
+    4480958476,
+    4480957860,
+    835657925,
+    13986935976,
+    4480957857,
+    3068569966,
+    4480957859,
+    4480957858,
+    4480957865,
+    4480957870,
+    4480957869,
+    4480957878,
+    4480957879,
+    4480957877,
+    12479384763,
+    4480957871,
+    11952194090,
+    11952194091,
+    11952194092,
+    11952194093,
+    3304676202,
+    12479384712,
+    3304676221,
+    11952194094,
+    3304676183,
+    3304676186,
+    3304676181,
+    12051831169,
+    11952194085
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "9797",
+    "addr:province": "Alberta",
+    "addr:street": "Jasper Avenue NW",
+    "amenity": "conference_centre",
+    "building": "civic",
+    "check_date": "2026-08-09",
+    "internet_access": "wlan",
+    "internet_access:fee": "customers",
+    "name": "Edmonton Convention Centre",
+    "website": "https://www.edmontonconventioncentre.com/",
+    "wheelchair": "yes",
+    "wikidata": "Q7491154",
+    "wikipedia": "en:Shaw Conference Centre"
+  }
+},
+{
+  "type": "way",
+  "id": 1468137954,
+  "center": {
+    "lat": 53.5431375,
+    "lon": -113.4912229
+  },
+  "nodes": [
+    4535121256,
+    14018669022,
+    14018669023,
+    13465396069,
+    4535121262,
+    1064663113,
+    4535121260,
+    4535121259,
+    4535121258,
+    4535121257,
+    4535121256
+  ],
+  "tags": {
+    "amenity": "cafe",
+    "building": "yes",
+    "cuisine": "sandwich;soup",
+    "name": "The Sequel"
+  }
+},
+{
+  "type": "relation",
+  "id": 6488345,
+  "center": {
+    "lat": 53.5437193,
+    "lon": -113.4940955
+  },
+  "members": [
+    {
+      "type": "way",
+      "ref": 27695359,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 695520945,
+      "role": "outer"
+    }
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10025",
+    "addr:postcode": "T5J 2Z2",
+    "addr:province": "AB",
+    "addr:street": "102 Avenue NW",
+    "building": "retail",
+    "building:colour": "#e1c699",
+    "building:levels": "3",
+    "building:material": "concrete",
+    "check_date": "2026-08-19",
+    "complete": "1974",
+    "name": "Edmonton City Centre",
+    "opening_hours": "Mo-Sa 10:00-18:00; Th,Fr 10:00-20:00; Su 10:00-17:00",
+    "operator": "Oxford Properties",
+    "owner": "Oxford Properties",
+    "roof:colour": "#e1c699",
+    "roof:levels": "1",
+    "roof:shape": "flat",
+    "shop": "mall",
+    "source": "Edmonton City Centre",
+    "type": "multipolygon",
+    "website": "https://edmontoncitycentre.com/",
+    "wikidata": "Q5339023",
+    "wikipedia": "en:Edmonton City Centre"
+  }
+},
+{
+  "type": "relation",
+  "id": 6554077,
+  "center": {
+    "lat": 53.5450207,
+    "lon": -113.4950419
+  },
+  "members": [
+    {
+      "type": "way",
+      "ref": 225752531,
+      "role": "outer"
+    }
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10120",
+    "addr:postcode": "T5J 3R6",
+    "addr:street": "103 Avenue NW",
+    "building": "commercial",
+    "building:levels": "3",
+    "email": "scott.argent@stantec.com",
+    "name": "The Annex",
+    "office": "company",
+    "phone": "+1-780-917-7000",
+    "roof:colour": "grey",
+    "roof:shape": "flat",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 6741045,
+  "center": {
+    "lat": 53.5391093,
+    "lon": -113.4938274
+  },
+  "members": [
+    {
+      "type": "way",
+      "ref": 323689440,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 455844711,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 455844712,
+      "role": "outer"
+    }
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10111",
+    "addr:postcode": "T5J 1N7",
+    "addr:street": "Bellamy Hill Road NW",
+    "building": "hotel",
+    "building:colour": "beige",
+    "building:levels": "2",
+    "height": "10.0",
+    "min_height": "0.0",
+    "name": "Chateau Lacombe Hotel",
+    "phone": "+1-780-428-6611",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat",
+    "stars": "3",
+    "tourism": "hotel",
+    "type": "multipolygon",
+    "wikidata": "Q5087538",
+    "wikipedia": "en:Chateau Lacombe Hotel"
+  }
+},
+{
+  "type": "relation",
+  "id": 6768218,
+  "center": {
+    "lat": 53.5440442,
+    "lon": -113.4899181
+  },
+  "members": [
+    {
+      "type": "way",
+      "ref": 198719679,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 306617666,
+      "role": "inner"
+    },
+    {
+      "type": "way",
+      "ref": 306617669,
+      "role": "inner"
+    },
+    {
+      "type": "way",
+      "ref": 222646872,
+      "role": "inner"
+    },
+    {
+      "type": "way",
+      "ref": 324786174,
+      "role": "inner"
+    },
+    {
+      "type": "way",
+      "ref": 324786213,
+      "role": "inner"
+    },
+    {
+      "type": "way",
+      "ref": 324786188,
+      "role": "inner"
+    }
+  ],
+  "tags": {
+    "access": "yes",
+    "addr:city": "Edmonton",
+    "addr:housenumber": "9918",
+    "addr:postcode": "T5J 5H7",
+    "addr:street": "102 Avenue NW",
+    "area": "yes",
+    "bicycle": "yes",
+    "description": "Sir Winston Churchill Square is the main downtown square in Edmonton, Alberta, which plays host to a large majority of festivals and events.",
+    "foot": "yes",
+    "highway": "pedestrian",
+    "lit": "yes",
+    "name": "Sir Winston Churchill Square",
+    "place": "square",
+    "surface": "concrete",
+    "tourism": "attraction",
+    "type": "multipolygon",
+    "wikidata": "Q5118225",
+    "wikipedia": "en:Churchill Square (Edmonton)"
+  }
+},
+{
+  "type": "relation",
+  "id": 17049209,
+  "center": {
+    "lat": 53.5440071,
+    "lon": -113.4834114
+  },
+  "members": [
+    {
+      "type": "way",
+      "ref": 616832022,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 616832021,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 616832019,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 616832025,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 616832017,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 616832018,
+      "role": "outer"
+    }
+  ],
+  "tags": {
+    "access": "yes",
+    "amenity": "parking",
+    "brand": "Impark",
+    "brand:wikidata": "Q6006077",
+    "fee": "yes",
+    "name": "Impark",
+    "operator": "Impark",
+    "operator:type": "private",
+    "operator:wikidata": "Q6006077",
+    "parking": "surface",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 17049210,
+  "center": {
+    "lat": 53.5462984,
+    "lon": -113.4834708
+  },
+  "members": [
+    {
+      "type": "way",
+      "ref": 616832024,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 616832023,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 616832028,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 616832030,
+      "role": "outer"
+    }
+  ],
+  "tags": {
+    "access": "yes",
+    "amenity": "parking",
+    "brand": "Impark",
+    "brand:wikidata": "Q6006077",
+    "fee": "yes",
+    "name": "Impark",
+    "operator": "Impark",
+    "operator:type": "private",
+    "operator:wikidata": "Q6006077",
+    "parking": "surface",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 17174557,
+  "center": {
+    "lat": 53.5447077,
+    "lon": -113.4932659
+  },
+  "members": [
+    {
+      "type": "way",
+      "ref": 324786212,
+      "role": "outer"
+    }
+  ],
+  "tags": {
+    "addr:city": "Edmonton",
+    "addr:housenumber": "10235",
+    "addr:postcode": "T5J 3E8",
+    "addr:street": "101 Street NW",
+    "brand": "Sandman",
+    "building": "hotel",
+    "building:colour": "beige",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "name": "The Sandman Signature Edmonton Downtown Hotel",
+    "operator": "The Sutton Place Hotel Company",
+    "phone": "+1-780-428-7111",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat",
+    "rooms": "313",
+    "stars": "3",
+    "tourism": "hotel",
+    "type": "multipolygon",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "relation",
+  "id": 17174558,
+  "center": {
+    "lat": 53.5447126,
+    "lon": -113.4918755
+  },
+  "members": [
+    {
+      "type": "way",
+      "ref": 456884860,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 456884859,
+      "role": "outer"
+    }
+  ],
+  "tags": {
+    "access": "customers",
+    "addr:housenumber": "15",
+    "addr:street": "Sir Winston Churchill Square NW",
+    "amenity": "parking",
+    "building": "parking",
+    "building:levels": "3;11",
+    "building:min_level": "0",
+    "fee": "yes",
+    "height": "9.0",
+    "name": "Edmonton City Centre;Edmonton City Centre Parkade",
+    "parking": "multi-storey",
+    "roof:colour": "grey",
+    "roof:material": "concrete",
+    "roof:shape": "flat",
+    "surface": "concrete",
+    "toilets:wheelchair": "no",
+    "type": "multipolygon",
+    "wheelchair": "limited",
+    "wheelchair:description": "Ground level access to parkade elevators is not wheelchair accessible. Pedways to mall are accessible though lack powered door openers from the parkade to the elevator lobbies."
+  }
+},
+{
+  "type": "relation",
+  "id": 19123639,
+  "center": {
+    "lat": 53.5487919,
+    "lon": -113.4955603
+  },
+  "members": [
+    {
+      "type": "way",
+      "ref": 1385953717,
+      "role": "outer"
+    },
+    {
+      "type": "way",
+      "ref": 1290317207,
+      "role": "outer"
+    }
+  ],
+  "tags": {
+    "amenity": "parking",
+    "brand": "Impark",
+    "brand:wikidata": "Q6006077",
+    "fee": "yes",
+    "name": "Impark",
+    "operator": "Impark",
+    "operator:type": "private",
+    "operator:wikidata": "Q6006077",
+    "type": "multipolygon"
+  }
+}
+
+  ]
+}

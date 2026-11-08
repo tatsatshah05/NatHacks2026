@@ -81,6 +81,10 @@ class CamerasStatus(BaseModel):
     # (no reading yet, or the scheduler is off).
     watch_active: bool | None
     live_within_s: int  # LIVE_WITHIN, so a client can explain the state in words
+    # OP-415, additive: unexpired camera views whose latest Claude answer says a
+    # vehicle appears to have lost control (camera_incident rows with seen true).
+    # Display only, unverified, accuracy not measured; never changes a route.
+    incidents: int = 0
 
 
 def _aware(value: datetime) -> datetime:
@@ -99,8 +103,12 @@ def summarize(
     now: datetime,
     views_total: int,
     watch_active: bool | None,
+    incidents: int = 0,
 ) -> CamerasStatus:
-    """Build the block from the unexpired readings (``CameraReadingStore.latest``)."""
+    """Build the block from the unexpired readings (``CameraReadingStore.latest``).
+
+    ``incidents`` is ``CameraReadingStore.count_incidents`` (OP-415); 0 when unknown.
+    """
     now = now.astimezone(UTC)
     labels: dict[str, int] = {}
     versions: set[str] = set()
@@ -137,6 +145,7 @@ def summarize(
         labels=dict(sorted(labels.items())),
         watch_active=watch_active,
         live_within_s=int(LIVE_WITHIN.total_seconds()),
+        incidents=incidents,
     )
 
 
@@ -168,6 +177,7 @@ def camera_status(
             now=now,
             views_total=store.count_views(),
             watch_active=watch_state(weather),
+            incidents=store.count_incidents(now),
         )
     except Exception:
         log.exception("WARN camera status unavailable; /api/status answers without it")

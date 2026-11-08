@@ -21,7 +21,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 from urllib.parse import urlsplit
 
 import httpx
@@ -59,6 +59,20 @@ RECENT_FRAME_LIMIT = 32
 # cloud/app/camera_readings.py), so a long --interval-s must not turn every post
 # into a 422. The worker does not import cloud/; a test keeps the two equal.
 MAX_EXPIRY = timedelta(hours=2)
+INCIDENT_DETAIL_MAX = 200  # characters, the same limit the API stores (OP-415)
+
+
+class ReadingIncident(BaseModel):
+    """OP-415: whether a vehicle in the frame appeared to have lost control.
+
+    Posted with the reading only when the Claude check answered on that frame; an
+    additive, optional object on the OP-213 payload (agreed by the lead for OP-415).
+    Display only: the API shows it, and it never changes a route.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    seen: bool
+    detail: str = Field(max_length=INCIDENT_DETAIL_MAX)
 
 
 class Reading(BaseModel):
@@ -79,6 +93,8 @@ class Reading(BaseModel):
     model_version: str
     mode: Literal["live", "replay"]
     attribution: str = "Road camera data: 511 Alberta, Government of Alberta"
+    # OP-415, additive: present only when the Claude check ran on the posted frame.
+    incident: ReadingIncident | None = None
 
     @field_validator("observed_at", "expires_at")
     @classmethod
@@ -86,6 +102,18 @@ class Reading(BaseModel):
         if value.tzinfo is None:
             raise ValueError("Camera times must include a timezone")
         return value.astimezone(UTC)
+
+    def payload(self) -> dict[str, Any]:
+        """The JSON body for ``POST /api/ingest/camera``.
+
+        Exactly the agreed OP-213 fields, plus ``incident`` only when the check ran:
+        a reading without incident information posts the same body as before OP-415,
+        so an API that does not know the field yet still accepts it.
+        """
+        body = self.model_dump(mode="json")
+        if body.get("incident") is None:
+            body.pop("incident", None)
+        return body
 
 
 @dataclass
@@ -224,7 +252,7 @@ class HttpPublisher:
         try:
             response = self.client.post(
                 self.url,
-                json=reading.model_dump(mode="json"),
+                json=reading.payload(),
                 headers={"X-Worker-Key": self.key},
                 timeout=10,
                 follow_redirects=False,
@@ -232,6 +260,23 @@ class HttpPublisher:
             return 200 <= response.status_code < 300
         except httpx.HTTPError:
             return False
+
+
+def _incident_of(prediction: Prediction) -> ReadingIncident | None:
+    """The OP-415 incident object for a reading, or None when the check did not run.
+
+    A malformed carrier (an injected or exported classifier returning something that
+    is not an ``Incident``) gives None rather than failing the reading.
+    """
+    incident = getattr(prediction, "incident", None)
+    if incident is None:
+        return None
+    seen, detail = getattr(incident, "seen", None), getattr(incident, "detail", None)
+    if not isinstance(seen, bool) or not isinstance(detail, str):
+        return None
+    return ReadingIncident(
+        seen=seen, detail=" ".join(detail.split())[:INCIDENT_DETAIL_MAX]
+    )
 
 
 class CameraWorker:
@@ -368,6 +413,7 @@ class CameraWorker:
                     expires_at=observed_at + self.lifetime,
                     model_version=self.classifier.version,
                     mode="live",
+                    incident=_incident_of(prediction),
                 )
                 readings.append(reading)
                 self._deliver(reading)
@@ -426,7 +472,7 @@ def replay(path: Path) -> dict[str, object]:
     for row in data["observations"]:
         reading = Reading.model_validate({**row["reading"], "mode": "replay"})
         if stability.observe(reading.source_ref, reading.label, row["sample"]):
-            readings.append(reading.model_dump(mode="json"))
+            readings.append(reading.payload())
     return {"mode": "replay", "synthetic_predictions": True, "readings": readings}
 
 
@@ -585,7 +631,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                             "publish_attempted": worker.publish_attempted,
                             "publish_succeeded": worker.publish_succeeded,
                             "publish_failed": worker.publish_failed,
-                            "readings": [r.model_dump(mode="json") for r in readings],
+                            "readings": [r.payload() for r in readings],
                         },
                         indent=2,
                     )

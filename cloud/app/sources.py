@@ -261,6 +261,16 @@ def load_replay_cameras(snapshot: Path, camera_store: Any, now: datetime) -> int
         try:
             props = dict(feature["properties"])
             props.pop("age_s", None)
+            # OP-415: GET /api/cameras shows the incident with its own observed_at;
+            # the ingest shape has only seen and detail. Anything else means none.
+            incident = props.pop("incident", None)
+            props["incident"] = (
+                {"seen": incident["seen"], "detail": incident["detail"]}
+                if isinstance(incident, dict)
+                and isinstance(incident.get("seen"), bool)
+                and isinstance(incident.get("detail"), str)
+                else None
+            )
             lng, lat = feature["geometry"]["coordinates"]
             reading = CameraReadingIn(
                 **{**props, "latitude": lat, "longitude": lng, "mode": "replay"}
@@ -270,6 +280,8 @@ def load_replay_cameras(snapshot: Path, camera_store: Any, now: datetime) -> int
             log.warning("SKIP replay camera reading: %s", str(error).splitlines()[0])
             continue
         camera_store.upsert(reading, now)
+        if reading.incident is not None:
+            camera_store.upsert_incident(reading)
         stored += 1
     log.info("REPLAY cameras loaded=%d skipped=%d from %s", stored, skipped, path)
     return stored

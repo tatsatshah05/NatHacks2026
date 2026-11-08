@@ -90,6 +90,15 @@ export function formatDate(iso: string): string {
   }).format(new Date(iso));
 }
 
+/** An Edmonton time of day such as "3:05 p.m.", for something seen within the last hours. */
+export function formatTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: EDMONTON,
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(iso));
+}
+
 export function formatDistance(metres: number): string {
   return metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`;
 }

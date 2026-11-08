@@ -126,4 +126,15 @@ Additional rules the team agreed after reviewing night frames:
 - Label what the pixels show, never what the weather or place suggests. ice only with clear frost
   or glassy signs; otherwise wet. Unsure whether you can see enough: unusable.
 
+
+Vehicle incident (a separate question, answered in the same JSON object as "incident"):
+- Set "seen" to true only when a vehicle in the frame appears to have lost control: it has
+  skidded or spun across the lanes, left the road into a ditch, median or barrier, is on its
+  side or roof, or has stopped after a collision with another vehicle or an object.
+- Normal traffic, a vehicle stopped or parked in a lane or on the shoulder, a plow, a tow truck
+  or a work crew is not an incident. Judge the pixels, never the weather or the place. Unsure,
+  or no vehicle visible: false.
+- "detail" is one short plain sentence: what shows the incident, or that no vehicle appears to
+  have lost control.
+
 Answer with the JSON object only. The reason is one short plain sentence about the road surface.
