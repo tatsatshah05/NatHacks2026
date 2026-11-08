@@ -1256,3 +1256,29 @@ def test_a_report_changes_routes_per_profile(
     else:
         assert best.distance_m == pytest.approx(200, abs=1)
         assert [h.item_id for h in best.hazards_on_route] == [body["id"]]
+
+
+# -------------------------------------------------------------------- Render
+
+
+def test_render_installs_only_the_photo_check_extras() -> None:
+    """Render gets onnxruntime, Pillow and anthropic, never torch or opencv (OP-308)."""
+    root = pathlib.Path(__file__).resolve().parents[2]
+    render = (root / "render.yaml").read_text(encoding="utf-8")
+    assert (
+        "buildCommand: pip install -r cloud/requirements.txt "
+        "-r cloud/requirements-photo-check.txt"
+    ) in render
+
+    def requirements(path: str) -> dict[str, str]:
+        lines = (root / path).read_text(encoding="utf-8").splitlines()
+        specs = [line.strip() for line in lines if line.strip()[:1].isalpha()]
+        return {
+            spec.split(">")[0].split("=")[0].split("<")[0].lower(): spec
+            for spec in specs
+        }
+
+    extras = requirements("cloud/requirements-photo-check.txt")
+    assert sorted(extras) == ["anthropic", "onnxruntime", "pillow"]
+    vision = requirements("vision/requirements.txt")
+    assert all(extras[name] == vision[name] for name in extras)  # the same ranges

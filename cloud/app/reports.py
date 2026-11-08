@@ -480,7 +480,6 @@ class PhotoResult(BaseModel):
     label: str | None  # the class the outcome rests on, when a check saw one
     note: str  # one plain sentence for the person
     checked_by: list[CheckName] = Field(
-        default_factory=list,
         description="The checks that answered for this photo, in the order they ran: "
         "'model' (the ONNX road-condition model) and 'claude'. Empty when no check "
         "answered. Medium confidence with both is the decided setup.",
@@ -531,6 +530,7 @@ def check_photo(
             outcome="none",
             label=None,
             note="No photo was sent, so the report has low confidence.",
+            checked_by=[],
         )
     if checks is None or (checks.model is None and checks.claude is None):
         return _low(
