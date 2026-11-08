@@ -13,6 +13,19 @@ too (AGENTS.md, Contracts).
 
 Readings are not obstructions. A camera says "the road here looks wet"; whether that
 is a hazard depends on the weather and on nearby crossings, which OP-205 decides.
+
+Vehicle incidents (OP-415; additive, agreed by the lead on November 8)
+    A reading may carry an optional ``incident`` object, ``{"seen": bool, "detail":
+    "<one line>"}``: the worker's Claude check answered, in the same call that
+    agreed with the label, whether a vehicle in the frame appeared to have lost
+    control. It is kept in its own table, ``camera_incident`` (never a new column on
+    ``camera_reading``: Render's Postgres already has that table and ``create_all``
+    does not alter), one row per view, newest observation wins, expiring with the
+    reading that carried it. ``GET /api/cameras`` shows it as the ``incident``
+    property and ``GET /api/status`` counts the unexpired rows with ``seen`` true.
+    Display only: nothing in matching, routing or the route report reads it, and
+    its accuracy is not measured. A reading without the field behaves exactly as
+    before.
 """
 
 from __future__ import annotations
@@ -26,7 +39,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from sqlalchemy import Index, func
 from sqlalchemy.engine import Engine
 from sqlmodel import Field as Column
-from sqlmodel import Session, SQLModel, select
+from sqlmodel import Session, SQLModel, col, select
 
 from .camera_status import CamerasStatus
 
@@ -52,6 +65,27 @@ def _plain_number(value: Any) -> Any:
     return value
 
 
+def _plain_bool(value: Any) -> Any:
+    """JSON booleans only: ``"true"``, ``1`` or ``"yes"`` never count as an incident."""
+    if not isinstance(value, bool):
+        raise ValueError("must be a JSON boolean")  # noqa: TRY004
+    return value
+
+
+INCIDENT_DETAIL_MAX = 200  # characters; the worker caps its sentence at the same length
+
+
+class CameraIncidentIn(BaseModel):
+    """OP-415: the optional ``incident`` object of a reading (see the module docstring)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    seen: bool  # True when a vehicle in the frame appeared to have lost control
+    detail: str = Field(max_length=INCIDENT_DETAIL_MAX)  # one plain sentence
+
+    _bool = field_validator("seen", mode="before")(_plain_bool)
+
+
 class CameraReadingIn(BaseModel):
     """One reading as the worker posts it (agreed payload, issue #47)."""
 
@@ -71,6 +105,8 @@ class CameraReadingIn(BaseModel):
     model_version: str = Field(min_length=1, max_length=128)  # model SHA-256
     mode: Mode  # must match the API's DATA_MODE (checked in ingest_api)
     attribution: str = Field(default=DEFAULT_ATTRIBUTION, max_length=200)
+    # OP-415, additive and optional: only when the worker's Claude check ran.
+    incident: CameraIncidentIn | None = None
 
     _numbers = field_validator(
         "camera_id", "view_id", "latitude", "longitude", "score", mode="before"
@@ -119,7 +155,26 @@ class CameraReadingRow(SQLModel, table=True):
     changed_at: datetime  # when the label last changed
 
 
-# Every payload field the row copies on each upsert.
+class CameraIncidentRow(SQLModel, table=True):
+    """OP-415: the latest vehicle-incident answer per camera view, in its own table.
+
+    Public camera facts only, no personal data (``cloud/tests/test_privacy_inventory.py``).
+    A row expires with the reading that carried it (``expires_at``).
+    """
+
+    __tablename__ = "camera_incident"
+    __table_args__ = (Index("ix_camera_incident_expires_at", "expires_at"),)
+
+    source_ref: str = Column(primary_key=True, max_length=64)
+    camera_id: int
+    view_id: int
+    seen: bool
+    detail: str = Column(max_length=INCIDENT_DETAIL_MAX)
+    observed_at: datetime  # the frame the answer is about
+    expires_at: datetime  # the reading's expiry
+
+
+# Every payload field the row copies on each upsert (``incident`` has its own table).
 _COPIED = (
     "source", "camera_id", "view_id", "latitude", "longitude", "label", "score",
     "reason", "observed_at", "expires_at", "model_version", "mode", "attribution",
@@ -151,7 +206,12 @@ class CameraReadingStore:
         self.engine = engine
 
     def create_tables(self) -> None:
-        SQLModel.metadata.create_all(self.engine, tables=[CameraReadingRow.__table__])
+        # Both tables are created, never altered: camera_incident is new in OP-415 and
+        # camera_reading keeps every column it had.
+        SQLModel.metadata.create_all(
+            self.engine,
+            tables=[CameraReadingRow.__table__, CameraIncidentRow.__table__],
+        )
 
     def upsert(self, reading: CameraReadingIn, now: datetime) -> Outcome:
         """Store the reading for its view, unless a newer one is already stored.
@@ -213,7 +273,10 @@ class CameraReadingStore:
             ).one()
 
     def purge_expired(self, now: datetime, older_than_days: int = 7) -> int:
-        """Delete readings that expired more than ``older_than_days`` ago. Returns the count."""
+        """Delete readings that expired more than ``older_than_days`` ago. Returns the count.
+
+        Incident rows (OP-415) with the same expiry go too; they are not counted.
+        """
         cutoff = now.astimezone(UTC) - timedelta(days=older_than_days)
         with Session(self.engine) as session:
             rows = session.exec(
@@ -221,8 +284,87 @@ class CameraReadingStore:
             ).all()
             for row in rows:
                 session.delete(row)
+            for incident in session.exec(
+                select(CameraIncidentRow).where(CameraIncidentRow.expires_at < cutoff)
+            ).all():
+                session.delete(incident)
             session.commit()
             return len(rows)
+
+    # ------------------------------------------------- vehicle incidents (OP-415)
+
+    def upsert_incident(self, reading: CameraReadingIn) -> bool:
+        """Store the reading's ``incident`` for its view unless a newer one is stored.
+
+        Returns True when the row was written. The same rule as readings: an
+        observation older than the stored one is ignored, an equal time replaces it.
+        One ``CHANGE`` line when ``seen`` flips for the view, never on every post.
+        """
+        incident = reading.incident
+        if incident is None:
+            return False
+        with Session(self.engine) as session:
+            row = session.get(CameraIncidentRow, reading.source_ref)
+            if row is None:
+                session.add(
+                    CameraIncidentRow(
+                        source_ref=reading.source_ref,
+                        camera_id=reading.camera_id,
+                        view_id=reading.view_id,
+                        seen=incident.seen,
+                        detail=incident.detail,
+                        observed_at=reading.observed_at,
+                        expires_at=reading.expires_at,
+                    )
+                )
+                session.commit()
+                if incident.seen:
+                    log.info(
+                        "CHANGE camera_incident %s seen: %s",
+                        reading.source_ref,
+                        incident.detail,
+                    )
+                return True
+            if reading.observed_at < _aware(row.observed_at):
+                return False
+            if row.seen != incident.seen:
+                log.info(
+                    "CHANGE camera_incident %s %s: %s",
+                    reading.source_ref,
+                    "seen" if incident.seen else "clear",
+                    incident.detail,
+                )
+            row.seen = incident.seen
+            row.detail = incident.detail
+            row.observed_at = reading.observed_at
+            row.expires_at = reading.expires_at
+            session.add(row)
+            session.commit()
+            return True
+
+    def latest_incidents(self, now: datetime) -> dict[str, CameraIncidentRow]:
+        """Every view's unexpired incident answer, by ``source_ref``."""
+        cutoff = now.astimezone(UTC)
+        with Session(self.engine) as session:
+            rows = session.exec(
+                select(CameraIncidentRow).where(CameraIncidentRow.expires_at > cutoff)
+            ).all()
+            for row in rows:
+                row.observed_at = _aware(row.observed_at)
+                row.expires_at = _aware(row.expires_at)
+                session.expunge(row)
+            return {row.source_ref: row for row in rows}
+
+    def count_incidents(self, now: datetime) -> int:
+        """Unexpired views whose latest answer says a vehicle lost control (OP-412 block)."""
+        cutoff = now.astimezone(UTC)
+        with Session(self.engine) as session:
+            return session.exec(
+                select(func.count())
+                .select_from(CameraIncidentRow)
+                .where(CameraIncidentRow.expires_at > cutoff)
+                .where(col(CameraIncidentRow.seen).is_(True))
+            ).one()
 
 
 # --------------------------------------------------------------- GET /api/cameras
@@ -235,6 +377,14 @@ def _iso(value: datetime) -> str:
 class CameraPoint(BaseModel):
     type: Literal["Point"] = "Point"
     coordinates: tuple[float, float]  # [lng, lat], as GeoJSON requires
+
+
+class CameraIncident(BaseModel):
+    """OP-415: the view's latest vehicle-incident answer, as ``GET /api/cameras`` shows it."""
+
+    seen: bool
+    detail: str
+    observed_at: str  # ISO 8601 UTC, the frame the answer is about
 
 
 class CameraProperties(BaseModel):
@@ -251,6 +401,8 @@ class CameraProperties(BaseModel):
     model_version: str
     mode: Mode
     attribution: str
+    # OP-415, additive: null until a reading with the check's answer arrives.
+    incident: CameraIncident | None = None
 
 
 class CameraFeature(BaseModel):
@@ -269,8 +421,12 @@ class CameraCollection(BaseModel):
     summary: CamerasStatus | None = None
 
 
-def to_feature(row: CameraReadingRow, now: datetime) -> CameraFeature:
-    """A GeoJSON point for the map, with the reading and its age."""
+def to_feature(
+    row: CameraReadingRow,
+    now: datetime,
+    incident: CameraIncidentRow | None = None,
+) -> CameraFeature:
+    """A GeoJSON point for the map, with the reading, its age and its incident answer."""
     observed = _aware(row.observed_at)
     return CameraFeature(
         id=row.source_ref,
@@ -289,5 +445,12 @@ def to_feature(row: CameraReadingRow, now: datetime) -> CameraFeature:
             model_version=row.model_version,
             mode=row.mode,  # type: ignore[arg-type]  # stored from a validated Mode
             attribution=row.attribution,
+            incident=None
+            if incident is None
+            else CameraIncident(
+                seen=incident.seen,
+                detail=incident.detail,
+                observed_at=_iso(incident.observed_at),
+            ),
         ),
     )

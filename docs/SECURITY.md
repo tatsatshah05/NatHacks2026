@@ -123,9 +123,10 @@ Playwright run is described in the OP-401 pull request).
   disk, the database or a log. `cloud/tests/test_reports.py` and
   `cloud/tests/test_privacy_inventory.py` watch every file, temporary file and spool
   call during a report with a photo, scan every table for a copy, and check the logs.
-- `test_privacy_inventory.py` also pins the five tables and their columns
-  (`obstruction`, `camera_reading`, `community_report_log`, `saved_route`,
-  `push_subscription`), refuses any column named or typed like image storage, and the
+- `test_privacy_inventory.py` also pins the seven tables and their columns
+  (`obstruction`, `camera_reading`, `camera_incident`, `community_report_log`,
+  `saved_route`, `source_count_daily`, `push_subscription`), refuses any column named
+  or typed like image storage, and the
   session fixture in `cloud/tests/conftest.py` fails the run if a `.jpg`, `.png`,
   `.webp` or similar file appears anywhere under the repository while the tests run.
 - The camera worker holds each frame in memory and posts a label, never pixels

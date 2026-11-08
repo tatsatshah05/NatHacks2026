@@ -119,6 +119,8 @@ export interface paths {
          *     frozen or running clock (OP-305) shows the recorded readings of that time.
          *     ``summary`` (OP-412) is the ``cameras`` block of ``GET /api/status``, built
          *     from the same rows, so one call also says whether the cameras are reporting.
+         *     Each feature carries its view's unexpired vehicle-incident answer (OP-415) as
+         *     ``incident``, or null.
          */
         get: operations["list_cameras_api_cameras_get"];
         put?: never;
@@ -393,6 +395,28 @@ export interface components {
             geometry: components["schemas"]["CameraPoint"];
             properties: components["schemas"]["CameraProperties"];
         };
+        /**
+         * CameraIncident
+         * @description OP-415: the view's latest vehicle-incident answer, as ``GET /api/cameras`` shows it.
+         */
+        CameraIncident: {
+            /** Seen */
+            seen: boolean;
+            /** Detail */
+            detail: string;
+            /** Observed At */
+            observed_at: string;
+        };
+        /**
+         * CameraIncidentIn
+         * @description OP-415: the optional ``incident`` object of a reading (see the module docstring).
+         */
+        CameraIncidentIn: {
+            /** Seen */
+            seen: boolean;
+            /** Detail */
+            detail: string;
+        };
         /** CameraPoint */
         CameraPoint: {
             /**
@@ -441,6 +465,7 @@ export interface components {
             mode: "live" | "replay";
             /** Attribution */
             attribution: string;
+            incident?: components["schemas"]["CameraIncident"] | null;
         };
         /**
          * CameraReadingIn
@@ -497,6 +522,7 @@ export interface components {
              * @default Road camera data: 511 Alberta, Government of Alberta
              */
             attribution: string;
+            incident?: components["schemas"]["CameraIncidentIn"] | null;
         };
         /**
          * CamerasStatus
@@ -539,6 +565,11 @@ export interface components {
             watch_active: boolean | null;
             /** Live Within S */
             live_within_s: number;
+            /**
+             * Incidents
+             * @default 0
+             */
+            incidents: number;
         };
         /**
          * Category
