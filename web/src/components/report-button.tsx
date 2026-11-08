@@ -411,7 +411,7 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
                 aria-describedby={describedBy("photo-hint", Boolean(errors.photo) && "photo-error")}
               />
               <p id={id("photo-hint")} className={styles.hint}>
-                A photo can confirm snow or ice. It is checked and then deleted: OpenPath never stores photos.
+                A photo can help confirm snow or ice. OpenPath never stores photos.
               </p>
               {photo && (
                 <div className={styles.photoChosen}>
@@ -448,7 +448,7 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
               <dt>Note</dt>
               <dd>{note.trim() || "No note"}</dd>
               <dt>Photo</dt>
-              <dd>{photo ? "One photo, checked and then deleted" : "No photo"}</dd>
+              <dd>{photo ? "One photo (never stored)" : "No photo"}</dd>
             </dl>
             {errors.send && (
               <p id={id("send-error")} className={styles.error} role="alert">
