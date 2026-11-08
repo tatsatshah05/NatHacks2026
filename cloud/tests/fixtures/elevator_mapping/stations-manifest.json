@@ -1,0 +1,6 @@
+﻿{
+    "url":  "https://data.edmonton.ca/resource/fhxi-cnhe.json?$limit=1000\u0026$order=lrt_stop_number",
+    "captured_at":  "2026-11-07T22:19:58.9950543Z",
+    "station_rows":  54,
+    "attribution":  "City of Edmonton Open Data"
+}
