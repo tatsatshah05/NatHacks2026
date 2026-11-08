@@ -46,7 +46,7 @@ Update this section whenever the status changes.
 - **Deploys:** the one-time Render, Vercel and GitHub setup is in [docs/DEPLOY.md](docs/DEPLOY.md).
 - **CI/CD is live, and every branch below is protected.** Every pull request needs the `CI passed` check and an approval from Tatsat, Ipsa or Kashish. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Phase branches:** Phase 1 work goes into the `phase_1` branch, which is the default branch. When the phase passes its checkpoint, `phase_1` is released into `main`, and `phase_2` starts from `main`.
-- **Vision training (OP-202):** `vision/train.py` trains and exports the road-condition model on a laptop or Colab (never Render or CI); no real model exists yet, pending OP-201 labels and decision D-3. `vision/model_contract.py` defines `labels.json`, the hand-off to the worker (OP-204).
+- **Vision training (OP-202):** `vision/train.py` trains and exports the road-condition model on a laptop or Colab (never Render or CI). Two real models exist, trained on November 8 on Tatsat's laptop from privately kept 511 frames: the night-only `v1-night` and the day-and-night model that replaced it in the live worker. Their measured results and limits are in `vision/MODEL_CARD.md`; the weights are never committed. Decision D-3 (PLAN.md section 16) allows licensed outside datasets for training only. `vision/model_contract.py` defines `labels.json`, the hand-off to the worker (OP-204).
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
 - **Scheduler and status (OP-103):** `cloud/app/scheduler.py` runs every source in `config/sources.json` on its cadence (10 s timeout, 3 retries, stale after 3 failures, a failed source never clears data) and `GET /api/status` reports freshness. `SCHEDULER=off` disables fetching (tests). In replay mode the adapters read the `REPLAY_SNAPSHOT` folder through a fake HTTP transport, so nothing touches the network.
@@ -297,6 +297,12 @@ pass cannot confirm a reading, so it normally makes zero attempts. A shared
 one-minute cooldown follows a 511 HTTP 429; live startup uses OP-112's on-disk
 metadata cache. Replay data is never posted. See [docs/OP-204.md](docs/OP-204.md)
 for the labels.json format, expiry and remaining work.
+
+A second model can add snow and ice readings beside the main model (lead decision,
+November 8; `vision/snow_assist.py`): `--snow-model-file`, `--snow-model-labels` and
+`--snow-model-sha256` go together, share `--min-score`, and the snow model's answer is
+used only when it is `snow_partial`, `snow_covered` or `ice`. With `--ai-check`, Claude
+must agree with the final label. `vision/MODEL_CARD.md` measures both models.
 
 OP-205 checks: `python -m pytest cloud/tests/test_camera_ice.py cloud/tests/test_camera_ice_routing.py cloud/tests/test_camera_ice_review.py cloud/tests/test_camera_ice_app.py -q`.
 

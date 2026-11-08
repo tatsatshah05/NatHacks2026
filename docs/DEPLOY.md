@@ -71,8 +71,12 @@ Render's free plan has no background workers, so the camera worker (OP-204) runs
    ```bash
    caffeinate -i python -m vision.worker --live --publish \
      --model-file /path/to/model.onnx --model-labels /path/to/labels.json \
-     --model-sha256 <sha256> --min-score <validated score> --ai-check claude-haiku-5-5
+     --model-sha256 <sha256> --min-score <validated score> --ai-check claude-haiku-5-5 \
+     --snow-model-file /path/to/snow/model.onnx --snow-model-labels /path/to/snow/labels.json \
+     --snow-model-sha256 <snow sha256>
    ```
+
+   The three `--snow-model-*` options add the snow and ice model from `vision/MODEL_CARD.md` (`v2-rscd`); its answer is used only when it is snow or ice, and the main model decides everything else.
 
    `--ai-check` posts a reading only when the model and Claude agree; anything else posts `unknown` (lead decision, November 8). It stops at startup without `ANTHROPIC_API_KEY`. If the Claude API fails 3 times in a row, the check pauses for 5 minutes and those views post `unknown`, so a pass is never held up. Leave out `--model-file` once `MODEL_URL` is set.
 
