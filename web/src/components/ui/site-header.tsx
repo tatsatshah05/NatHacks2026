@@ -2,18 +2,28 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import ModeBadge from "./mode-badge";
 
-export type Section = "plan" | "city" | "alerts" | "about";
+/** The page a header is on. Sources and privacy belong to the About section. */
+export type Section = "plan" | "city" | "alerts" | "settings" | "about" | "sources" | "privacy";
 
-const LINKS: ReadonlyArray<{ id: Section; href: string; label: string }> = [
+const LINKS: ReadonlyArray<{ id: Section; href: string; label: string; also?: readonly Section[] }> = [
   { id: "plan", href: "/", label: "Plan" },
   { id: "city", href: "/city", label: "City" },
   { id: "alerts", href: "/alerts", label: "Alerts" },
-  { id: "about", href: "/about", label: "About" }
+  { id: "settings", href: "/settings", label: "Settings" },
+  { id: "about", href: "/about", label: "About", also: ["sources", "privacy"] }
 ];
 
 type Props = { current?: Section; badge?: ReactNode };
 
-/** Skip link, wordmark, the four main links and the mode badge. Same on every page. */
+// aria-current="page" on the link to this page; "true" on the section's link when the
+// page sits under it (sources and privacy under About). Both are underlined.
+function currentFor(link: (typeof LINKS)[number], current: Section | undefined): "page" | "true" | undefined {
+  if (!current) return undefined;
+  if (link.id === current) return "page";
+  return link.also?.includes(current) ? "true" : undefined;
+}
+
+/** Skip link, wordmark, the main links and the mode badge. Same on every page. */
 export default function SiteHeader({ current, badge = <ModeBadge /> }: Props) {
   return (
     <>
@@ -32,7 +42,7 @@ export default function SiteHeader({ current, badge = <ModeBadge /> }: Props) {
         {badge}
         <nav className="site-nav" aria-label="Main">
           {LINKS.map((link) => (
-            <Link key={link.id} href={link.href} aria-current={current === link.id ? "page" : undefined}>
+            <Link key={link.id} href={link.href} aria-current={currentFor(link, current)}>
               {link.label}
             </Link>
           ))}
