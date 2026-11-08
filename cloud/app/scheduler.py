@@ -81,6 +81,11 @@ class SourceStatus(BaseModel):
     )
 
 
+# What ``Scheduler.add_listener`` callbacks receive after every run of a source: a copy
+# of its status and whether that run succeeded. Live updates (OP-303) broadcast these.
+RunListener = Callable[[SourceStatus, bool], None]
+
+
 @dataclass
 class _State:
     status: SourceStatus
@@ -115,6 +120,7 @@ class Scheduler:
             for source in self.sources
         }
         self._purge_task: asyncio.Task[None] | None = None
+        self._listeners: list[RunListener] = []
         self.running = False
         # Store calls run in worker threads. SQLite (local runs, tests) shares one
         # connection, which is not safe to use from two threads at once, so writes
@@ -164,10 +170,31 @@ class Scheduler:
     def status(self, name: str) -> SourceStatus:
         return self._states[name].status
 
+    def add_listener(self, callback: RunListener) -> None:
+        """Call ``callback(status, ok)`` after every run of any source.
+
+        Runs on the event loop, right after the run's status is recorded. A callback
+        that raises is logged and never affects fetching or the other callbacks.
+        """
+        self._listeners.append(callback)
+
+    def _notify(self, source: Source, ok: bool) -> None:
+        status = self._states[source.name].status
+        for callback in list(self._listeners):
+            try:
+                callback(status.model_copy(), ok)
+            except Exception:
+                log.exception("LISTENER failed after SOURCE %s", source.name)
+
     # -- the work --------------------------------------------------------------
 
     async def run_once(self, source: Source) -> bool:
         """Fetch one source, with retries, and store the result. Returns True on success."""
+        ok = await self._run_once(source)
+        self._notify(source, ok)
+        return ok
+
+    async def _run_once(self, source: Source) -> bool:
         state = self._states[source.name]
         async with state.lock:  # never two fetches of the same source at once
             now = self.clock()

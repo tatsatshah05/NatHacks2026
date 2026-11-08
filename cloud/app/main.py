@@ -46,6 +46,7 @@ from cloud.app import (
     sources,
     status,
     weather_service,
+    ws,
 )
 from cloud.app.camera_ice_routing import CameraIceHazardProvider
 from cloud.app.camera_readings import CameraReadingStore
@@ -230,6 +231,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 hazard_clock=clock,
                 run=run_scheduler,
             )
+            app.state.live = ws.attach(app)  # OP-303: WS /ws live updates
             try:
                 yield
             finally:
@@ -267,6 +269,7 @@ def create_app() -> FastAPI:
     app.include_router(search.router)
     app.state.search = search.load_index()  # OP-302: prebuilt, None if missing (503)
     app.include_router(reports_api.router)
+    app.include_router(ws.router)  # WS /ws (OP-303)
 
     @app.get("/health", tags=["ops"])
     def health() -> Health:
