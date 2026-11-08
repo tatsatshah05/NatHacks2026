@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { RouteOut } from "@/lib/planner-types";
 
-export default function RouteCard({ route }: { route: RouteOut }) {
+export default function RouteCard({ route, reportHref }: { route: RouteOut; reportHref: string }) {
   const recommended = route.rank === 1;
   const titleId = `route-${route.rank}-title`;
   return (
@@ -34,6 +35,9 @@ export default function RouteCard({ route }: { route: RouteOut }) {
           <p>No known obstructions to avoid.</p>
         )}
       </div>
+      <Link className="route-button" href={reportHref}>
+        View route report<span className="sr-only"> for route {route.rank}</span>
+      </Link>
     </article>
   );
 }

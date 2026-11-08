@@ -8,7 +8,15 @@ import ProfilePicker from "./profile-picker";
 import RouteCard from "./route-card";
 import SiteHeader from "./site-header";
 import { getMockRouteResponse, mockPlaces } from "@/lib/mock-routes";
-import { PlaceField, PlannerPlace, RouteResponse, TravelProfile, profileLabel } from "@/lib/planner-types";
+import {
+  PlaceField,
+  PlannerPlace,
+  PlannerQuery,
+  RouteResponse,
+  TravelProfile,
+  profileLabel
+} from "@/lib/planner-types";
+import { reportHref } from "@/lib/route-link";
 
 type ByField<T> = Record<PlaceField, T>;
 
@@ -22,7 +30,7 @@ export default function PlannerPage() {
   const [profile, setProfile] = useState<TravelProfile>("wheelchair");
   const [locationMessage, setLocationMessage] = useState("");
   // Demo routes for the current places and profile; any change clears them.
-  const [result, setResult] = useState<RouteResponse | null>(null);
+  const [result, setResult] = useState<{ query: PlannerQuery; response: RouteResponse } | null>(null);
 
   function choosePlace(field: PlaceField, place: PlannerPlace) {
     setPlaces((current) => ({ ...current, [field]: place }));
@@ -83,10 +91,11 @@ export default function PlannerPage() {
     }
     if (!places.from || !places.to) return;
     setErrors({ from: "", to: "" });
-    setResult(getMockRouteResponse({ from: places.from, to: places.to, profile }, new Date()));
+    const query = { from: places.from, to: places.to, profile };
+    setResult({ query, response: getMockRouteResponse(query, new Date()) });
   }
 
-  const routes = result?.routes ?? [];
+  const routes = result?.response.routes ?? [];
   const status = result
     ? `${routes.length} demo ${routes.length === 1 ? "route" : "routes"} for ${profileLabel(profile)}.`
     : "Choose places and compare routes to see demo results.";
@@ -163,7 +172,13 @@ export default function PlannerPage() {
             <p className="route-status" role="status">{status}</p>
             {routes.length > 0 && (
               <div className="route-card-grid">
-                {routes.map((route) => <RouteCard key={route.rank} route={route} />)}
+                {routes.map((route) => (
+                  <RouteCard
+                    key={route.rank}
+                    route={route}
+                    reportHref={result ? reportHref(result.query, route.rank) : "/route"}
+                  />
+                ))}
               </div>
             )}
           </section>
