@@ -34,7 +34,8 @@ DATASET = "7wiq-4rgy"
 SOURCE_URL = f"https://data.edmonton.ca/d/{DATASET}"
 POLL_INTERVAL = timedelta(hours=1)
 MAX_LINE_LENGTH_M = 500
-MAX_POINT_LINE_DISTANCE_M = 30
+MAX_POINT_LINE_DISTANCE_M = 50
+EARTH_RADIUS_M = 6_371_000
 LOGGER = logging.getLogger(__name__)
 Row = dict[str, Any]
 
@@ -45,10 +46,16 @@ class FeedError(ValueError):
 
 @dataclass
 class NormalizedPermits:
-    """Keep mapped closures and missing-location warnings together."""
+    """Keep mapped closures, warnings and the count of skipped rows together.
+
+    `skipped` counts rows the feed could not use (malformed or unlocated), so
+    `/api/status` can show it later. Filtered rows, such as permits that do not
+    affect pedestrians or are not active today, are not counted.
+    """
 
     obstructions: list[Row]
     warnings: list[str]
+    skipped: int = 0
 
 
 class PermitReader(Protocol):
@@ -185,22 +192,31 @@ def _multiline(value: Any) -> list[list[list[float]]]:
     return output
 
 
+def _metres_per_degree(*latitudes: float) -> tuple[float, float]:
+    """Scale degrees to metres on a flat map centred on the mean latitude.
+
+    This equirectangular approximation is close enough to decide whether a line
+    is under 500 m and within 50 m of a point; no geodesy library is needed.
+    """
+    mean_lat = math.radians(sum(latitudes) / len(latitudes))
+    per_degree = EARTH_RADIUS_M * math.pi / 180
+    return per_degree * math.cos(mean_lat), per_degree
+
+
 def _distance_m(first: list[float], second: list[float]) -> float:
-    """Measure segment length on a sphere, including long source corridors."""
-    lon1, lat1, lon2, lat2 = map(math.radians, [*first, *second])
-    hav = math.sin((lat2 - lat1) / 2) ** 2 + (
-        math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2
+    """Measure the length of one line segment in metres."""
+    scale_x, scale_y = _metres_per_degree(first[1], second[1])
+    return math.hypot(
+        (second[0] - first[0]) * scale_x, (second[1] - first[1]) * scale_y
     )
-    return 2 * 6_371_000 * math.asin(math.sqrt(min(1, hav)))
 
 
 def _point_segment_distance_m(
     point: list[float], first: list[float], second: list[float]
 ) -> float:
-    # A local tangent plane is sufficient for the already-limited 500 m lines.
+    """Measure how far a point is from the nearest part of a segment, in metres."""
     lon, lat = point
-    scale_x = 6_371_000 * math.cos(math.radians(lat)) * math.pi / 180
-    scale_y = 6_371_000 * math.pi / 180
+    scale_x, scale_y = _metres_per_degree(lat, first[1], second[1])
     ax, ay = (first[0] - lon) * scale_x, (first[1] - lat) * scale_y
     bx, by = (second[0] - lon) * scale_x, (second[1] - lat) * scale_y
     dx, dy = bx - ax, by - ay
@@ -262,7 +278,8 @@ def normalize_permits(
     """Convert active pedestrian permits; report records with no map location.
 
     Start and finish dates are inclusive Edmonton calendar dates. Bad rows are
-    isolated; affected previous records keep their original freshness/expiry.
+    skipped, logged and counted; the other rows are still returned, and affected
+    previous records keep their original freshness/expiry.
     """
     if observed_at.tzinfo is None:
         raise ValueError("observed_at must include a timezone")
@@ -274,6 +291,7 @@ def normalize_permits(
     warnings: set[str] = set()
     failed_permits: set[str] = set()
     unidentified_error = False
+    skipped = 0
     for row in _rows(rows):
         permit = (
             str(row.get("file_number") or "").strip() if isinstance(row, dict) else ""
@@ -305,6 +323,7 @@ def normalize_permits(
             )
         except (FeedError, OverflowError) as exc:
             warnings.add(f"{permit or 'Unknown permit'}: {exc}; row skipped")
+            skipped += 1
             if permit:
                 failed_permits.add(permit)
             else:
@@ -374,6 +393,7 @@ def normalize_permits(
     return NormalizedPermits(
         obstructions=[obstructions[key] for key in sorted(obstructions)],
         warnings=sorted(warnings),
+        skipped=skipped,
     )
 
 
@@ -471,6 +491,7 @@ def main() -> None:
                 "calendar_timezone": args.local_timezone,
                 "obstructions": result.obstructions,
                 "warnings": result.warnings,
+                "skipped": result.skipped,
             },
             indent=2,
         )

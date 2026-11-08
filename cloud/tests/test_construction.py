@@ -9,6 +9,7 @@ test blocks network access so results do not depend on the live City feed.
 from __future__ import annotations
 
 import json
+import math
 import sys
 from copy import deepcopy
 from datetime import UTC, date, datetime, timedelta
@@ -68,6 +69,9 @@ def test_recorded_18km_corridor_uses_permit_points(
     assert len(result.obstructions) == 2
     assert len(result.warnings) == 1
     assert "18165 m" in result.warnings[0]
+    assert "not under 500 m" in result.warnings[0]
+    assert "used City point" in result.warnings[0]
+    assert result.skipped == 0
     for item in result.obstructions:
         assert item["geometry"] in [row["location"] for row in rows]
         assert item["geometry"]["type"] == "Point"
@@ -77,6 +81,33 @@ def test_recorded_18km_corridor_uses_permit_points(
         assert item["confidence"] == "high"
         assert item["url"] == "https://data.edmonton.ca/d/7wiq-4rgy"
         assert item["attribution"] == "City of Edmonton Open Data"
+
+
+def line_north_of(point: construction.Row, offset_m: float) -> construction.Row:
+    """Build a 200 m east-west line that passes `offset_m` north of the point."""
+    lon, lat = point["location"]["coordinates"]
+    lat += offset_m * 180 / (math.pi * construction.EARTH_RADIUS_M)
+    return {
+        "type": "MultiLineString",
+        "coordinates": [[[lon - 0.0015, lat], [lon + 0.0015, lat]]],
+    }
+
+
+@pytest.mark.parametrize(("offset_m", "kept"), [(0, True), (40, True), (60, False)])
+def test_short_line_is_kept_only_within_50_m_of_permit_point(
+    point: construction.Row, offset_m: float, kept: bool
+) -> None:
+    point["geometry_multiline"] = line_north_of(point, offset_m)
+    result = normalize([point])
+    item = result.obstructions[0]
+    if kept:
+        assert item["geometry"] == point["geometry_multiline"]
+        assert not result.warnings
+    else:
+        assert item["geometry"] == point["location"]
+        assert "not within 50 m" in result.warnings[0]
+        assert "used City point" in result.warnings[0]
+    assert result.skipped == 0
 
 
 def test_recorded_point_fallback(point: construction.Row) -> None:
@@ -225,6 +256,7 @@ def test_recorded_unlocated_permits_produce_visible_diagnostics(
     result = normalize(rows)
     assert not result.obstructions
     assert len(result.warnings) == len(rows)
+    assert result.skipped == len(rows)
     for row in rows:
         assert any(row["file_number"] in warning for warning in result.warnings)
 
@@ -240,6 +272,46 @@ def test_conflicting_duplicate_keeps_fuller_reason_and_logs(
     assert "conflicting duplicate" in result.warnings[0]
     assert "conflicting duplicate" in caplog.text
     assert normalize([changed, point]) == result
+
+
+def test_conflicting_duplicate_keeps_later_finish_then_later_start(
+    point: construction.Row, caplog: pytest.LogCaptureFixture
+) -> None:
+    later_finish = deepcopy(point)
+    later_finish["finish_date"] = "2027-03-31"
+    later_start = deepcopy(point)
+    later_start["start_date"] = "2026-06-01"
+    for rows, winner in (
+        ([point, later_finish], later_finish),
+        ([later_finish, point], later_finish),
+        ([point, later_start], later_start),
+        ([later_start, point], later_start),
+    ):
+        result = normalize(rows)
+        assert result.obstructions == normalize([winner]).obstructions
+        assert result.skipped == 0
+        assert "conflicting duplicate" in result.warnings[0]
+    assert "conflicting duplicate" in caplog.text
+
+
+@pytest.mark.parametrize("defect", ["three-coordinates", "missing-file-number"])
+def test_one_bad_row_is_skipped_and_counted_while_the_rest_are_returned(
+    samples: dict[str, list[construction.Row]],
+    defect: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    rows = deepcopy(samples["pedestrian_points.json"])
+    if defect == "three-coordinates":
+        rows[1]["location"]["coordinates"] = [0, 0, 0]
+    else:
+        del rows[1]["file_number"]
+    result = normalize(rows)
+    assert result.obstructions == normalize([rows[0], rows[2]]).obstructions
+    assert len(result.obstructions) == 2
+    assert result.skipped == 1
+    assert len(result.warnings) == 1
+    assert "row skipped" in result.warnings[0]
+    assert "row skipped" in caplog.text
 
 
 def test_naive_time_rejected(point: construction.Row) -> None:
@@ -414,6 +486,8 @@ def test_offline_cli_labels_replay_and_reports_unlocated_permits(
     assert result["calendar_timezone"] == "America/Edmonton"
     assert result["obstructions"]
     assert result["warnings"]
+    # The three recorded permits without any map location are skipped.
+    assert result["skipped"] == 3
 
 
 def test_live_cli_rejects_historical_override(monkeypatch: pytest.MonkeyPatch) -> None:
