@@ -424,6 +424,16 @@ class WalkNetwork:
         distance, index = self._tree.query(self._to_xy(lat, lng)[0])
         return int(index), float(distance)
 
+    def nearest_nodes(
+        self, lat: float, lng: float, k: int
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """The k closest nodes to a coordinate (indices, distances in metres), nearest first."""
+        k = max(1, min(k, self.node_count))
+        distances, indices = self._tree.query(self._to_xy(lat, lng)[0], k=k)
+        return np.atleast_1d(indices).astype(int), np.atleast_1d(distances).astype(
+            float
+        )
+
     def edge_coords(self, edge: int) -> np.ndarray:
         """The edge's polyline as an array of (lng, lat), ordered from edge_u to edge_v."""
         return self.geom_coords[self.geom_offsets[edge] : self.geom_offsets[edge + 1]]
