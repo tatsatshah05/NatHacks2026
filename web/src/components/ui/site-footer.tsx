@@ -12,6 +12,7 @@ export default function SiteFooter({ children }: Props) {
       <nav className={styles.links} aria-label="About OpenPath">
         <Link href="/sources">Data sources</Link>
         <Link href="/privacy">Privacy</Link>
+        <Link href="/demo">Demo</Link>
       </nav>
     </footer>
   );
