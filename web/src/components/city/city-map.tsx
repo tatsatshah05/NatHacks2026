@@ -14,6 +14,11 @@ import styles from "./city-dashboard.module.css";
 
 const EDMONTON: [number, number] = [-113.4938, 53.5461];
 
+// MapLibre 6 loads its tile worker from a file next to its own module, which the Next
+// bundle does not copy. Point it at the package's worker so the bundler emits it as an
+// asset; without this the base map never draws (only the DOM markers do).
+maplibregl.setWorkerUrl(new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).toString());
+
 type Props = {
   items: readonly PriorityItem[];
   cameras: readonly CameraGroup[];

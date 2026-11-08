@@ -1,4 +1,3 @@
-import { forwardRef } from "react";
 import type { PriorityItem } from "@/lib/city";
 import { CONFIDENCE_WORDS } from "@/lib/city";
 import { effectLabel, sourceLabel } from "@/lib/report-format";
@@ -14,10 +13,7 @@ type RowProps = {
 };
 
 /** One ranked barrier. The rank is a real ranking, so its number is shown. */
-export const PriorityRow = forwardRef<HTMLHeadingElement, RowProps>(function PriorityRow(
-  { item, now, selected, onToggle },
-  headingRef
-) {
+export function PriorityRow({ item, now, selected, onToggle }: RowProps) {
   const titleId = `rank-${item.rank}-title`;
   return (
     <li className={selected ? `${styles.row} ${styles.rowSelected}` : styles.row}>
@@ -25,7 +21,7 @@ export const PriorityRow = forwardRef<HTMLHeadingElement, RowProps>(function Pri
         {item.rank}
       </p>
       <div className={styles.rowBody}>
-        <h3 className={styles.rowTitle} id={titleId} ref={headingRef} tabIndex={-1}>
+        <h3 className={styles.rowTitle} id={titleId} tabIndex={-1}>
           <span className="sr-only">Rank {item.rank}: </span>
           <HazardMark shape={effectShape(item.effect)} label={item.title} />
         </h3>
@@ -46,6 +42,12 @@ export const PriorityRow = forwardRef<HTMLHeadingElement, RowProps>(function Pri
       >
         Show on map
       </button>
+      {selected && (
+        // One column (phones): the map is further down, so say where it went.
+        <p className={styles.mapHint}>
+          <a href="#city-map">See it on the map</a>
+        </p>
+      )}
     </li>
   );
-});
+}

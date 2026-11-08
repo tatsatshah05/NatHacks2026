@@ -39,7 +39,9 @@ const CityMap = dynamic(() => import("./city-map"), {
   loading: () => <div className={`map-canvas ${styles.mapCanvas}`} aria-hidden="true" />
 });
 
-const TOP = 25; // rows shown before "Show all"
+// Rows per page: 25 on a laptop, 10 on a phone, where each row is taller.
+const PAGE_WIDE = 25;
+const PAGE_NARROW = 10;
 
 // The four shapes a barrier can take, for the legend under the map.
 const LEGEND = HAZARD_SHAPES.filter(
@@ -62,10 +64,22 @@ export default function CityDashboard() {
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);
   const [now, setNow] = useState<Date>(() => new Date());
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
-  const [showAll, setShowAll] = useState(false);
+  const [pageSize, setPageSize] = useState(PAGE_WIDE);
+  const [limit, setLimit] = useState<number | null>(null); // null: one page
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const firstHiddenRef = useRef<HTMLHeadingElement>(null);
-  const focusFirstHidden = useRef(false);
+  // After "Show more", focus moves to the first new row; after "Show the top N
+  // only", to the button that takes its place.
+  const focusRank = useRef<number | null>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const focusMore = useRef(false);
+
+  useEffect(() => {
+    const wide = window.matchMedia("(min-width: 640px)");
+    const apply = () => setPageSize(wide.matches ? PAGE_WIDE : PAGE_NARROW);
+    apply();
+    wide.addEventListener("change", apply);
+    return () => wide.removeEventListener("change", apply);
+  }, []);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -105,17 +119,31 @@ export default function CityDashboard() {
 
   const items = useMemo(() => ranking?.items ?? [], [ranking]);
   const filtered = useMemo(() => applyFilters(items, filters), [items, filters]);
-  const shown = showAll ? filtered : filtered.slice(0, TOP);
+  const visible = Math.min(limit ?? pageSize, filtered.length);
+  const shown = filtered.slice(0, visible);
+  const remaining = filtered.length - visible;
   const cameras = useMemo(() => groupCameras(cameraFeatures), [cameraFeatures]);
   const filtering = hasFilters(filters);
   const replay = ranking?.mode === "replay" || status?.mode === "replay";
 
   useEffect(() => {
-    if (showAll && focusFirstHidden.current) {
-      focusFirstHidden.current = false;
-      firstHiddenRef.current?.focus();
+    if (focusRank.current !== null) {
+      document.getElementById(`rank-${focusRank.current}-title`)?.focus();
+      focusRank.current = null;
+    } else if (focusMore.current) {
+      moreRef.current?.focus();
+      focusMore.current = false;
     }
-  }, [showAll]);
+  }, [visible]);
+
+  const showMore = (next: number) => {
+    focusRank.current = filtered[visible]?.rank ?? null;
+    setLimit(next);
+  };
+  const changeFilters = (next: Filters) => {
+    setFilters(next);
+    setLimit(null);
+  };
 
   const toggle = useCallback((id: string) => setSelectedId((current) => (current === id ? null : id)), []);
   const select = useCallback((id: string) => setSelectedId(id), []);
@@ -126,8 +154,8 @@ export default function CityDashboard() {
     if (!total) return "";
     if (!filtered.length) return `No barriers match these filters. Clear the filters to see all ${total}.`;
     const of = filtering ? `${filtered.length} of ${total} barriers match` : plural(total, "barrier", "barriers");
-    if (filtered.length <= TOP || showAll) return filtering ? `${of}.` : `${of}, all shown.`;
-    return `${of}. Showing the top ${TOP}.`;
+    if (!remaining) return filtering ? `${of}.` : `${of}, all shown.`;
+    return `${of}. Showing the top ${visible}.`;
   })();
 
   const selectedItem = items.find((item) => item.id === selectedId);
@@ -145,11 +173,6 @@ export default function CityDashboard() {
             Every barrier OpenPath knows about, ranked by the saved trips it gets in the way of and the people who
             walk nearby.
           </p>
-          {replay && (
-            <p>
-              <strong>Recorded data.</strong> This list is replaying recorded source data, not live conditions.
-            </p>
-          )}
           <details className={styles.method}>
             <summary>How the ranking works</summary>
             <p>
@@ -210,9 +233,9 @@ export default function CityDashboard() {
             <CityFilters
               items={items}
               filters={filters}
-              onChange={setFilters}
+              onChange={changeFilters}
               onClear={() => {
-                setFilters(NO_FILTERS);
+                changeFilters(NO_FILTERS);
                 document.getElementById("city-search")?.focus();
               }}
             />
@@ -241,10 +264,9 @@ export default function CityDashboard() {
           )}
           {shown.length > 0 && (
             <ol className={styles.rows} aria-label="Barriers, most important first">
-              {shown.map((item, index) => (
+              {shown.map((item) => (
                 <PriorityRow
                   key={item.id}
-                  ref={index === TOP ? firstHiddenRef : undefined}
                   item={item}
                   now={now}
                   selected={selectedId === item.id}
@@ -253,40 +275,42 @@ export default function CityDashboard() {
               ))}
             </ol>
           )}
-          {filtered.length > TOP && (
-            <Button
-              variant="secondary"
-              block
-              onClick={() => {
-                focusFirstHidden.current = !showAll;
-                setShowAll((value) => !value);
-              }}
-            >
-              {showAll ? `Show the top ${TOP} only` : `Show all ${filtered.length} barriers`}
-            </Button>
+          {remaining > 0 && (
+            <div className={styles.more}>
+              {/* A plain button styled as Button, because Button does not take a ref. */}
+              <button
+                type="button"
+                className="button button-secondary"
+                ref={moreRef}
+                onClick={() => showMore(visible + pageSize)}
+              >
+                Show {Math.min(pageSize, remaining)} more
+              </button>
+              {remaining > pageSize && (
+                <Button variant="text" onClick={() => showMore(filtered.length)}>
+                  Show all {filtered.length}
+                </Button>
+              )}
+            </div>
+          )}
+          {!remaining && filtered.length > pageSize && (
+            <div className={styles.more}>
+              <Button
+                variant="text"
+                onClick={() => {
+                  focusMore.current = true;
+                  setLimit(null);
+                }}
+              >
+                Show the top {pageSize} only
+              </Button>
+            </div>
           )}
         </div>
 
         <div className={styles.side} id="city-map" tabIndex={-1}>
           <h2 className="sr-only">Map</h2>
           <CityMap items={filtered} cameras={cameras} selectedId={selectedId} onSelect={select} />
-          <ul className="legend" aria-label="Map shapes">
-            {LEGEND.map((shape) => (
-              <li key={shape}>
-                <HazardMark shape={shape} label={SHAPE_TEXT[shape]} size={18} />
-              </li>
-            ))}
-            <li>
-              <span className="hazard-mark">
-                <CameraGlyph size={18} />
-                <span className="hazard-label">Road camera, with its reading</span>
-              </span>
-            </li>
-          </ul>
-          <p className="muted">
-            The map shows the barriers that match the filters, and every road camera. The lists hold everything it
-            shows.
-          </p>
           {selectedItem && (
             <div className={styles.detail}>
               <h3>
@@ -336,6 +360,23 @@ export default function CityDashboard() {
               </p>
             </div>
           )}
+          <ul className="legend" aria-label="Map shapes">
+            {LEGEND.map((shape) => (
+              <li key={shape}>
+                <HazardMark shape={shape} label={SHAPE_TEXT[shape]} size={18} />
+              </li>
+            ))}
+            <li>
+              <span className="hazard-mark">
+                <CameraGlyph size={18} />
+                <span className="hazard-label">Road camera, with its reading</span>
+              </span>
+            </li>
+          </ul>
+          <p className="muted">
+            The map shows the barriers that match the filters, and every road camera. The lists hold everything it
+            shows.
+          </p>
         </div>
 
         <div className={styles.after}>

@@ -72,6 +72,11 @@ export default function RoadCameras({ cameras, error, replay, now, selectedId, o
                   >
                     Show on map
                   </button>
+                  {pressed && (
+                    <a className={`${styles.external} ${styles.mapHint}`} href="#city-map">
+                      See it on the map
+                    </a>
+                  )}
                   <a className={styles.external} href={CAMERA_VIEWER_URL} rel="noreferrer">
                     Open 511 Alberta&apos;s camera list<span className="sr-only"> to find {name}</span>
                   </a>

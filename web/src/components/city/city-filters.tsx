@@ -42,25 +42,25 @@ export default function CityFilters({ items, filters, onChange, onClear }: Props
     {
       key: "effect",
       label: "Effect",
-      all: "Every effect",
+      all: "All",
       options: options(items, EFFECT_ORDER, (item) => item.effect, effectLabel, filters.effect)
     },
     {
       key: "category",
       label: "Where",
-      all: "Everywhere",
+      all: "All",
       options: options(items, CATEGORY_ORDER, (item) => item.category, (value) => CATEGORY_LABELS[value], filters.category)
     },
     {
       key: "source",
       label: "Source",
-      all: "Every source",
+      all: "All",
       options: options(items, sources, (item) => item.source, sourceLabel, filters.source)
     },
     {
       key: "confidence",
       label: "Confidence",
-      all: "Any confidence",
+      all: "All",
       options: options(items, CONFIDENCE_ORDER, (item) => item.confidence, (value) => CONFIDENCE_WORDS[value], filters.confidence)
     }
   ];
