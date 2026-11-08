@@ -11,7 +11,9 @@
 - ``SCHEDULER``: ``on`` (the default) runs every data source on its cadence (OP-103);
   ``off`` serves only what the database already holds, which tests rely on.
 - ``REPLAY_SNAPSHOT``: in replay mode, the folder of recorded responses
-  (``cloud/tests/fixtures`` for ``make dev``). ``REPLAY_AT`` optionally freezes the clock.
+  (``cloud/tests/fixtures`` for ``make dev``). ``REPLAY_AT`` optionally freezes the clock;
+  ``REPLAY_CLOCK=running`` lets it advance from the recording's time (OP-305), and
+  ``WEATHER_REPLAY`` picks a named weather recording (``sources.py``).
 - ``SOCRATA_APP_TOKEN``: raises the City open data rate limit. Optional.
 """
 
@@ -163,6 +165,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # In replay mode REPLAY_AT freezes it, so recorded closures stay active everywhere.
     clock = sources.replay_clock(snapshot) if mode == "replay" else utcnow
     app.state.clock = clock
+    if mode == "replay" and snapshot is not None:
+        # OP-305: recorded camera readings, re-labelled "replay"; none in the fixtures.
+        sources.load_replay_cameras(snapshot, camera_store, clock())
     app.state.scheduler = None
     app.state.weather_service = None
     # Routing (OP-207): the prebuilt walking network loads in well under a second.
@@ -180,7 +185,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         with httpx.Client(timeout=10) as sync_client:
             scheduler: Scheduler | None = None
             if run_scheduler:
-                weather = sources.build_weather_service(mode, snapshot, async_client)
+                weather = sources.build_weather_service(
+                    mode, snapshot, async_client, clock=clock
+                )
                 app.state.weather_service = (
                     weather  # read by weather_service.get_weather
                 )

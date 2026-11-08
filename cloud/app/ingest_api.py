@@ -23,6 +23,7 @@ from .camera_readings import (
     Outcome,
     to_feature,
 )
+from .obstructions_api import get_now
 
 router = APIRouter(prefix="/api", tags=["cameras"])
 
@@ -89,9 +90,13 @@ def ingest_camera(
 @router.get("/cameras", response_model=CameraCollection)
 def list_cameras(
     store: Annotated[CameraReadingStore, Depends(get_camera_store)],
+    now: Annotated[datetime, Depends(get_now)],
 ) -> CameraCollection:
-    """The latest unexpired reading for every camera view, as GeoJSON points."""
-    now = datetime.now(UTC)
+    """The latest unexpired reading for every camera view, as GeoJSON points.
+
+    Read at the app's clock, like the map and route hazards, so a replay with a
+    frozen or running clock (OP-305) shows the recorded readings of that time.
+    """
     return CameraCollection(
         generated_at=now.isoformat().replace("+00:00", "Z"),
         features=[to_feature(row, now) for row in store.latest(now)],
