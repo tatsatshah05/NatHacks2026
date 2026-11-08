@@ -21,6 +21,7 @@ import { effectLabel, plural, sourceLabel } from "@/lib/report-format";
 import { freshnessSummary } from "../source-freshness";
 import Button from "../ui/button";
 import HazardMark, { HAZARD_SHAPES, SHAPE_TEXT, effectShape } from "../ui/hazard-mark";
+import LazyMount from "../ui/lazy-mount";
 import SiteFooter from "../ui/site-footer";
 import SiteHeader from "../ui/site-header";
 import StatusLine from "../ui/status-line";
@@ -253,9 +254,15 @@ export default function CityDashboard() {
             )}
             {items.length > 0 && <a href="#city-map">Go to the map</a>}
           </div>
+          {/* The rows are h3s; this h2 keeps the outline in order (h1, h2, h3) without a
+              visible heading above a list that already has its count. It sits here, not
+              in the list box, so the empty list paints nothing while it loads. */}
+          <h2 className="sr-only" id="barriers-title">
+            Barriers, most important first
+          </h2>
         </div>
 
-        <div className={styles.list}>
+        <div className={ranking || !loading ? styles.list : `${styles.list} loading-space`}>
           {ranking && !items.length && !problems.ranking && (
             <p className={styles.empty}>
               No barriers are reported right now. The list fills in as the City&apos;s sources report closures,
@@ -263,7 +270,7 @@ export default function CityDashboard() {
             </p>
           )}
           {shown.length > 0 && (
-            <ol className={styles.rows} aria-label="Barriers, most important first">
+            <ol className={styles.rows} aria-labelledby="barriers-title">
               {shown.map((item) => (
                 <PriorityRow
                   key={item.id}
@@ -310,7 +317,9 @@ export default function CityDashboard() {
 
         <div className={styles.side} id="city-map" tabIndex={-1}>
           <h2 className="sr-only">Map</h2>
-          <CityMap items={filtered} cameras={cameras} selectedId={selectedId} onSelect={select} />
+          <LazyMount placeholder={<div className={`map-canvas ${styles.mapCanvas}`} aria-hidden="true" />}>
+            <CityMap items={filtered} cameras={cameras} selectedId={selectedId} onSelect={select} />
+          </LazyMount>
           {selectedItem && (
             <div className={styles.detail}>
               <h3>

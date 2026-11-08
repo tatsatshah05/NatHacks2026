@@ -1,24 +1,65 @@
 /*
-  OpenPath service worker (OP-306): push alerts for saved routes, nothing else.
+  OpenPath service worker: push alerts for saved routes (OP-306) and one offline page
+  for navigations (OP-410). Nothing else.
 
   - push: shows the alert the API sent (cloud/app/push.py notice_payload):
     { title, body, url, tag, saved_route_id, status, eta_min }.
   - notificationclick: opens the saved route (data.url) in an open OpenPath tab,
     or in a new one.
-  - No fetch handler and no cache. Routes and conditions always come from the
-    network, so an alert can never show an old route as if it were current.
+  - fetch: only for navigations (a page load or a link), and only when the network
+    fails: then it answers with /offline.html, which says so and reloads itself when
+    the connection returns. Pages, routes, conditions and API answers are never
+    cached, so an old route can never be shown as if it were current.
 */
 
 const FALLBACK_URL = "/alerts";
 const ICON = "/icons/icon-192.png";
 const BADGE = "/icons/badge-96.png";
+const OFFLINE_CACHE = "openpath-offline-v1";
+const OFFLINE_URL = "/offline.html";
 
-self.addEventListener("install", () => {
-  self.skipWaiting();
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(OFFLINE_CACHE)
+      .then((cache) => cache.add(new Request(OFFLINE_URL, { cache: "reload" })))
+      .catch(() => undefined) // the worker still installs; alerts work without the page
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // Older offline caches go; nothing else of ours is cached.
+      const names = await caches.keys();
+      await Promise.all(names.filter((name) => name.startsWith("openpath-") && name !== OFFLINE_CACHE).map((name) => caches.delete(name)));
+      // The browser starts the page request in parallel with this worker.
+      if (self.registration.navigationPreload) {
+        await self.registration.navigationPreload.enable().catch(() => undefined);
+      }
+      await self.clients.claim();
+    })()
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET" || request.mode !== "navigate") return;
+  if (new URL(request.url).origin !== self.location.origin) return;
+  event.respondWith(
+    (async () => {
+      try {
+        const preloaded = await event.preloadResponse;
+        if (preloaded) return preloaded;
+        return await fetch(request);
+      } catch (error) {
+        const offline = await caches.match(OFFLINE_URL);
+        if (offline) return offline;
+        throw error;
+      }
+    })()
+  );
 });
 
 /** Only paths on this site: a payload can never send someone elsewhere. */

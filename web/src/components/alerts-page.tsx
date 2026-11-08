@@ -41,8 +41,8 @@ function profileText(profile: string): string {
 }
 
 function listErrorText(error: unknown): string {
-  if (error instanceof ApiError && error.status === 503) return "Saved routes are not available on this server right now. Reload the page later.";
-  return "Your saved routes could not be loaded. Check your connection, then reload the page.";
+  if (error instanceof ApiError && error.status === 503) return "Saved routes are not available on this server right now. Try again later.";
+  return "Your saved routes could not be loaded. Check your connection, then try again.";
 }
 
 // Routes that need attention first: no route, then changed, then clear; oldest first within each.
@@ -88,23 +88,26 @@ export default function AlertsPage() {
     }
   }, []);
 
+  const checkDevice = useCallback(async () => {
+    setAlerts("checking");
+    const next = await getPushConfigOrNull();
+    const state = await readAlertsState(next).catch((): AlertsState => "unsupported");
+    if (!live.current) return;
+    setConfig(next);
+    setAlerts(state);
+    // Keep the server's copy of this device's subscription current (a reset
+    // database would otherwise forget it). Quiet: the page already says "on".
+    if (state === "on") void refreshSubscription().catch(() => undefined);
+  }, []);
+
   useEffect(() => {
     live.current = true;
     void loadRoutes();
-    void (async () => {
-      const next = await getPushConfigOrNull();
-      const state = await readAlertsState(next).catch((): AlertsState => "unsupported");
-      if (!live.current) return;
-      setConfig(next);
-      setAlerts(state);
-      // Keep the server's copy of this device's subscription current (a reset
-      // database would otherwise forget it). Quiet: the page already says "on".
-      if (state === "on") void refreshSubscription().catch(() => undefined);
-    })();
+    void checkDevice();
     return () => {
       live.current = false;
     };
-  }, [loadRoutes]);
+  }, [loadRoutes, checkDevice]);
 
   // Fresh status when someone comes back to the page or an alert arrives.
   useEffect(() => {
@@ -275,6 +278,13 @@ export default function AlertsPage() {
               Saved routes
             </h2>
             <StatusLine>{listStatus}</StatusLine>
+            {listError && (
+              <div className={styles.empty}>
+                <Button variant="secondary" onClick={() => void loadRoutes()}>
+                  Try again
+                </Button>
+              </div>
+            )}
             {/* Always in the DOM, so "Removed Work." and "Work is saved again." are announced. */}
             <div className={styles.notice}>
               <StatusLine>{listMessage}</StatusLine>
@@ -358,6 +368,7 @@ export default function AlertsPage() {
               onTurnOn={() => void turnOn()}
               onTurnOff={() => void turnOff()}
               onTest={() => void test()}
+              onRetry={() => void checkDevice()}
             />
             <StatusLine className={styles.deviceStatus}>{deviceMessage}</StatusLine>
           </Panel>
@@ -379,7 +390,7 @@ function DeviceState({ state }: { state: AlertsState }) {
       break;
     case "server_unreachable":
       first = "Alerts cannot be checked right now.";
-      rest = ["OpenPath could not reach the server. Reload the page to try again."];
+      rest = ["OpenPath could not reach the server. Check your connection, then try again."];
       break;
     case "server_off":
       first = "Alerts are not set up on this server yet.";
@@ -431,10 +442,21 @@ type ActionsProps = {
   onTurnOn: () => void;
   onTurnOff: () => void;
   onTest: () => void;
+  /** Ask the server again after it could not be reached. */
+  onRetry: () => void;
 };
 
-function DeviceActions({ state, busy, onTurnOn, onTurnOff, onTest }: ActionsProps) {
+function DeviceActions({ state, busy, onTurnOn, onTurnOff, onTest, onRetry }: ActionsProps) {
   const disabled = busy || undefined;
+  if (state === "server_unreachable") {
+    return (
+      <div className={styles.deviceActions}>
+        <Button variant="secondary" onClick={onRetry}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
   if (state === "off") {
     return (
       <div className={styles.deviceActions}>

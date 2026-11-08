@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible } from "next/font/google";
+import ServiceWorkerRegistration from "@/components/service-worker";
 import SettingsApplier from "@/components/settings-applier";
 import { SETTINGS_BOOT_SCRIPT } from "@/lib/settings-boot";
 import { PITCH, PRODUCTION_URL, SITE_NAME } from "@/lib/site";
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         <SettingsApplier />
+        <ServiceWorkerRegistration />
         {children}
       </body>
     </html>
