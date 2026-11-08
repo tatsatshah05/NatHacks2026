@@ -4,3 +4,6 @@
 # OP-102: an empty `VAPID_PRIVATE_KEY=` line, where the rule ran on into the next
 # line's variable name. Fixed in .env.example by giving every variable its own comment line.
 c75c651139b9f373e6d8d299ad45901331329cfa:.env.example:generic-api-key:11
+
+# OP-110: `ZoneInfo.from_file(..., key="America/Edmonton")` is a time zone name, not a key.
+b6e11b8dd033f58dcb038e721d576fde73d4185d:cloud/app/adapters/city_advisories.py:generic-api-key:27
