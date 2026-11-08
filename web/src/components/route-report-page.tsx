@@ -11,10 +11,11 @@ import { useSearchParams } from "next/navigation";
 import ReportConditions, { conditionCount, conditionsSummary } from "./report-conditions";
 import { NoRoute, RouteFailure } from "./route-problem";
 import SourceFreshness, { freshnessSummary } from "./source-freshness";
+import CityWideConditions from "./ui/city-wide-conditions";
 import HazardMark from "./ui/hazard-mark";
 import { ButtonLink } from "./ui/button";
 import Panel from "./ui/panel";
-import RouteLine from "./ui/route-line";
+import RouteLine, { cityWideItems } from "./ui/route-line";
 import SegmentedChoice from "./ui/segmented-choice";
 import SiteFooter from "./ui/site-footer";
 import SiteHeader from "./ui/site-header";
@@ -263,6 +264,8 @@ function ReportBody({ loaded, route, params, now, announcement, onChoose }: Body
 
         <Panel aria-labelledby="conditions-title">
           <h2 id="conditions-title">Conditions for route {route.rank}</h2>
+          {/* Conditions that cover the whole city, once, as on the planner (OP-410). */}
+          <CityWideConditions items={cityWideItems([route])} now={now} />
           {empty ? (
             <div className="empty">
               <HazardMark shape="clear" label="No known obstructions on this route" size={24} />
