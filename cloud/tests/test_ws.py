@@ -28,11 +28,11 @@ import pytest
 from fastapi import FastAPI, WebSocketDisconnect
 from fastapi.testclient import TestClient
 
-from cloud.app import ws
+from cloud.app import obstructions_api, routing_api, ws
 from cloud.app.main import create_app
 from cloud.app.matching import HazardProvider, Match, MatchResult
 from cloud.app.network import RawEdge, RawNode, WalkNetwork, export_network
-from cloud.app.profiles import load_routing_config
+from cloud.app.profiles import Snap, load_routing_config
 from cloud.app.routing import EdgeHazard, Router
 from cloud.app.scheduler import Scheduler, Source
 from cloud.app.schemas import Confidence, Effect, Obstruction
@@ -537,7 +537,7 @@ def test_a_rebuild_reroutes_each_subscription_once(
             changed["summary"]["possible"] and changed["summary"]["distance_m"] == 400.0
         )
         delta = changed["summary"]["eta_min"] - changed["previous"]["eta_min"]
-        assert round(delta) == 3
+        assert int(round(delta, 1) + 0.5) == 3  # halves round up
         assert (
             changed["change"]
             == f"{TITLE} now blocks your route; the new route is 3 min longer."
@@ -558,12 +558,21 @@ def test_a_rebuild_reroutes_each_subscription_once(
 def test_a_route_that_becomes_impossible_and_possible_again(
     network: WalkNetwork, router: Router
 ) -> None:
-    """Node 1's two paths both blocked: no route; cleared: a route again (once each)."""
+    """Node 1's two paths both blocked: no route; cleared: a route again (once each).
+
+    Routing moves a blocked start to the nearest open path within ``snap.max_m``
+    (1000 m), so on this small grid a route would always exist. A 60 m limit keeps
+    the start at node 1, whose only paths are closed.
+    """
     current: list[dict[int, list[EdgeHazard]]] = [{}]
     a, b = edge_between(network, 1, 2), edge_between(network, 1, 4)
+    tight = Router(
+        network,
+        router.config.model_copy(update={"snap": Snap(warn_m=50, max_m=60)}),
+    )
 
     async def scenario() -> None:
-        hub = LiveHub(router=router, provider=lambda now: current[0], clock=lambda: NOW)
+        hub = LiveHub(router=tight, provider=lambda now: current[0], clock=lambda: NOW)
         sock = FakeSocket()
         conn = hub.add(sock)
         assert (
@@ -700,16 +709,29 @@ def test_the_endpoint_without_a_hub_closes_the_socket() -> None:
 
 
 def live_app(
-    network: WalkNetwork, router: Router, store: ObstructionStore, **hub_options: Any
+    network: WalkNetwork,
+    router: Router,
+    store: ObstructionStore,
+    ticks: list[float] | None = None,
+    **hub_options: Any,
 ) -> FastAPI:
-    """The pieces ``main.py`` wires, on the grid: router, matcher, clock and hub."""
+    """The pieces ``main.py`` wires, on the grid: router, matcher, clock and hub.
+
+    The matcher keeps its production 30 s refresh; ``ticks[0]`` is its monotonic
+    clock, so a test decides when a rebuild is due.
+    """
+    ticks = ticks if ticks is not None else [0.0]
     app = FastAPI()
     app.state.store = store
     app.state.router = router
-    app.state.hazard_provider = HazardProvider(store, network, refresh_s=0)
+    app.state.hazard_provider = HazardProvider(
+        store, network, refresh_s=30, clock=lambda: ticks[0]
+    )
     app.state.clock = lambda: NOW
     app.state.live = ws.attach(app, **hub_options)
     app.include_router(ws.router)
+    app.include_router(routing_api.router)
+    app.dependency_overrides[obstructions_api.get_now] = lambda: NOW
     return app
 
 
@@ -745,7 +767,8 @@ def test_end_to_end_a_seeded_closure_changes_the_subscribed_route(
     and read ``obstruction_changed`` and ``route_changed`` with the new summary and
     the announcement sentence.
     """
-    app = live_app(network, router, store, heartbeat_s=60)
+    ticks = [0.0]
+    app = live_app(network, router, store, ticks, heartbeat_s=60)
     with TestClient(app) as client, client.websocket_connect("/ws") as sock:
         receive(sock, "hello")
         sock.send_json(json.loads(subscribe_text(1, 3, "wheelchair")))
@@ -758,7 +781,8 @@ def test_end_to_end_a_seeded_closure_changes_the_subscribed_route(
         }
 
         store.upsert([blocker(make_obstruction)], NOW)  # the seeded change
-        app.state.hazard_provider(NOW)  # starts the rebuild in the background thread
+        ticks[0] = 30.0  # the matcher's map is now due for a rebuild...
+        app.state.hazard_provider(NOW)  # ...which starts in the background thread
 
         changed = receive(sock, "obstruction_changed")
         assert [brief["id"] for brief in changed["added"]] == [
@@ -778,13 +802,30 @@ def test_end_to_end_a_seeded_closure_changes_the_subscribed_route(
             and rerouted["summary"]["distance_m"] == 400.0
         )
         delta = rerouted["summary"]["eta_min"] - rerouted["previous"]["eta_min"]
-        assert round(delta) == 3
+        assert int(round(delta, 1) + 0.5) == 3  # halves round up
         assert (
             rerouted["change"]
             == f"{TITLE} now blocks your route; the new route is 3 min longer."
         )
         assert rerouted["at"] == "2026-11-07T20:10:00Z"
 
+        # GET /api/route agrees, and answers while the socket is open.
+        a, c = latlng(1), latlng(3)
+        response = client.get(
+            "/api/route",
+            params={
+                "from": f"{a[0]},{a[1]}",
+                "to": f"{c[0]},{c[1]}",
+                "profile": "wheelchair",
+            },
+        )
+        assert response.status_code == 200
+        best = response.json()["routes"][0]
+        assert best["distance_m"] == rerouted["summary"]["distance_m"]
+        assert best["eta_min"] == rerouted["summary"]["eta_min"]
+        assert best["reason"] == rerouted["summary"]["reason"]
+
         # The hub's own timer keeps the map fresh while a client is connected.
         assert app.state.live._tick is not None and not app.state.live._tick.done()
-    assert app.state.live.rebuilds >= 2
+    # The first map (at subscribe) and the seeded one; re-routing started no others.
+    assert app.state.live.rebuilds == 2

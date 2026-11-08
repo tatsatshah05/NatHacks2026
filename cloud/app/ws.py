@@ -288,8 +288,13 @@ def _verb(effect: str) -> str:
     return "blocks" if effect == Effect.BLOCKED else "affects"
 
 
+def _minutes(value: float) -> int:
+    """Whole minutes, rounding halves up (ETAs come in tenths, so 2.5 is common)."""
+    return int(round(abs(value), 1) + 0.5)  # tenths first: 5.1 - 2.6 is 2.4999...
+
+
 def _tail(delta_min: float) -> str:
-    minutes = round(abs(delta_min))
+    minutes = _minutes(delta_min)
     if minutes == 0:
         return "the new route takes about the same time"
     return f"the new route is {minutes} min {'longer' if delta_min > 0 else 'shorter'}"
@@ -320,7 +325,9 @@ def describe_change(
         )
         return f"{head}; no route is possible for the {profile_label} profile."
     if before.edges is None:
-        return f"A route is possible again; it takes about {round(after.eta_min)} min."
+        return (
+            f"A route is possible again; it takes about {_minutes(after.eta_min)} min."
+        )
     delta = after.eta_min - before.eta_min
     cause = _new_on_route(before, hazards, added) or _newly_avoided(before, after)
     if cause is not None:
@@ -406,6 +413,14 @@ def active_briefs(result: MatchResult) -> dict[str, ObstructionBrief]:
     return briefs
 
 
+def best_route_router(router: Router) -> Router:
+    """A router on the same network and profiles that stops at the best route."""
+    alternates = router.config.alternates.model_copy(update={"max_routes": 1})
+    return Router(
+        router.network, router.config.model_copy(update={"alternates": alternates})
+    )
+
+
 # ----------------------------------------------------------------- the hub
 
 
@@ -449,6 +464,9 @@ class LiveHub:
         tick_s: float = TICK_S,
     ) -> None:
         self.router = router
+        # Re-routing needs only the best route, which is the first one the search
+        # finds whatever max_routes says, so skip the alternates (about 4x faster).
+        self._best = best_route_router(router) if router is not None else None
         self.provider = provider
         self.clock = clock
         self.heartbeat_s = heartbeat_s
@@ -490,7 +508,9 @@ class LiveHub:
             return False
         try:
             async with conn.lock:
-                await conn.socket.send_json(event.model_dump(mode="json"))
+                await conn.socket.send_json(
+                    event.model_dump(mode="json", by_alias=True)
+                )
         except Exception as error:  # noqa: BLE001 - any failure means a dead socket
             self.drop(conn, f"send failed: {type(error).__name__}")
             return False
@@ -508,8 +528,14 @@ class LiveHub:
         self._schedule(self.broadcast(event))
 
     async def drain(self) -> None:
-        """Wait for every scheduled broadcast and re-route (tests, shutdown)."""
-        while pending := [task for task in self._tasks if not task.done()]:
+        """Wait for every scheduled broadcast and re-route (tests, shutdown).
+
+        The refresh timer (``_tick``) runs for as long as clients are connected, so
+        it is not waited for.
+        """
+        while pending := [
+            task for task in self._tasks if not task.done() and task is not self._tick
+        ]:
             await asyncio.gather(*pending, return_exceptions=True)
 
     # -- scheduling ------------------------------------------------------------
@@ -614,7 +640,7 @@ class LiveHub:
                 ObstructionChangedEvent(added=added, removed=removed, at=built_at)
             )
         subscribed = [c for c in self.connections.values() if c.subscription]
-        if not subscribed or self.router is None:
+        if not subscribed or self._best is None:
             return
         try:
             events = await asyncio.to_thread(
@@ -628,7 +654,12 @@ class LiveHub:
                 log.info("LIVE route_changed id=%d %s", conn.id, event.change)
 
     def hazards(self) -> HazardMap:
-        """The current hazard map (camera risks included), or none if that fails."""
+        """The current hazard map (camera risks included), or none if that fails.
+
+        Read through the app's provider, as ``/api/route`` does. Right after a
+        rebuild the matcher is not due again for ``refresh_s``, so this read does
+        not start another rebuild.
+        """
         if self.provider is None:
             return {}
         try:
@@ -663,10 +694,10 @@ class LiveHub:
         added: Sequence[ObstructionBrief],
         removed: Sequence[ObstructionBrief],
     ) -> RouteChangedEvent | None:
-        assert self.router is not None
+        assert self._best is not None
         key, before = subscription.key, subscription.baseline
         try:
-            after = RouteSnapshot.of(self.router, key, hazards)
+            after = RouteSnapshot.of(self._best, key, hazards)
         except RoutingError as error:  # the points were fine before: log, keep going
             log.warning("LIVE re-route %s failed: %s", key, error)
             return None
@@ -704,13 +735,13 @@ class LiveHub:
         Blocking (Dijkstra); call it in a worker thread. Raises ``RoutingError`` for a
         request routing cannot serve, and ``RuntimeError`` without a router.
         """
-        if self.router is None:
+        if self._best is None:
             raise RuntimeError(
                 "Routing is not available: the walking network is not loaded."
             )
         hazards = self.hazards()
         with self._route_lock:
-            return RouteSnapshot.of(self.router, key, hazards)
+            return RouteSnapshot.of(self._best, key, hazards)
 
     async def subscribe(self, conn: Connection, spec: RouteSpec) -> Event:
         """Replace the connection's route; the reply to send back."""
@@ -774,10 +805,14 @@ class LiveHub:
                 await websocket.close()
 
     async def _receive_loop(self, conn: Connection, websocket: WebSocket) -> None:
-        while conn.id in self.connections:
-            text = await websocket.receive_text()
-            reply = await self.handle(conn, text)
-            await self.send(conn, reply)
+        """Answer the client's messages until it disconnects."""
+        try:
+            while conn.id in self.connections:
+                text = await websocket.receive_text()
+                reply = await self.handle(conn, text)
+                await self.send(conn, reply)
+        except WebSocketDisconnect:
+            return
 
     async def _heartbeat_loop(self, conn: Connection) -> None:
         while conn.id in self.connections:
