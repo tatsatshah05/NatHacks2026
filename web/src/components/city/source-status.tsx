@@ -1,6 +1,7 @@
 import type { SourceStatus as Source, StatusResponse } from "@/lib/city";
 import { formatAgo, plural, sourceLabel } from "@/lib/report-format";
 import Panel from "../ui/panel";
+import StatusLine from "../ui/status-line";
 import TimeAgo from "../ui/time-ago";
 import styles from "./city-dashboard.module.css";
 
@@ -42,6 +43,27 @@ export default function SourceStatusPanel({ status, error, now }: Props) {
   );
 }
 
+/**
+ * What the data quality checks (OP-407) have to say about one source, as plain
+ * sentences: rows its own validation rejected in the last read, field names it
+ * has never seen, and a sudden fall in its item count since yesterday. Empty
+ * when there is nothing to say.
+ */
+export function qualitySentences(source: Source): string {
+  const sentences: string[] = [];
+  if (source.rejected_rows > 0) {
+    const reason = source.last_validation_error ? `: ${source.last_validation_error}` : "";
+    sentences.push(`${plural(source.rejected_rows, "row", "rows")} rejected this fetch${reason}.`);
+  }
+  const fields = source.unexpected_fields ?? [];
+  if (fields.length > 0) sentences.push(`New fields: ${fields.join(", ")}.`);
+  const change = source.count_change;
+  if (change?.drop && typeof change.yesterday === "number") {
+    sentences.push(`Items fell from ${change.yesterday} to ${change.today} since yesterday.`);
+  }
+  return sentences.join(" ");
+}
+
 function SourceRow({ source, now }: { source: Source; now: Date }) {
   const name = sourceLabel(source.source);
   const items = plural(source.item_count, "item", "items");
@@ -79,6 +101,8 @@ function SourceRow({ source, now }: { source: Source; now: Date }) {
           {source.skipped_items === 1 ? "was" : "were"} skipped.
         </p>
       )}
+      {/* Always in the DOM so a change is announced; empty when there is nothing to say. */}
+      <StatusLine>{qualitySentences(source)}</StatusLine>
     </li>
   );
 }

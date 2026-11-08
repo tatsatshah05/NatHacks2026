@@ -21,8 +21,17 @@ Who uses it
 
 Logging
     One line per state change, as AGENTS.md asks:
-    ``SOURCE city_lrt_devices ok items=7 skipped=0``, ``SOURCE ... failed (2/3): ...``,
-    ``SOURCE ... stale``, ``SOURCE ... recovered``.
+    ``SOURCE city_lrt_devices ok items=7 skipped=0 rejected=0``,
+    ``SOURCE ... failed (2/3): ...``, ``SOURCE ... stale``, ``SOURCE ... recovered``.
+
+Data quality (OP-407)
+    A source may carry a ``quality`` reader (``adapters/_quality.py``): after a
+    successful fetch its report (rows the adapter rejected, field names it does
+    not know) is copied onto the status, and ``WARN quality <source>: new fields
+    ...`` is logged once when unknown names appear. The item count is also written
+    to ``source_count_daily`` (``quality.py``) and compared with yesterday's; a
+    sudden drop is flagged on the status and logged once per day. None of this
+    can fail a fetch or clear data.
 """
 
 from __future__ import annotations
@@ -35,8 +44,10 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
+from .adapters._quality import QualityReport
+from .quality import CountChange, DailyCounts
 from .schemas import Obstruction
 from .store import ObstructionStore
 from .threads import WorkerThreads
@@ -72,6 +83,9 @@ class Source:
     provides_items: bool = (
         True  # False for status-only sources such as the weather watch
     )
+    # OP-407: reads the adapter's RowQuality report after a fetch; None for a
+    # source with no row parsing (the weather watch, fakes in tests).
+    quality: Callable[[], QualityReport] | None = None
 
 
 class SourceStatus(BaseModel):
@@ -90,6 +104,19 @@ class SourceStatus(BaseModel):
     age_s: float | None = (
         None  # seconds since the last success, at the time of the request
     )
+    # OP-407 data quality, all optional and additive. The adapter's own validation
+    # rejected ``rejected_rows`` source rows in the last successful fetch (the
+    # scheduler's ``skipped_items`` counts items that broke the contract after
+    # that); ``last_validation_error`` is the first rejection message of that
+    # fetch, or None when nothing was rejected.
+    rejected_rows: int = 0
+    # Field names the adapter does not know, sorted, at most 20. Information, not
+    # an error: the City added a column, or renamed one.
+    unexpected_fields: list[str] = Field(default_factory=list)
+    last_validation_error: str | None = None
+    # Today's item count against yesterday's (``quality.py``); None until the first
+    # successful fetch, and for status-only sources.
+    count_change: CountChange | None = None
 
 
 # What ``Scheduler.add_listener`` callbacks receive after every run of a source: a copy
@@ -113,6 +140,7 @@ class Scheduler:
         clock: Callable[[], datetime] = utcnow,
         purge_every_s: float = 5.0,
         backoff_s: Sequence[float] = (1.0, 2.0, 4.0),
+        counts: DailyCounts | None = None,
     ) -> None:
         names = [source.name for source in sources]
         if len(set(names)) != len(names):
@@ -122,6 +150,12 @@ class Scheduler:
         self.clock = clock
         self.purge_every_s = purge_every_s
         self.backoff_s = tuple(backoff_s)
+        # OP-407: daily item counts live next to the obstructions. A store without
+        # an engine (a fake in tests) gets no daily check rather than an error.
+        if counts is None:
+            engine = getattr(store, "engine", None)
+            counts = DailyCounts(engine) if engine is not None else None
+        self.counts = counts
         self._states = {
             source.name: _State(
                 SourceStatus(
@@ -300,19 +334,53 @@ class Scheduler:
                 items.append(item)
             # The store does blocking database work; keep it off the event loop, and
             # let only one thread touch the database at a time.
-            await self._store_threads.run(self._replace, source.name, items, now)
+            change = await self._store_threads.run(
+                self._replace, source.name, items, now
+            )
             status.item_count = len(items)
+            if change is not None:  # a failed daily count keeps the last comparison
+                status.count_change = change
         was_stale, had_failures = status.stale, status.consecutive_failures
         status.last_success = now
         status.last_error = None
         status.consecutive_failures = 0
         status.skipped_items = skipped
         status.stale = False
+        self._record_quality(source, status)
         if was_stale or had_failures:
             log.info("SOURCE %s recovered", source.name)
         log.info(
-            "SOURCE %s ok items=%d skipped=%d", source.name, status.item_count, skipped
+            "SOURCE %s ok items=%d skipped=%d rejected=%d",
+            source.name,
+            status.item_count,
+            skipped,
+            status.rejected_rows,
         )
+
+    def _record_quality(self, source: Source, status: SourceStatus) -> None:
+        """Copy the adapter's row-quality report onto the status (OP-407).
+
+        Logged once when field names the adapter does not know first appear; the
+        adapter already logs one ``SKIP`` line per rejected row. A reader that
+        raises is logged and leaves the previous report in place.
+        """
+        if source.quality is None:
+            return
+        try:
+            report = source.quality()
+        except Exception:  # a quality reader can never fail a fetch
+            log.exception("QUALITY %s report unavailable", source.name)
+            return
+        new_fields = sorted(
+            set(report.unexpected_fields) - set(status.unexpected_fields)
+        )
+        if new_fields:
+            log.warning(
+                "WARN quality %s: new fields %s", source.name, ", ".join(new_fields)
+            )
+        status.rejected_rows = report.rejected_rows
+        status.unexpected_fields = list(report.unexpected_fields)
+        status.last_validation_error = report.last_validation_error
 
     def _record_failure(self, source: Source, state: _State, error: str) -> None:
         status = state.status
@@ -339,9 +407,22 @@ class Scheduler:
                 log.exception("SOURCE %s loop error", source.name)
             await asyncio.sleep(source.cadence_s)
 
-    def _replace(self, name: str, items: list[Obstruction], now: datetime) -> None:
+    def _replace(
+        self, name: str, items: list[Obstruction], now: datetime
+    ) -> CountChange | None:
         with self._store_lock:
             self.store.replace_source(name, items, now)
+            return self._count(name, len(items), now)
+
+    def _count(self, name: str, item_count: int, now: datetime) -> CountChange | None:
+        """Record today's item count (OP-407). A failure here never fails the fetch."""
+        if self.counts is None:
+            return None
+        try:
+            return self.counts.record(name, item_count, now)
+        except Exception:  # the daily check is advisory
+            log.exception("QUALITY %s daily count not recorded", name)
+            return None
 
     def _purge(self, now: datetime) -> list[str]:
         with self._store_lock:

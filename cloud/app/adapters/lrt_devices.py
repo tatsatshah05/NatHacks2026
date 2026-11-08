@@ -35,10 +35,30 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
+from cloud.app.adapters._quality import RowQuality
+
 SOURCE = "city_lrt_devices"
 OUTAGES = "snws-u3zx"
 DEVICES = "javh-pjj2"
 STATIONS = "fhxi-cnhe"
+# The outage feed's columns as recorded in cloud/tests/fixtures/lrt/outages.json
+# (OP-407). Only the outage feed makes items, so only its rows are checked; the
+# daily device and station lookups are not.
+EXPECTED_OUTAGE_FIELDS = frozenset(
+    {
+        "device_id",
+        "device_op_status",
+        "device_op_status_code",
+        "device_type",
+        "lrt_device_location",
+        "lrt_route",
+        "lrt_station_id",
+        "lrt_station_name",
+        "lrt_stop",
+        "polled_time_stamp",
+        "since_time_stamp",
+    }
+)
 POLL_INTERVAL = timedelta(minutes=2)
 LOOKUP_INTERVAL = timedelta(days=1)
 # Each successful fetch confirms the outage for another ten minutes. The City's
@@ -457,6 +477,7 @@ def normalize_outages(
     lifetime: timedelta = DEFAULT_LIFETIME,
     diagnostics: RowDiagnostics | None = None,
     station_devices: StationDevices | None = None,
+    quality: RowQuality | None = None,
 ) -> list[Row]:
     """Convert valid rows and report bad rows without discarding other outages.
 
@@ -465,6 +486,8 @@ def normalize_outages(
     ``station_devices`` is the device list grouped by station (the adapter keeps
     it between daily refreshes); without it, ``devices`` is grouped here. An
     empty or invalid device list still converts outages, with plain details.
+    ``quality`` (OP-407) counts the skipped outage rows and notes field names the
+    outage feed did not have before.
     """
     if lifetime <= timedelta(0):
         raise ValueError("Observation lifetime must be positive")
@@ -497,6 +520,8 @@ def normalize_outages(
     result: list[Row] = []
     seen: set[str] = set()
     for index, outage in enumerate(outages, start=1):
+        if quality is not None:
+            quality.see(outage)
         try:
             item = _normalize_outage(
                 outage,
@@ -518,6 +543,8 @@ def normalize_outages(
             else:
                 result.append(item)
         except FeedError as exc:
+            if quality is not None:
+                quality.reject(exc)
             diagnostics.skip(OUTAGES, index, outage, exc)
     if outages and diagnostics.valid_outage_rows == 0:
         raise FeedError(
@@ -610,6 +637,8 @@ class LrtDevicesAdapter:
         self._station_devices: dict[str, tuple[StationDevice, ...]] = {}
         self._stations: list[Row] = []
         self._last_good: list[Row] = []
+        # OP-407, read by the scheduler after each fetch.
+        self.quality = RowQuality(EXPECTED_OUTAGE_FIELDS)
 
     @property
     def last_good(self) -> list[Row]:
@@ -654,6 +683,7 @@ class LrtDevicesAdapter:
         now = _utc(now or datetime.now(UTC))
         diagnostics = RowDiagnostics()
         notes: list[str] = []
+        self.quality.start()
         try:
             devices = self._lookup(DEVICES, now, diagnostics, notes)
             stations = self._lookup(STATIONS, now, diagnostics, notes)
@@ -665,6 +695,7 @@ class LrtDevicesAdapter:
                 source_timezone=self.source_timezone,
                 diagnostics=diagnostics,
                 station_devices=self._station_devices,
+                quality=self.quality,
             )
         except FeedError as exc:
             self.last_error = _diagnostic_summary(diagnostics, [*notes, str(exc)])

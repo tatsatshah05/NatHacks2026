@@ -261,6 +261,7 @@ class CameraWorker:
         self._attempt = 0
         self._publish_failed: set[str] = set()
         self._pending_posts: dict[str, Reading] = {}
+        self._reporting: bool | None = None  # last logged "usable readings" state
         self.publish_attempted = 0
         self.publish_succeeded = 0
         self.publish_failed = 0
@@ -376,7 +377,37 @@ class CameraWorker:
             self.last_good.pop(ref, None)
             self._publish_failed.discard(ref)
             self._pending_posts.pop(ref, None)
+        self._log_reporting()
         return readings
+
+    def _log_reporting(self) -> None:
+        """One line when no view gives a usable reading any more, one when they resume.
+
+        A view that cannot be fetched or judged is still posted, as ``unknown``
+        (511 down, unusable frame, model error, Claude check unavailable), so a
+        running worker can report nothing usable without any error. The API then
+        falls back to the weather watch (OP-412, ``/api/status`` ``cameras``); this
+        is the laptop-side record of the same moment. What is posted is unchanged.
+        """
+        if not self.last_good:
+            return  # nothing confirmed yet, so nothing has stopped
+        unknown = sum(1 for r in self.last_good.values() if r.label == "unknown")
+        reporting = unknown < len(self.last_good)
+        if reporting == self._reporting:
+            return
+        if not reporting:
+            log.warning(
+                "WARN camera_model no usable reading on any of %d views; "
+                "ice risk falls back to the weather watch",
+                unknown,
+            )
+        elif self._reporting is False:
+            log.info(
+                "CHANGE camera_model usable readings resumed on %d of %d views",
+                len(self.last_good) - unknown,
+                len(self.last_good),
+            )
+        self._reporting = reporting
 
     def run(self, sleep: Callable[[float], None] = time.sleep) -> None:
         """Wait between complete passes; no catch-up bursts after a slow pass."""
