@@ -215,6 +215,8 @@ These live in the root Makefile and are available after OP-102.
 
 `make dev` and `make web` run `scripts/dev.py`. It removes API keys from the environment and sets `DATA_MODE=replay` with `REPLAY_SNAPSHOT=cloud/tests/fixtures`, so adapters must read their fixtures in replay mode. If one server stops (for example because its port is in use), the other is stopped too and `make dev` fails with that server's exit code.
 
+OP-202 trains the road-condition model on a laptop or Colab, never on Render or in CI: `pip install -r vision/requirements.txt -r scripts/requirements-train.txt`, then `python -m vision.train --images vision/data/raw --labels vision/data/labels_*.csv --out vision/data/runs/v1` (see [vision/README.md](vision/README.md#training)). It writes `model.onnx`, `labels.json`, `split.json` and `metrics.json`; publish `model.onnx` and `labels.json` as a GitHub release asset and set `MODEL_URL`, never commit them. Its end-to-end tests skip where PyTorch is not installed.
+
 OP-107 offers a recorded preview until the shared app is integrated:
 
 ```bash
