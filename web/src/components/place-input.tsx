@@ -84,7 +84,10 @@ export default function PlaceInput({
           type="button"
           className="map-pick-button"
           aria-label={`Choose ${label} on the demo map`}
-          onClick={() => onMapPick(field)}
+          onClick={() => {
+            setOpen(false);
+            onMapPick(field);
+          }}
         >
           <span aria-hidden="true">⌖</span>
         </button>
