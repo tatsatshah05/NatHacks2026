@@ -38,6 +38,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from cloud.app import (
+    admin_api,
     ingest_api,
     lrt,
     obstructions_api,
@@ -58,6 +59,7 @@ from cloud.app.db import make_engine
 from cloud.app.matching import HazardProvider
 from cloud.app.network import DEFAULT_NETWORK_PATH, WalkNetwork
 from cloud.app.profiles import load_routing_config
+from cloud.app.quality import DailyCounts
 from cloud.app.rate_limit import RateLimits
 from cloud.app.routing import Router
 from cloud.app.scheduler import Scheduler, utcnow
@@ -214,6 +216,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     camera_store.create_tables()
     camera_store.purge_expired(utcnow())  # drop readings that expired over a week ago
     app.state.camera_store = camera_store
+    # OP-407: one item count per source and UTC day, for the sudden-drop check.
+    counts = DailyCounts(store.engine)
+    counts.create_tables()
+    app.state.daily_counts = counts
     app.state.photo_checker = reports_api.build_photo_checker()  # OP-308
     mode: str = app.state.mode
     snapshot_raw = os.environ.get("REPLAY_SNAPSHOT")
@@ -260,7 +266,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     sync_client=sync_client,
                     weather_service=weather,
                 )
-                scheduler = Scheduler(store, built, clock=clock)
+                scheduler = Scheduler(store, built, clock=clock, counts=counts)
                 app.state.scheduler = scheduler
                 await scheduler.start()
             if app.state.router is not None:
@@ -329,6 +335,7 @@ def create_app() -> FastAPI:
     app.include_router(reports_api.router)
     app.include_router(ws.router)  # WS /ws (OP-303)
     app.include_router(priority.router)  # GET /api/priority (OP-310)
+    app.include_router(admin_api.router)  # POST /api/admin/override (testing only)
 
     @app.get("/health", tags=["ops"])
     def health() -> Health:
