@@ -53,7 +53,9 @@
   flex: 0 0 auto;
 }
 
-/* Start and end: a filled circle on the point, with its word beside it. */
+/* Start and end: a filled circle on the point, with its word beside it. The basemap
+   is light in both themes, so these use the light theme's ink (#0D1F2D) and white
+   (16.8:1), not the theme tokens, which would turn the dot white in dark mode. */
 .place {
   height: 22px;
   position: relative;
@@ -61,20 +63,20 @@
 }
 
 .placeDot {
-  background: var(--ink);
-  border: 3px solid var(--card);
+  background: #0d1f2d;
+  border: 3px solid #ffffff;
   border-radius: 50%;
   display: block;
   height: 22px;
-  outline: 1px solid var(--ink);
+  outline: 1px solid #0d1f2d;
   width: 22px;
 }
 
 .placeTag {
-  background: var(--card);
-  border: 2px solid var(--ink);
+  background: #ffffff;
+  border: 2px solid #0d1f2d;
   border-radius: 4px;
-  color: var(--ink);
+  color: #0d1f2d;
   font-family: var(--font-body), system-ui, sans-serif;
   font-size: 1rem;
   font-weight: 700;

@@ -464,9 +464,9 @@ export default function PlannerPage() {
               onCondition={jumpToCondition}
               centreRef={centreRef}
             />
-            <p className={styles.mapNote}>
-              The map shows the routes in the list. The list has everything the map shows, in words.
-            </p>
+            {routes.length > 0 && (
+              <p className={styles.mapNote}>The list has everything the map shows, in words.</p>
+            )}
           </section>
           <section className={styles.report} aria-labelledby="report-title">
             <h2 className={styles.reportTitle} id="report-title">
