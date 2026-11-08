@@ -1,65 +1,37 @@
 "use client";
 
-// Speaking and vibrating route changes (OP-303). Speech is a user choice stored on the
-// device under `openpath.speak` (on by default); vibration happens wherever the device
-// supports it. Every browser API here can be missing or throw (private windows,
-// blocked storage, desktop browsers), so each call is wrapped and simply does nothing.
+// Speaking and vibrating route changes (OP-303). Both are user choices kept on the
+// device by the accessibility settings (OP-307, lib/settings.ts): speech under
+// `openpath.speak` (on by default) and vibration in `openpath.settings` (on by
+// default). Every browser API here can be missing or throw (private windows, blocked
+// storage, desktop browsers), so each call is wrapped and simply does nothing.
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback } from "react";
+import { readSettings, updateSettings, useSettings } from "./settings";
 
-export const SPEAK_STORAGE_KEY = "openpath.speak";
+export { SPEAK_STORAGE_KEY } from "./settings";
 export const VIBRATE_PATTERN: number[] = [200, 100, 200];
-const SPEAK_EVENT = "openpath:speak-preference";
-
-// Used only when storage is blocked, so the toggle still works for this page.
-let memoryPreference: boolean | null = null;
 
 /** Whether route changes are spoken. Default on; "off" is the only stored "no". */
 export function getSpeakPreference(): boolean {
-  try {
-    return window.localStorage.getItem(SPEAK_STORAGE_KEY) !== "off";
-  } catch {
-    return true;
-  }
+  return readSettings().speak;
 }
 
 export function setSpeakPreference(on: boolean): void {
-  try {
-    window.localStorage.setItem(SPEAK_STORAGE_KEY, on ? "on" : "off");
-  } catch {
-    // Storage is blocked: the choice lasts for this page only.
-    memoryPreference = on;
-  }
+  updateSettings({ speak: on });
   if (!on) stopSpeaking();
-  try {
-    window.dispatchEvent(new Event(SPEAK_EVENT));
-  } catch {
-    // Nothing is listening.
-  }
 }
 
-function readPreference(): boolean {
-  return memoryPreference ?? getSpeakPreference();
-}
-
-function subscribe(onChange: () => void): () => void {
-  try {
-    window.addEventListener("storage", onChange); // another tab changed it
-    window.addEventListener(SPEAK_EVENT, onChange); // this tab changed it
-  } catch {
-    return () => undefined;
-  }
-  return () => {
-    window.removeEventListener("storage", onChange);
-    window.removeEventListener(SPEAK_EVENT, onChange);
-  };
+/** Whether route changes vibrate the device (where it can). Default on. */
+export function getVibratePreference(): boolean {
+  return readSettings().vibrate;
 }
 
 /** The speech toggle as React state, the same in every component and tab. */
 export function useSpeakPreference(): [boolean, (on: boolean) => void] {
-  const speakOn = useSyncExternalStore(subscribe, readPreference, () => true);
+  const { speak } = useSettings();
   const update = useCallback((on: boolean) => setSpeakPreference(on), []);
-  return [speakOn, update];
+  return [speak, update];
 }
 
 export function canSpeak(): boolean {
@@ -103,11 +75,16 @@ export function vibrate(pattern: number[] = VIBRATE_PATTERN): boolean {
 }
 
 /**
- * Speak (when the user's toggle is on) and vibrate (where supported) one route change.
- * The visible `aria-live="assertive"` region is separate: `LiveStatus` renders it, so
- * screen reader users hear the change even with speech off.
+ * Speak (when the speech setting is on) and vibrate (when the vibration setting is on
+ * and the device supports it) one route change. The visible `aria-live="assertive"`
+ * region is separate: `LiveStatus` renders it, so screen reader users hear the change
+ * even with speech off.
  */
-export function announceChange(text: string, speakOn: boolean = readPreference()): void {
+export function announceChange(
+  text: string,
+  speakOn: boolean = getSpeakPreference(),
+  vibrateOn: boolean = getVibratePreference()
+): void {
   if (speakOn) speak(text);
-  vibrate();
+  if (vibrateOn) vibrate();
 }

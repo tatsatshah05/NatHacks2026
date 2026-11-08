@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Atkinson_Hyperlegible } from "next/font/google";
+import Script from "next/script";
+import SettingsApplier from "@/components/settings-applier";
+import { SETTINGS_BOOT_SCRIPT } from "@/lib/settings-boot";
 import "./globals.css";
 
 // One family, two weights. Atkinson Hyperlegible was drawn for low-vision readers;
@@ -18,8 +21,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={atkinson.variable}>
-      <body>{children}</body>
+    // The boot script sets data-text, data-motion and data-theme on <html> before
+    // React hydrates, so the attributes differ from the server render on purpose.
+    <html lang="en" className={atkinson.variable} suppressHydrationWarning>
+      <body>
+        {/* OP-307: apply text size, motion and theme before the first paint. */}
+        <Script id="openpath-settings" strategy="beforeInteractive">
+          {SETTINGS_BOOT_SCRIPT}
+        </Script>
+        <SettingsApplier />
+        {children}
+      </body>
     </html>
   );
 }
