@@ -41,7 +41,7 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from cloud.app.pedestrian_counts import DATASET, DEFAULT_PATH, aggregate  # noqa: E402
+from cloud.app.pedestrian_counts import DATASET, DEFAULT_PATH, aggregate
 
 CITY_API = "https://data.edmonton.ca/resource"
 DEFAULT_FIXTURES = ROOT / "cloud" / "tests" / "fixtures"
@@ -143,8 +143,7 @@ def record(
     kept = [
         dict(row)
         for row in rows
-        if " ".join(str(row.get("counter_location_description", "")).split())
-        in wanted
+        if " ".join(str(row.get("counter_location_description", "")).split()) in wanted
         and str(row.get("log_timstamp", ""))[:10] >= since.isoformat()
     ]
     missing = wanted - {
@@ -196,7 +195,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.fixtures is not None:
         if args.record:
             parser.error("--record needs a live read, so it cannot use --fixtures")
-        out = args.out or Path(tempfile.gettempdir()) / "openpath-pedestrian-counts.json"
+        out = (
+            args.out or Path(tempfile.gettempdir()) / "openpath-pedestrian-counts.json"
+        )
         rows, provenance = read_fixtures(args.fixtures)
     else:
         out = args.out or DEFAULT_PATH

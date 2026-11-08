@@ -44,6 +44,7 @@ import statistics
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -311,7 +312,9 @@ def _polygons(geometry: Geometry) -> list[list[list[tuple[float, float]]]]:
         polys = geometry.coordinates
     else:
         return []
-    return [[[(float(p[0]), float(p[1])) for p in ring] for ring in poly] for poly in polys]
+    return [
+        [[(float(p[0]), float(p[1])) for p in ring] for ring in poly] for poly in polys
+    ]
 
 
 def distance_to_geometry_m(geometry: Geometry, lat: float, lng: float) -> float:
@@ -333,6 +336,6 @@ def distance_to_geometry_m(geometry: Geometry, lat: float, lng: float) -> float:
     for part in (project(part) for part in _lines(geometry)):
         if len(part) == 1:
             best = min(best, math.hypot(*part[0]))
-        for a, b in zip(part, part[1:], strict=False):
+        for a, b in pairwise(part):
             best = min(best, _segment_distance(origin, a, b))
     return best
