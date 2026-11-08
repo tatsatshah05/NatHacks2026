@@ -151,6 +151,8 @@ Headings use letter-spacing 0. Lines never run past 70ch. Use sentence case ever
 
 **City map markers.** Markers are pointer shortcuts only. The list beside the map is the keyboard and screen-reader path and selects the same items, so markers are hidden from assistive technology and stay out of the tab order.
 
+**City dashboard (OP-310, OP-309).** `/city` is a ranking, so each row shows its rank number in a 25 px bold column; that column is the page's one strong element. Rows are plain rows with decorative rules, 25 per page on a laptop and 10 on a phone, with "Show 10 more" and "Show all 59" (focus moves to the first new row). Filters are native selects with their label above and a chevron drawn with borders, so it follows the theme. Road cameras use their own glyph (a camera body with a lens hood, never a hazard shape) on a squared tag that carries the reading in words ("Wet", "Ice risk", "Unknown"); the "Road cameras" list holds each view's reading, model confidence and time. Camera readings are said as "Wet road", "Some snow on the road", "Snow-covered road", "Ice risk" (never "black ice") and "Unknown: camera unavailable".
+
 ## 6. Hazard shapes
 
 The effect sets the shape. The kind supplies the words ("Elevator out"). Each shape differs in both outline and fill pattern, and stays distinct at 16 px.
