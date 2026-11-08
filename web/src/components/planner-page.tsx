@@ -208,7 +208,7 @@ function RouteCard({ route, recommended }: { route: ReturnType<typeof getMockRou
       <div className="route-card-top"><div><p className="route-label">{route.label}</p>{recommended && <span className="recommended-badge">Recommended</span>}</div><span className="route-minutes"><strong>{route.minutes}</strong> min</span></div>
       <p className="route-distance">{route.distanceKm.toFixed(1)} km · {route.note}</p>
       <div className="avoided-list"><strong>Avoids</strong>{route.avoidedItems.map((item) => <span key={item}>✓ {item}</span>)}</div>
-      <button type="button" className="route-button">View route details<span className="sr-only"> for {route.label}</span></button>
+      <Link href={`/route?route=${route.id}`} className="route-button">View route details<span className="sr-only"> for {route.label}</span></Link>
     </article>
   );
 }
