@@ -21,7 +21,9 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
+import threading
 import time
 from collections import deque
 from collections.abc import Callable, Sequence
@@ -31,9 +33,36 @@ from pathlib import Path
 from typing import Literal
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 log = logging.getLogger("vision.cameras")
+
+# The API key travels in the query string (?key=...). httpx logs every request
+# URL at INFO, so redact it on the HTTP client loggers and keep them at WARNING.
+_KEY_IN_URL = re.compile(r"(?i)\b(key=)[^&\s\"']+")
+
+
+class RedactKeyFilter(logging.Filter):
+    """Replace `key=<value>` with `key=REDACTED` in a log record's final message."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        redacted = _KEY_IN_URL.sub(r"\1REDACTED", message)
+        if redacted != message:
+            record.msg, record.args = redacted, None
+        return True
+
+
+def _protect_http_loggers() -> None:
+    for name in ("httpx", "httpcore"):
+        http_log = logging.getLogger(name)
+        if not any(isinstance(f, RedactKeyFilter) for f in http_log.filters):
+            http_log.addFilter(RedactKeyFilter())
+        if http_log.level < logging.WARNING:
+            http_log.setLevel(logging.WARNING)
+
+
+_protect_http_loggers()
 
 SOURCE = "alberta511_cameras"
 API_URL = "https://511.alberta.ca/api/v2/get/cameras"
@@ -85,12 +114,38 @@ class Camera(BaseModel):
     views: list[CameraView] = Field(default_factory=list, alias="Views")
 
 
-_camera_list = TypeAdapter(list[Camera])
+class CameraSchemaError(Exception):
+    """The response no longer looks like a camera list (not a list, or no valid camera)."""
 
 
 def parse_cameras(payload: object) -> list[Camera]:
-    """Validate a raw API payload. Raises pydantic.ValidationError if the schema changed."""
-    return _camera_list.validate_python(payload)
+    """Validate each camera on its own, skipping malformed rows with one log line each.
+
+    One bad camera (for example `"Latitude": null`) never discards the whole list.
+    Raises CameraSchemaError when the payload is not a list, or when it has rows
+    but none of them is valid, which means the schema itself changed.
+    """
+    if not isinstance(payload, list):
+        raise CameraSchemaError(
+            f"expected a list of cameras, got {type(payload).__name__}"
+        )
+    cameras: list[Camera] = []
+    for index, row in enumerate(payload):
+        try:
+            cameras.append(Camera.model_validate(row))
+        except ValidationError as exc:
+            ref = (
+                row.get("Id", f"row{index}") if isinstance(row, dict) else f"row{index}"
+            )
+            fields = ", ".join(
+                sorted({str(e["loc"][0]) for e in exc.errors() if e["loc"]})
+            )
+            log.warning(
+                "CHANGE %s:%s skipped invalid camera (%s)", SOURCE, ref, fields or "row"
+            )
+    if payload and not cameras:
+        raise CameraSchemaError(f"none of the {len(payload)} cameras passed validation")
+    return cameras
 
 
 # ---------------------------------------------------------------------------
@@ -117,18 +172,21 @@ class RateLimiter:
         self._clock = clock
         self._sleep = sleep
         self._calls: deque[float] = deque()
+        self._lock = threading.Lock()
 
     def acquire(self) -> float:
-        """Block until a call is allowed. Returns the seconds waited."""
+        """Block until a call is allowed. Returns the seconds waited. Thread-safe."""
         waited_s = 0.0
         while True:
-            now = self._clock()
-            while self._calls and now - self._calls[0] >= self.period_s:
-                self._calls.popleft()
-            if len(self._calls) < self.max_calls:
-                self._calls.append(now)
-                return waited_s
-            wait_s = self.period_s - (now - self._calls[0])
+            with self._lock:
+                now = self._clock()
+                while self._calls and now - self._calls[0] >= self.period_s:
+                    self._calls.popleft()
+                if len(self._calls) < self.max_calls:
+                    self._calls.append(now)
+                    return waited_s
+                wait_s = self.period_s - (now - self._calls[0])
+            # Sleep outside the lock so other threads can re-check the window.
             self._sleep(wait_s)
             waited_s += wait_s
 
@@ -243,6 +301,9 @@ class CameraSnapshot:
     error: str | None = None
 
 
+DEFAULT_CACHE_PATH = Path(__file__).resolve().parent / ".cache" / f"{SOURCE}.json"
+
+
 class CameraAdapter:
     """Fetches the 511 Alberta camera list and keeps the last good copy."""
 
@@ -263,6 +324,8 @@ class CameraAdapter:
         self._now = now
         self._last_good: list[Camera] = []
         self._last_good_at: datetime | None = None
+        self._stale = False
+        self.last_raw: object | None = None  # payload of the last successful fetch
         self._load_cache()
 
     # -- public -------------------------------------------------------------
@@ -272,7 +335,7 @@ class CameraAdapter:
         self._limiter.acquire()
         try:
             response = self._client.get(
-                API_URL, params={"key": self._key, "format": "json", "lang": "en"}
+                API_URL, params={"key": self._key, "format": "json"}
             )
             response.raise_for_status()
             return response.json()
@@ -292,18 +355,21 @@ class CameraAdapter:
     def refresh(self) -> CameraSnapshot:
         """Fetch the list. On any failure, keep the last good list and mark it stale."""
         try:
-            cameras = parse_cameras(self.fetch_raw())
+            raw = self.fetch_raw()
+            cameras = parse_cameras(raw)
         except CameraFetchError as exc:
             return self._keep_last_good(str(exc))
-        except ValidationError as exc:
-            return self._keep_last_good(
-                f"511 Alberta camera schema changed ({exc.error_count()} validation errors)"
-            )
+        except CameraSchemaError as exc:
+            return self._keep_last_good(f"511 Alberta camera schema changed ({exc})")
 
         previous = len(self._last_good)
+        self.last_raw = raw
         self._last_good = cameras
         self._last_good_at = self._now()
         self._save_cache()
+        if self._stale:
+            log.info("CHANGE %s fresh again (%d cameras)", SOURCE, len(cameras))
+            self._stale = False
         if previous != len(cameras):
             log.info("CHANGE %s count %d -> %d", SOURCE, previous, len(cameras))
         return CameraSnapshot(
@@ -313,12 +379,15 @@ class CameraAdapter:
     # -- internals ----------------------------------------------------------
 
     def _keep_last_good(self, reason: str) -> CameraSnapshot:
-        log.warning(
-            "CHANGE %s stale: %s (keeping %d cameras)",
-            SOURCE,
-            reason,
-            len(self._last_good),
-        )
+        # One log line when the source goes stale, not one per failed cycle.
+        if not self._stale:
+            log.warning(
+                "CHANGE %s stale: %s (keeping %d cameras)",
+                SOURCE,
+                reason,
+                len(self._last_good),
+            )
+            self._stale = True
         return CameraSnapshot(
             cameras=list(self._last_good),
             fetched_at=self._last_good_at,
@@ -333,18 +402,26 @@ class CameraAdapter:
             data = json.loads(self._cache_path.read_text())
             self._last_good = parse_cameras(data["cameras"])
             self._last_good_at = datetime.fromisoformat(data["fetched_at"])
-        except (OSError, ValueError, KeyError, ValidationError):
+        except (OSError, ValueError, KeyError, CameraSchemaError):
             log.warning("Ignoring unreadable camera cache at %s", self._cache_path)
 
     def _save_cache(self) -> None:
+        """Best effort: a disk that cannot be written (read-only on Render) never fails a fetch."""
         if not self._cache_path or self._last_good_at is None:
             return
-        self._cache_path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "fetched_at": self._last_good_at.isoformat(),
             "cameras": [c.model_dump(by_alias=True) for c in self._last_good],
         }
-        self._cache_path.write_text(json.dumps(payload, indent=2))
+        try:
+            self._cache_path.parent.mkdir(parents=True, exist_ok=True)
+            self._cache_path.write_text(json.dumps(payload, indent=2))
+        except OSError as exc:
+            log.warning(
+                "Could not write camera cache at %s (%s); continuing without it",
+                self._cache_path,
+                type(exc).__name__,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -366,29 +443,47 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=Path,
         help="Save the raw camera list (metadata only, no images) as a test fixture.",
     )
+    parser.add_argument(
+        "--cache",
+        type=Path,
+        default=DEFAULT_CACHE_PATH,
+        help="Where the last good camera list is kept (default: vision/.cache/).",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+    _protect_http_loggers()
 
     key = os.environ.get(KEY_ENV, "")
     if not key:
         print(f"Set {KEY_ENV} first (see docs/DATA_SOURCES.md).", file=sys.stderr)
         return 2
 
-    adapter = CameraAdapter(key=key)
-    try:
-        raw = adapter.fetch_raw()
-        cameras = parse_cameras(raw)
-    except (CameraFetchError, ValidationError) as exc:
-        print(f"Could not fetch cameras: {exc}", file=sys.stderr)
-        return 1
+    adapter = CameraAdapter(key=key, cache_path=args.cache)
+    snapshot = adapter.refresh()
+    if snapshot.stale:
+        print(f"Could not fetch cameras: {snapshot.error}", file=sys.stderr)
+        if not snapshot.cameras:
+            return 1
+        print(
+            f"Using the last good list from {snapshot.fetched_at.isoformat(timespec='seconds')}"
+            if snapshot.fetched_at
+            else "Using the last good list",
+            file=sys.stderr,
+        )
 
     if args.record:
+        if snapshot.stale or adapter.last_raw is None:
+            print(
+                "Not recording: the fetch failed, so there is no fresh response.",
+                file=sys.stderr,
+            )
+            return 1
         args.record.parent.mkdir(parents=True, exist_ok=True)
-        args.record.write_text(json.dumps(raw, indent=2))
-        print(f"Recorded {len(cameras)} cameras to {args.record}")
+        args.record.write_text(json.dumps(adapter.last_raw, indent=2))
+        print(f"Recorded {len(snapshot.cameras)} cameras to {args.record}")
 
     boundary = load_boundary(args.boundary) if args.boundary else None
-    count = count_in_edmonton(cameras, boundary)
+    count = count_in_edmonton(snapshot.cameras, boundary)
     label = (
         "inside Edmonton"
         if count.method == "boundary"

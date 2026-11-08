@@ -1,4 +1,4 @@
-httpx>=0.27
-pydantic>=2.7
-pytest>=8
-# Vision worker and tools dependencies (none yet; added by OP-115 and OP-204).
+# Vision worker and tools dependencies. Test tools (pytest, ruff) come from cloud/requirements-dev.txt.
+# 511 Alberta camera adapter (OP-112).
+httpx>=0.27,<0.29
+pydantic>=2.9,<3

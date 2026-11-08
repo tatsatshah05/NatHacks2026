@@ -13,7 +13,9 @@ import pytest
 from vision.cameras import (
     API_URL,
     CameraAdapter,
+    CameraSchemaError,
     RateLimiter,
+    _protect_http_loggers,
     count_in_edmonton,
     load_boundary,
     main,
@@ -22,8 +24,9 @@ from vision.cameras import (
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
+_REAL_HTTPX_CLIENT = httpx.Client  # before any test patches it
 SAMPLE = json.loads((FIXTURES / "alberta511_cameras_sample.json").read_text())
-SECRET_KEY = "test-key-do-not-leak-123"
+PLACEHOLDER_VALUE = "placeholder-value-0000"
 FIXED_NOW = datetime(2026, 11, 7, 22, 0, tzinfo=UTC)
 
 # Synthetic test boundary (lng, lat): a box over central Edmonton.
@@ -58,7 +61,7 @@ def make_adapter(
 ):
     client = httpx.Client(transport=httpx.MockTransport(handler))
     return CameraAdapter(
-        key=SECRET_KEY,
+        key=PLACEHOLDER_VALUE,
         client=client,
         limiter=limiter or RateLimiter(clock=FakeClock(), sleep=lambda s: None),
         cache_path=cache_path,
@@ -92,7 +95,7 @@ def test_request_uses_documented_endpoint_and_params():
 
     make_adapter(handler).refresh()
     assert str(seen[0].url).startswith(API_URL)
-    assert seen[0].url.params["key"] == SECRET_KEY
+    assert seen[0].url.params["key"] == PLACEHOLDER_VALUE
     assert seen[0].url.params["format"] == "json"
 
 
@@ -229,10 +232,31 @@ def test_api_key_never_appears_in_errors_or_logs(caplog: pytest.LogCaptureFixtur
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError(f"failed to reach {request.url}", request=request)
 
-    caplog.set_level(logging.DEBUG, logger="vision.cameras")
+    caplog.set_level(logging.DEBUG)  # root logger: catches httpx and httpcore too
     snapshot = make_adapter(handler).refresh()
-    assert SECRET_KEY not in (snapshot.error or "")
-    assert SECRET_KEY not in caplog.text
+    assert PLACEHOLDER_VALUE not in (snapshot.error or "")
+    assert PLACEHOLDER_VALUE not in caplog.text
+
+
+def test_httpx_request_log_never_shows_the_key(caplog: pytest.LogCaptureFixture):
+    # httpx logs "HTTP Request: GET <url with ?key=...>" at INFO. Even with httpx
+    # turned up to DEBUG, the redaction filter must hide the key.
+    caplog.set_level(logging.DEBUG)
+    caplog.set_level(logging.DEBUG, logger="httpx")
+    make_adapter(ok_handler).refresh()
+    request_lines = [r.getMessage() for r in caplog.records if r.name == "httpx"]
+    assert request_lines, "httpx should have logged the request at this level"
+    assert all("key=REDACTED" in line for line in request_lines)
+    assert PLACEHOLDER_VALUE not in caplog.text
+
+
+def test_httpx_request_log_is_quiet_by_default(caplog: pytest.LogCaptureFixture):
+    caplog.set_level(logging.INFO)  # what main() turns on
+    logging.getLogger("httpx").setLevel(logging.NOTSET)
+    _protect_http_loggers()
+    make_adapter(ok_handler).refresh()
+    assert not [r for r in caplog.records if r.name == "httpx"]
+    assert PLACEHOLDER_VALUE not in caplog.text
 
 
 def test_last_good_list_survives_a_restart_through_the_cache(tmp_path: Path):
@@ -266,3 +290,131 @@ def test_cli_without_key_exits_cleanly(monkeypatch: pytest.MonkeyPatch, capsys):
     monkeypatch.delenv("ALBERTA_511_KEY", raising=False)
     assert main([]) == 2
     assert "ALBERTA_511_KEY" in capsys.readouterr().err
+
+
+# -- review fixes (PR #89) ----------------------------------------------------
+
+
+def test_one_malformed_camera_is_skipped_not_the_whole_list(
+    caplog: pytest.LogCaptureFixture,
+):
+    rows = json.loads(json.dumps(SAMPLE))
+    rows[2]["Latitude"] = None
+    caplog.set_level(logging.WARNING, logger="vision.cameras")
+
+    snapshot = make_adapter(lambda request: httpx.Response(200, json=rows)).refresh()
+
+    assert not snapshot.stale
+    assert [c.id for c in snapshot.cameras] == [9001, 9002, 9004, 9005]
+    assert (
+        "CHANGE alberta511_cameras:9003 skipped invalid camera (Latitude)"
+        in caplog.text
+    )
+
+
+def test_payload_that_is_not_a_list_is_a_schema_change():
+    with pytest.raises(CameraSchemaError):
+        parse_cameras({"cameras": SAMPLE})
+    responses = iter(
+        [httpx.Response(200, json=SAMPLE), httpx.Response(200, json={"error": "x"})]
+    )
+    adapter = make_adapter(lambda request: next(responses))
+    adapter.refresh()
+    snapshot = adapter.refresh()
+    assert snapshot.stale and len(snapshot.cameras) == 5
+
+
+def test_empty_list_is_valid_not_a_schema_change():
+    assert parse_cameras([]) == []
+
+
+def test_unwritable_cache_never_fails_a_good_fetch(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+):
+    blocker = tmp_path / "not-a-folder"
+    blocker.write_text("a file where the cache folder should be")
+    caplog.set_level(logging.WARNING, logger="vision.cameras")
+
+    snapshot = make_adapter(ok_handler, cache_path=blocker / "cameras.json").refresh()
+
+    assert not snapshot.stale and len(snapshot.cameras) == 5
+    assert "Could not write camera cache" in caplog.text
+
+
+def test_stale_and_recovery_are_logged_once_each(caplog: pytest.LogCaptureFixture):
+    responses = iter(
+        [
+            httpx.Response(200, json=SAMPLE),
+            httpx.Response(503),
+            httpx.Response(503),
+            httpx.Response(503),
+            httpx.Response(200, json=SAMPLE),
+        ]
+    )
+    adapter = make_adapter(lambda request: next(responses))
+    caplog.set_level(logging.INFO, logger="vision.cameras")
+    for _ in range(5):
+        adapter.refresh()
+    messages = [r.getMessage() for r in caplog.records if r.name == "vision.cameras"]
+    assert sum("stale" in m for m in messages) == 1
+    assert sum("fresh again" in m for m in messages) == 1
+
+
+def test_rate_limiter_is_safe_across_threads():
+    import threading
+
+    limiter = RateLimiter(max_calls=5, period_s=60.0, sleep=lambda s: None)
+    waits: list[float] = []
+    lock = threading.Lock()
+
+    def worker() -> None:
+        waited = limiter.acquire()
+        with lock:
+            waits.append(waited)
+
+    threads = [threading.Thread(target=worker) for _ in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert waits == [0.0] * 5
+    assert len(limiter._calls) == 5
+
+
+def _patch_http(monkeypatch: pytest.MonkeyPatch, handler) -> None:
+    monkeypatch.setattr(
+        "vision.cameras.httpx.Client",
+        lambda **kwargs: _REAL_HTTPX_CLIENT(
+            transport=httpx.MockTransport(handler), **kwargs
+        ),
+    )
+
+
+def test_cli_uses_refresh_and_falls_back_to_the_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys
+):
+    monkeypatch.setenv("ALBERTA_511_KEY", PLACEHOLDER_VALUE)
+    cache = tmp_path / "cache" / "cameras.json"
+    record = tmp_path / "recorded.json"
+
+    _patch_http(monkeypatch, ok_handler)
+    assert main(["--cache", str(cache), "--record", str(record)]) == 0
+    assert json.loads(record.read_text()) == SAMPLE
+    assert "5 total" in capsys.readouterr().out
+
+    _patch_http(monkeypatch, lambda request: httpx.Response(503))
+    assert main(["--cache", str(cache)]) == 0
+    captured = capsys.readouterr()
+    assert "5 total" in captured.out
+    assert "Using the last good list" in captured.err
+    assert PLACEHOLDER_VALUE not in captured.out + captured.err
+
+
+def test_cli_refuses_to_record_a_failed_fetch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("ALBERTA_511_KEY", PLACEHOLDER_VALUE)
+    _patch_http(monkeypatch, lambda request: httpx.Response(503))
+    record = tmp_path / "recorded.json"
+    assert main(["--cache", str(tmp_path / "none.json"), "--record", str(record)]) == 1
+    assert not record.exists()
