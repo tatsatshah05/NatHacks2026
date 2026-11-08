@@ -88,3 +88,20 @@
   transform: translateY(-50%);
   white-space: nowrap;
 }
+
+/* Focus inside the map: the project's ring, drawn inside each control so the map's
+   rounded, clipped frame never hides it (MapLibre's own focus is a soft blue glow).
+   The map is light in both themes, so the ring keeps the light theme's #E06F00:
+   3.3:1 on the white controls, where the dark theme's #FFB454 would be 1.7:1. */
+.frame :global(.maplibregl-canvas:focus-visible),
+.frame :global(.maplibregl-ctrl-group button:focus-visible),
+.frame :global(.maplibregl-ctrl-attrib-button:focus-visible),
+.frame :global(.maplibregl-ctrl-attrib a:focus-visible) {
+  box-shadow: none;
+  outline: 3px solid #e06f00;
+  outline-offset: -4px;
+}
+
+.frame :global(.maplibregl-ctrl-group button:focus:not(:focus-visible)) {
+  outline: none;
+}
