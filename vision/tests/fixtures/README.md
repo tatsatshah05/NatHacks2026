@@ -8,3 +8,15 @@
   ```
 
 Tests never call the network.
+
+- `alberta511_cameras_recorded.json` is official metadata recorded by Kaleb on
+  November 8 at 04:19:13 UTC: 392 cameras, 19 inside the approximate Edmonton
+  bbox and 47 enabled views there. Its manifest records provenance, LF SHA-256,
+  counts and a one-view JPEG check. Only documented public metadata fields are
+  included; request credentials/query strings and camera images are absent.
+  The original hand-written sample remains useful for small edge-case tests.
+
+- `worker_replay.json` (OP-204) is explicitly synthetic classifier output, not
+  a recording or evidence of model accuracy. `python -m vision.worker` replays
+  it without HTTP, image storage, ONNX loading or API posting. Tests generate
+  their tiny model and image pixels in memory instead of storing image fixtures.

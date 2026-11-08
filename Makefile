@@ -69,4 +69,4 @@ record:  ## Record a replay snapshot of every source (OP-305)
 	@echo make record is not built yet: OP-305 adds scripts/record_snapshot.py && exit 1
 
 worker:  ## Run the vision worker locally (OP-204)
-	@echo make worker is not built yet: OP-204 adds vision/worker.py && exit 1
+	$(VENV_PY) -m vision.worker

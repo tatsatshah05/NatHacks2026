@@ -172,6 +172,7 @@ class RateLimiter:
         self._clock = clock
         self._sleep = sleep
         self._calls: deque[float] = deque()
+        self._cooldown_until = 0.0
         self._lock = threading.Lock()
 
     def acquire(self) -> float:
@@ -182,13 +183,22 @@ class RateLimiter:
                 now = self._clock()
                 while self._calls and now - self._calls[0] >= self.period_s:
                     self._calls.popleft()
-                if len(self._calls) < self.max_calls:
+                wait_s = max(0.0, self._cooldown_until - now)
+                if len(self._calls) >= self.max_calls:
+                    wait_s = max(wait_s, self.period_s - (now - self._calls[0]))
+                if wait_s <= 0:
                     self._calls.append(now)
                     return waited_s
-                wait_s = self.period_s - (now - self._calls[0])
             # Sleep outside the lock so other threads can re-check the window.
             self._sleep(wait_s)
             waited_s += wait_s
+
+    def cool_down(self) -> None:
+        """A 429 pauses every caller sharing this limiter for a full minute."""
+        with self._lock:
+            self._cooldown_until = max(
+                self._cooldown_until, self._clock() + RATE_LIMIT_PERIOD_S
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -259,23 +269,33 @@ class CameraCount:
     enabled_views_in_edmonton: int
 
 
+def cameras_in_edmonton(
+    cameras: Sequence[Camera],
+    boundary: Sequence[Polygon] | None = None,
+) -> list[Camera]:
+    """Share the same city selection between metadata counts and live workers."""
+    if boundary is not None:
+        return [
+            c for c in cameras if point_in_polygons(c.latitude, c.longitude, boundary)
+        ]
+    return [
+        c for c in cameras if in_bbox(c.latitude, c.longitude, EDMONTON_BBOX_APPROX)
+    ]
+
+
+def view_enabled(view: CameraView) -> bool:
+    return view.status.strip().lower() == "enabled"
+
+
 def count_in_edmonton(
     cameras: Sequence[Camera], boundary: Sequence[Polygon] | None = None
 ) -> CameraCount:
     """Count cameras inside Edmonton: exact with a boundary, approximate without."""
-    if boundary is not None:
-        inside = [
-            c for c in cameras if point_in_polygons(c.latitude, c.longitude, boundary)
-        ]
-        method: Literal["boundary", "bbox_approximate"] = "boundary"
-    else:
-        inside = [
-            c for c in cameras if in_bbox(c.latitude, c.longitude, EDMONTON_BBOX_APPROX)
-        ]
-        method = "bbox_approximate"
-    enabled_views = sum(
-        1 for c in inside for v in c.views if v.status.strip().lower() == "enabled"
+    inside = cameras_in_edmonton(cameras, boundary)
+    method: Literal["boundary", "bbox_approximate"] = (
+        "boundary" if boundary is not None else "bbox_approximate"
     )
+    enabled_views = sum(view_enabled(v) for c in inside for v in c.views)
     return CameraCount(
         total=len(cameras),
         in_edmonton=len(inside),
@@ -340,6 +360,8 @@ class CameraAdapter:
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 429:
+                self._limiter.cool_down()
             raise CameraFetchError(
                 f"HTTP {exc.response.status_code} from 511 Alberta"
             ) from None

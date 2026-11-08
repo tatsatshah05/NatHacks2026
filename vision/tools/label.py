@@ -35,7 +35,7 @@ import sys
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 log = logging.getLogger("vision.label")
 
@@ -210,6 +210,7 @@ class LabelSession:
         out_csv: Path,
         labeller: str,
         now: Callable[[], datetime] | None = None,
+        selected_images: set[str] | None = None,
     ) -> None:
         if not labeller.strip():
             raise ValueError("labeller must not be empty")
@@ -219,6 +220,30 @@ class LabelSession:
         self._now = now or (lambda: datetime.now(UTC))
         self._rows: dict[str, LabelRow] = read_labels(out_csv)
         all_images = list_images(images_dir)
+        if selected_images is not None:
+            safe_selection = set()
+            root = images_dir.resolve()
+            for key in selected_images:
+                if not isinstance(key, str) or not key.strip():
+                    raise ValueError("Selection contains an invalid image path")
+                path = PurePosixPath(key.replace("\\", "/"))
+                if (
+                    path.is_absolute()
+                    or PureWindowsPath(key).drive
+                    or ".." in path.parts
+                    or not (root / str(path)).resolve().is_relative_to(root)
+                ):
+                    raise ValueError(
+                        "Selection contains a path outside the image folder"
+                    )
+                safe_selection.add(str(path))
+            available = {self._key(path) for path in all_images}
+            missing = safe_selection - available
+            if missing:
+                log.info("SKIP %d selected images no longer present", len(missing))
+            all_images = [
+                path for path in all_images if self._key(path) in safe_selection
+            ]
         self._queue: list[Path] = [
             p for p in all_images if self._key(p) not in self._rows
         ]
@@ -490,6 +515,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--labeller", required=True, help="Your name, written into every row."
     )
     parser.add_argument(
+        "--only",
+        type=Path,
+        help="Only show images listed in a blind sample CSV (image column).",
+    )
+    parser.add_argument(
         "--max-side",
         type=int,
         default=1280,
@@ -502,8 +532,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"{args.images} is not a folder.", file=sys.stderr)
         return 2
     try:
-        session = LabelSession(args.images, args.out, args.labeller)
-    except ValueError as exc:
+        selection = None
+        if args.only is not None:
+            with args.only.open(newline="", encoding="utf-8") as handle:
+                reader = csv.DictReader(handle)
+                if not reader.fieldnames or "image" not in reader.fieldnames:
+                    raise ValueError("Selection CSV needs an image column")
+                selection = {row["image"] for row in reader}
+        session = LabelSession(
+            args.images, args.out, args.labeller, selected_images=selection
+        )
+    except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 

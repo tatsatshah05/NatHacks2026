@@ -120,7 +120,7 @@ Training data comes from 511 camera images that we label ourselves (OP-201). Sno
 
 ### 7.3 Model and worker
 
-A small pretrained network (MobileNetV3 or EfficientNet-B0) is fine-tuned on a laptop or Colab and exported to ONNX. A separate vision worker on Render fetches camera frames on a schedule, runs the model on the CPU and posts readings to the API. A reading changes only after two agreeing frames in a row, so a single bad frame never causes a false alarm. Results, limits and measured accuracy are published in `vision/MODEL_CARD.md`.
+A small pretrained network (MobileNetV3 or EfficientNet-B0) is fine-tuned on a laptop or Colab and exported to ONNX. A separate vision worker fetches camera frames on a schedule, runs the model on the CPU and posts readings to the API. A reading changes only after two agreeing frames in a row, so a single bad frame never causes a false alarm. Results, limits and measured accuracy are published in `vision/MODEL_CARD.md`.
 
 ### 7.4 Black-ice rule
 
@@ -192,7 +192,7 @@ flowchart TB
 | Web app | Next.js (App Router), TypeScript, Tailwind, MapLibre, PWA with Web Push | Vercel |
 | API | Python 3.12, FastAPI, Pydantic v2, SQLModel, SciPy routing, WebSocket | Render web service |
 | Ingest | Scheduled adapters inside the API process (one per source) | Render |
-| Vision worker | Python, ONNX Runtime (CPU) | Render background worker |
+| Vision worker | Python, ONNX Runtime (CPU) | A team laptop during the demo (Render's free plan has no background workers) |
 | Database | Postgres (SQLite locally) | Render |
 | Training | PyTorch, run on a laptop or Colab | Not deployed |
 
@@ -1113,6 +1113,10 @@ Discuss these as a team; the lead records each decision in this table by the tim
 | D-5 | Open-Meteo commercial use (its free API is for non-commercial use) | Use Environment Canada as the primary source; buy an Open-Meteo plan before any commercial launch | After the hackathon |
 
 **Decided:** version 1 has no user accounts (November 7). Settings and saved routes stay on the device, and push alerts use an anonymous ID.
+
+**Decided:** the camera worker (OP-204) runs on one team laptop during the demo and posts to the API on Render (November 8). Render's free plan has no background workers, and the worker needs no new service this way. It runs on Tatsat's laptop, including on demo day (decided November 8; [docs/DEPLOY.md](docs/DEPLOY.md#4-camera-worker-on-demo-day)). If it stops, its readings expire after 15 minutes and the weather watch keeps running; the fallback notice in the UI is OP-412.
+
+**Decided:** the camera worker posts a reading only when the ONNX model and Claude agree (November 8, lead). Any disagreement, refusal or API error gives `unknown`. Claude Haiku 5.5 checks readings by default to keep cost down; Opus 5.5 and Sonnet 5.5 are available with `--ai-check`. Frames are sent to the Anthropic API in memory and never stored by us. Measured results are in `vision/MODEL_CARD.md`.
 
 ## 17. Sources
 
