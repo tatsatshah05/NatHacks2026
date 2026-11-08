@@ -29,11 +29,13 @@ Effects
     removed edge per profile with ``config/profiles.json`` (the PLAN.md section 8
     table): ``blocked`` removes the edge, ``caution`` only reports it.
 
-Speed
+Speed and safety
     ``EdgeIndex`` splits every network segment into pieces of at most
     ``PIECE_M`` and puts their midpoints in a KD-tree, once at startup.
     ``HazardProvider`` rebuilds the map from the store at most every
-    ``REFRESH_S`` seconds, so a route request only reads a dictionary.
+    ``REFRESH_S`` seconds, in a background thread, so a route request only reads a
+    dictionary. A failed rebuild keeps the last good map: routing never depends on
+    a database read succeeding.
 """
 
 from __future__ import annotations
@@ -67,6 +69,9 @@ SAMPLE_M = 5.0  # spacing of the points used to measure how much of an edge is i
 REFRESH_S = 30.0  # the provider rebuilds the map at most this often
 
 # Items that describe an area or the whole city, never particular paths.
+# When OP-205 (#113) lands, its camera ice risks arrive under category "weather" with
+# exact crossing edges. Their hook must key on source == "camera_model" and run
+# BEFORE the area check in match_item, or every camera ice risk becomes city-wide.
 AREA_KINDS = frozenset({Kind.SNOW_COMPLAINTS})
 AREA_CATEGORIES = frozenset({Category.WEATHER})
 AREA_TYPES = frozenset({"Polygon", "MultiPolygon"})
@@ -104,42 +109,89 @@ class MatchResult:
 class EdgeIndex:
     """Network edges as short pieces in a KD-tree, for "which edges are near here".
 
-    Coordinates use the network's own equirectangular projection in metres, shifted
-    to the network's centre so float32 keeps millimetre precision.
+    Each piece is kept as its midpoint (``mid``, float64, which the KD-tree uses
+    directly) and the half-vector to its far end (``half``, float32), so the piece
+    runs from ``mid - half`` to ``mid + half``. Coordinates use the network's own
+    equirectangular projection in metres, shifted to the network's centre.
+
+    Memory (PLAN.md section 8 budget): the build projects the points in chunks,
+    works in float32 and splits only the segments longer than ``PIECE_M`` (most are
+    shorter), freeing each temporary as soon as it is used. For Edmonton the build
+    peaks about 40 MB above the loaded network and keeps about 30 MB.
     """
+
+    PROJECT_CHUNK = 65_536  # points projected at a time, to keep temporaries small
 
     def __init__(self, network: WalkNetwork) -> None:
         self.network = network
-        coords = network.geom_coords.astype(np.float64)
-        xy = network._to_xy(coords[:, 1], coords[:, 0])
-        self.origin = xy.mean(axis=0) if len(xy) else np.zeros(2)
-        xy -= self.origin
+        coords = network.geom_coords  # float32 (lng, lat)
+        # The projection is linear, so projecting the mean position gives the mean.
+        self.origin = (
+            network._to_xy(
+                float(coords[:, 1].mean(dtype=np.float64)),
+                float(coords[:, 0].mean(dtype=np.float64)),
+            )[0]
+            if len(coords)
+            else np.zeros(2)
+        )
+        xy = np.empty((len(coords), 2), dtype=np.float32)
+        for start in range(0, len(coords), self.PROJECT_CHUNK):
+            chunk = coords[start : start + self.PROJECT_CHUNK]
+            xy[start : start + len(chunk)] = self.to_xy(chunk)
 
         # Segment i joins point i and i+1, except where an edge ends.
         offsets = network.geom_offsets
+        keep = np.ones(max(len(xy) - 1, 0), dtype=bool)
+        keep[offsets[1:-1] - 1] = False
+        starts = np.flatnonzero(keep).astype(np.int32)
+        del keep
         point_edge = np.repeat(
             np.arange(network.edge_count, dtype=np.int32), np.diff(offsets)
         )
-        keep = np.ones(max(len(xy) - 1, 0), dtype=bool)
-        keep[offsets[1:-1] - 1] = False
-        starts = np.flatnonzero(keep)
-        a, b, edge = xy[starts], xy[starts + 1], point_edge[starts]
+        seg_edge = point_edge[starts]
+        del point_edge
+        a, b = xy[starts], xy[starts + 1]
+        del xy, starts
 
-        # Split long segments into pieces of at most PIECE_M.
-        length = np.linalg.norm(b - a, axis=1)
-        pieces = np.maximum(1, np.ceil(length / PIECE_M)).astype(np.int64)
-        seg = np.repeat(np.arange(len(a)), pieces)
-        first = np.repeat(np.cumsum(pieces) - pieces, pieces)
-        j = np.arange(len(seg)) - first
-        t0 = (j / pieces[seg])[:, None]
-        t1 = ((j + 1) / pieces[seg])[:, None]
-        d = b[seg] - a[seg]
-        self.a = (a[seg] + t0 * d).astype(np.float32)
-        self.b = (a[seg] + t1 * d).astype(np.float32)
-        self.edge = edge[seg]
-        self._tree = cKDTree((self.a + self.b) / 2) if len(seg) else None
+        # Pieces of at most PIECE_M: one per short segment, several per long one.
+        pieces = np.ceil(
+            np.hypot(b[:, 0] - a[:, 0], b[:, 1] - a[:, 1]) / np.float32(PIECE_M)
+        ).astype(np.int32)
+        np.maximum(pieces, 1, out=pieces)
+        long = pieces > 1
+        short = ~long
+        n_short = int(np.count_nonzero(short))
+        count = n_short + int(pieces[long].sum(dtype=np.int64))
+        self.mid = np.empty((count, 2), dtype=np.float64)
+        self.half = np.empty((count, 2), dtype=np.float32)
+        self.edge = np.empty(count, dtype=np.int32)
+
+        start_xy, end_xy = a[short], b[short]
+        np.add(start_xy, end_xy, out=self.mid[:n_short], dtype=np.float64)
+        self.mid[:n_short] *= 0.5
+        np.subtract(end_xy, start_xy, out=self.half[:n_short])
+        self.half[:n_short] *= 0.5
+        self.edge[:n_short] = seg_edge[short]
+        del start_xy, end_xy, short
+
+        if count > n_short:
+            first = a[long].astype(np.float64)
+            per = pieces[long]
+            step = (b[long].astype(np.float64) - first) / per[:, None]
+            seg = np.repeat(np.arange(len(per)), per)
+            j = np.arange(len(seg)) - np.repeat(
+                np.cumsum(per, dtype=np.int64) - per, per
+            )
+            self.half[n_short:] = 0.5 * step[seg]
+            self.mid[n_short:] = first[seg] + (j[:, None] + 0.5) * step[seg]
+            self.edge[n_short:] = seg_edge[long][seg]
+        del a, b, seg_edge, pieces, long
+
         # A piece's midpoint is at most this far from any point on the piece.
-        self.half_piece_m = float(np.max(length / pieces) / 2) if len(seg) else 0.0
+        self.half_piece_m = (
+            float(np.hypot(self.half[:, 0], self.half[:, 1]).max()) if count else 0.0
+        )
+        self._tree = cKDTree(self.mid, copy_data=False) if count else None
 
     def to_xy(self, positions: Sequence[tuple[float, float]]) -> np.ndarray:
         """(lng, lat) positions in the index's metres."""
@@ -160,7 +212,8 @@ class EdgeIndex:
         pieces = self.pieces_near(xy, radius_m)
         if len(pieces) == 0:
             return None
-        dist = point_segment_distance(xy[None, :], self.a[pieces], self.b[pieces])[0]
+        mid, half = self.mid[pieces], self.half[pieces]
+        dist = point_segment_distance(xy[None, :], mid - half, mid + half)[0]
         best = int(np.argmin(dist))
         if dist[best] > radius_m:
             return None
@@ -278,10 +331,18 @@ def match_items(
     now: datetime,
     elevator_edges: Mapping[str, Sequence[int]] | None = None,
 ) -> MatchResult:
-    """Match every item and collect the hazards per edge."""
+    """Match every item and collect the hazards per edge.
+
+    An item that fails to match (a bug on one odd geometry) is logged and changes no
+    edges, so it cannot stop every other item from reaching routing.
+    """
     result = MatchResult(built_at=now)
     for item in items:
-        match = match_item(item, index, elevator_edges or {})
+        try:
+            match = match_item(item, index, elevator_edges or {})
+        except Exception:
+            log.exception("MATCH %s failed; it changes no paths", item.id)
+            match = Match(item.id, "unmatched", note="matching failed")
         result.matches[item.id] = match
         hazard = EdgeHazard(
             item_id=item.id,
@@ -297,8 +358,16 @@ def match_items(
 class HazardProvider:
     """``app.state.hazard_provider``: the current ``HazardMap`` for routing.
 
-    Called on every route request. The map is rebuilt from the store's active items
-    when it is older than ``refresh_s``; otherwise the cached one is returned.
+    Called on every route request, so it must answer fast and must never fail:
+
+    - **The first call** builds the map before answering, so no route ignores hazards.
+    - **Later calls** that find the map older than ``refresh_s`` start one rebuild in
+      a background thread and answer with the current map straight away; a request
+      never waits for matching. ``background=False`` rebuilds inside the call
+      instead (tools and tests).
+    - **A failed rebuild** (a database read error, say) is logged; routing keeps the
+      last good map, and the next attempt is ``refresh_s`` later. Before any map has
+      been built, routes get no hazards.
     """
 
     def __init__(
@@ -309,18 +378,60 @@ class HazardProvider:
         refresh_s: float = REFRESH_S,
         elevator_edges: Mapping[str, Sequence[int]] | None = None,
         clock: Callable[[], float] = time.monotonic,
+        background: bool = True,
     ) -> None:
         self.store = store
         self.index = EdgeIndex(network)
         self.refresh_s = refresh_s
         self.elevator_edges = dict(elevator_edges or {})
         self.clock = clock
+        self.background = background
         self.latest: MatchResult | None = None
-        self._built_at = -math.inf
-        self._lock = threading.Lock()
+        self.worker: threading.Thread | None = None  # the last background rebuild
+        self._attempted_at = -math.inf  # clock() when the last rebuild started
+        self._lock = threading.Lock()  # held while a rebuild runs
+
+    def __call__(self, now: datetime) -> HazardMap:
+        if self.latest is None or not self.background:
+            # No map yet: build it before answering. Waiting on the lock also makes a
+            # concurrent first request wait for the build already running.
+            with self._lock:
+                if self._due():
+                    self._rebuild(now)
+        elif self._due() and self._lock.acquire(blocking=False):
+            self._rebuild_in_background(now)  # releases the lock when done
+        latest = self.latest
+        return latest.hazards if latest is not None else {}
+
+    def _due(self) -> bool:
+        return self.clock() - self._attempted_at >= self.refresh_s
+
+    def _rebuild(self, now: datetime) -> None:
+        """One rebuild attempt that never raises. The caller holds the lock."""
+        self._attempted_at = self.clock()
+        try:
+            self.refresh(now)
+        except Exception:  # routing must keep working
+            log.exception("MATCH failed; keeping the last good hazard map")
+
+    def _rebuild_in_background(self, now: datetime) -> None:
+        """Run ``_rebuild`` in a thread that releases the lock (held by the caller)."""
+
+        def work() -> None:
+            try:
+                self._rebuild(now)
+            finally:
+                self._lock.release()
+
+        try:
+            self.worker = threading.Thread(target=work, name="hazard-map", daemon=True)
+            self.worker.start()
+        except Exception:  # could not start a thread: try again on a later call
+            self._lock.release()
+            log.exception("MATCH could not start a background rebuild")
 
     def refresh(self, now: datetime) -> MatchResult:
-        """Match the store's active items now."""
+        """Match the store's active items now. Raises if that fails."""
         started = time.perf_counter()
         result = match_items(
             self.store.active(now), self.index, now, self.elevator_edges
@@ -333,12 +444,4 @@ class HazardProvider:
             (time.perf_counter() - started) * 1000,
         )
         self.latest = result
-        self._built_at = self.clock()
         return result
-
-    def __call__(self, now: datetime) -> HazardMap:
-        with self._lock:
-            if self.latest is None or self.clock() - self._built_at >= self.refresh_s:
-                self.refresh(now)
-            assert self.latest is not None
-            return self.latest.hazards

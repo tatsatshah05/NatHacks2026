@@ -15,17 +15,21 @@ and C-K is 400 m.
 from __future__ import annotations
 
 import math
+import threading
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
 import numpy as np
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from cloud.app import matching, routing_api
 from cloud.app.main import create_app
 from cloud.app.matching import (
     LINE_BUFFER_M,
+    PIECE_M,
     POINT_RADIUS_M,
     EdgeIndex,
     HazardProvider,
@@ -34,7 +38,7 @@ from cloud.app.matching import (
 )
 from cloud.app.network import RawEdge, RawNode, WalkNetwork, export_network
 from cloud.app.profiles import load_routing_config
-from cloud.app.routing import profile_weights
+from cloud.app.routing import Router, profile_weights
 from cloud.app.schemas import Obstruction
 from cloud.app.store import ObstructionStore
 
@@ -170,6 +174,40 @@ def test_points_snap_only_within_30_m(index, item, now, north_m, matched) -> Non
         assert match.method == "unmatched"
         assert match.edges == ()
         assert "30 m" in (match.note or "")
+
+
+def test_index_pieces_cover_every_edge_exactly(network, index) -> None:
+    """Pieces are at most PIECE_M long and add up to each edge's polyline length.
+
+    (Compared with the polyline, not ``edge_length_m``: the network stores the
+    coordinates as float32, which rounds them to about half a metre.)
+    """
+    piece_length = 2 * np.hypot(index.half[:, 0], index.half[:, 1])
+    assert piece_length.max() <= PIECE_M + 1e-3
+    total = np.bincount(index.edge, weights=piece_length, minlength=network.edge_count)
+    polyline = [
+        np.linalg.norm(
+            np.diff(index.to_xy(network.edge_coords(e)), axis=0), axis=1
+        ).sum()
+        for e in range(network.edge_count)
+    ]
+    assert np.allclose(total, polyline, atol=1e-3)
+    # Every test edge is one straight segment, split into ceil(length / PIECE_M)
+    # pieces: 3 for the 100 m edges stored a little over 100 m, 9 for C-K.
+    expected = np.ceil(np.asarray(polyline) / PIECE_M)
+    assert np.array_equal(
+        np.bincount(index.edge, minlength=network.edge_count), expected
+    )
+    assert np.count_nonzero(index.edge == edge_of(network, "CK")) >= 8
+
+
+@pytest.mark.parametrize("x", [205, 400, 595])
+def test_points_snap_along_the_whole_of_a_long_edge(
+    network, index, item, now, x
+) -> None:
+    match = run(index, now, item(point(x, -45))).matches["city_construction:permit-1"]
+    assert named(network, match.edges) == {"CK"}
+    assert match.distance_m == pytest.approx(5, abs=0.2)
 
 
 # -------------------------------------------------------------------------- lines
@@ -368,11 +406,33 @@ def test_effects_follow_the_plan_table(
 # ------------------------------------------------------------------- provider
 
 
+class FlakyStore:
+    """A real store whose reads the test can make fail, or hold until it says go."""
+
+    def __init__(self, store: ObstructionStore) -> None:
+        self.store = store
+        self.fail = False
+        self.calls = 0
+        self.reading = threading.Event()  # set when a read starts
+        self.gate = threading.Event()  # a read waits here until the test opens it
+        self.gate.set()
+
+    def active(self, now: datetime, **kwargs: Any) -> list[Obstruction]:
+        self.calls += 1
+        self.reading.set()
+        assert self.gate.wait(10), "the test never opened the gate"
+        if self.fail:
+            raise ConnectionError("database is down")
+        return self.store.active(now, **kwargs)
+
+
 def test_provider_caches_and_refreshes(
     network, store: ObstructionStore, item, now
 ) -> None:
     ticks = [0.0]
-    provider = HazardProvider(store, network, refresh_s=30, clock=lambda: ticks[0])
+    provider = HazardProvider(
+        store, network, refresh_s=30, clock=lambda: ticks[0], background=False
+    )
     assert provider(now) == {}
     store.upsert([item(point(50, -48))], now)
     ticks[0] = 10.0
@@ -381,6 +441,121 @@ def test_provider_caches_and_refreshes(
     assert list(provider(now)) == [edge_of(network, "AB")]
     assert provider.latest is not None
     assert provider.latest.matches["city_construction:permit-1"].method == "point"
+
+
+def test_a_stale_map_is_rebuilt_in_the_background(
+    network, store: ObstructionStore, item, now
+) -> None:
+    """A request never waits for matching once a map exists."""
+    flaky = FlakyStore(store)
+    ticks = [0.0]
+    provider = HazardProvider(flaky, network, refresh_s=30, clock=lambda: ticks[0])
+    assert provider(now) == {}  # the first map is built in the call
+    store.upsert([item(point(50, -48))], now)
+    flaky.gate.clear()
+    flaky.reading.clear()
+    ticks[0] = 30.0
+    assert provider(now) == {}  # answered at once with the old map...
+    assert flaky.reading.wait(10)  # ...while the rebuild is held at the gate
+    assert provider(now) == {}  # a second call does not start another rebuild
+    assert flaky.calls == 2
+    flaky.gate.set()
+    assert provider.worker is not None
+    provider.worker.join(10)
+    assert list(provider(now)) == [edge_of(network, "AB")]
+    assert flaky.calls == 2  # not due again until another refresh_s
+
+
+def test_a_failed_rebuild_keeps_the_last_good_map(
+    network, store: ObstructionStore, item, now, caplog: pytest.LogCaptureFixture
+) -> None:
+    store.upsert([item(point(50, -48))], now)
+    flaky = FlakyStore(store)
+    ticks = [0.0]
+    provider = HazardProvider(flaky, network, refresh_s=30, clock=lambda: ticks[0])
+    good = provider(now)
+    assert list(good) == [edge_of(network, "AB")]
+
+    flaky.fail = True
+    ticks[0] = 30.0
+    assert provider(now) == good
+    assert provider.worker is not None
+    provider.worker.join(10)
+    assert "keeping the last good hazard map" in caplog.text
+    assert provider(now) == good  # still the last good map...
+    ticks[0] = 59.0
+    assert provider(now) == good
+    assert flaky.calls == 2  # ...and no retry before refresh_s has passed
+
+    ticks[0] = 60.0
+    provider(now)
+    provider.worker.join(10)
+    assert flaky.calls == 3  # retried once refresh_s passed
+
+    flaky.fail = False
+    ticks[0] = 90.0
+    provider(now)
+    provider.worker.join(10)
+    assert provider(now) == good  # recovered: rebuilt from the store again
+    assert flaky.calls == 4
+
+
+def test_a_failing_store_before_any_map_gives_no_hazards(
+    network, store: ObstructionStore, item, now
+) -> None:
+    flaky = FlakyStore(store)
+    flaky.fail = True
+    ticks = [0.0]
+    provider = HazardProvider(flaky, network, refresh_s=30, clock=lambda: ticks[0])
+    assert provider(now) == {}  # no exception reaches routing
+    assert provider(now) == {}
+    assert flaky.calls == 1  # not retried before refresh_s
+    flaky.fail = False
+    store.upsert([item(point(50, -48))], now)
+    ticks[0] = 30.0
+    assert list(provider(now)) == [edge_of(network, "AB")]  # built in the call
+
+
+def test_routes_keep_working_when_the_store_fails(
+    network, store: ObstructionStore
+) -> None:
+    """With every store read failing, /api/route still answers 200."""
+    flaky = FlakyStore(store)
+    flaky.fail = True
+    app = FastAPI()
+    app.state.router = Router(network, load_routing_config())
+    app.state.hazard_provider = HazardProvider(flaky, network, refresh_s=0)
+    app.include_router(routing_api.router)
+    (a_lng, a_lat), (c_lng, c_lat) = pos(*NODES["A"]), pos(*NODES["C"])
+    params = {
+        "from": f"{a_lat},{a_lng}",
+        "to": f"{c_lat},{c_lng}",
+        "profile": "standard",
+    }
+    with TestClient(app) as client:
+        for _ in range(3):
+            assert client.get("/api/route", params=params).status_code == 200
+    assert flaky.calls == 3  # each call tried again (refresh_s=0) and failed safely
+
+
+def test_one_odd_item_does_not_stop_the_others(
+    network, index, item, now, monkeypatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    real = matching.match_item
+
+    def match_item(target: Obstruction, *args: Any) -> matching.Match:
+        if target.source_ref == "odd":
+            raise ValueError("unexpected geometry")
+        return real(target, *args)
+
+    monkeypatch.setattr(matching, "match_item", match_item)
+    odd = item(point(50, -48), source_ref="odd")
+    fine = item(point(50, -48), source_ref="fine")
+    result = run(index, now, odd, fine)
+    assert result.matches[odd.id].method == "unmatched"
+    assert result.matches[odd.id].note == "matching failed"
+    assert [h.item_id for h in result.hazards[edge_of(network, "AB")]] == [fine.id]
+    assert f"MATCH {odd.id} failed" in caplog.text
 
 
 def test_the_app_routes_with_the_matcher(monkeypatch: pytest.MonkeyPatch) -> None:
