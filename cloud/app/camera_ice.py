@@ -33,6 +33,8 @@ from cloud.app.weather_service import REFRESH_SECONDS, WeatherResponse, WeatherS
 
 CROSSING_RADIUS_M = 50.0
 POSITION_CACHE_SIZE = 512
+# The scheduler marks a source stale after three missed refreshes; the watch does the same.
+WEATHER_STALE_AFTER = timedelta(seconds=3 * REFRESH_SECONDS)
 WEATHER_CREDIT = "Weather: Environment and Climate Change Canada, Open-Meteo"
 Mode = Literal["live", "replay"]
 
@@ -365,6 +367,23 @@ def match_camera_ice(
     )
 
 
+def weather_is_stale(weather: WeatherService | None) -> bool:
+    """Age-based freshness of OP-109's cached watch, mirroring the scheduler's rule.
+
+    Stale only when there has never been a good refresh or the last one is more than
+    three refresh intervals (30 minutes) old. A failed refresh alone (``last_error``)
+    never makes the cache stale, so one outage cannot clear wet-camera risks
+    (AGENTS.md, priority 1). The age is measured on the service's own clock, the one
+    that stamped ``last_success``: in replay mode that clock is frozen at the
+    recording, and the watch's two-hour observation limit, checked against the app's
+    time in ``evaluate_camera_ice``, still bounds old evidence.
+    """
+    if weather is None or weather.last_success is None:
+        return True
+    age = as_utc(weather.clock()) - as_utc(weather.last_success)
+    return age > WEATHER_STALE_AFTER
+
+
 def match_service_camera_ice(
     readings: Iterable[object],
     weather: WeatherService | None,
@@ -380,10 +399,5 @@ def match_service_camera_ice(
         crossings,
         now=now,
         mode=mode,
-        weather_stale=(
-            weather is None
-            or weather.last_success is None
-            or as_utc(now) - weather.last_success
-            > timedelta(seconds=3 * REFRESH_SECONDS)
-        ),
+        weather_stale=weather_is_stale(weather),
     )

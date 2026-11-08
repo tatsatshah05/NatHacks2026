@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from collections.abc import AsyncIterator
@@ -37,6 +38,7 @@ from cloud.app import (
     status,
     weather_service,
 )
+from cloud.app.camera_ice_routing import CameraIceHazardProvider
 from cloud.app.camera_readings import CameraReadingStore
 from cloud.app.db import make_engine
 from cloud.app.matching import HazardProvider
@@ -45,6 +47,8 @@ from cloud.app.profiles import load_routing_config
 from cloud.app.routing import Router
 from cloud.app.scheduler import Scheduler, utcnow
 from cloud.app.store import ObstructionStore
+
+log = logging.getLogger(__name__)
 
 # /health reports this version when RENDER_GIT_COMMIT is not set (local runs).
 LOCAL_VERSION = "dev"
@@ -114,6 +118,32 @@ def scheduler_enabled(raw: str | None) -> bool:
     return (raw or "on").strip().lower() not in {"off", "0", "false", "no"}
 
 
+def camera_ice_provider(
+    network: WalkNetwork,
+    camera_store: CameraReadingStore,
+    weather: weather_service.WeatherService | None,
+    base: HazardProvider,
+    mode: DataMode,
+) -> HazardProvider | CameraIceHazardProvider:
+    """OP-205: camera ice risks on exact crossings, on top of the OP-206 matcher.
+
+    Builds the crossing index once (about 15 ms for Edmonton). Without a weather
+    service (``SCHEDULER=off``) ``ice`` readings still count and ``wet`` ones do not.
+    If the index cannot be built, routing keeps the matcher alone.
+    """
+    try:
+        return CameraIceHazardProvider(
+            network,
+            camera_store.latest,
+            weather=weather,
+            base=base,
+            mode=mode,
+        )
+    except Exception:
+        log.exception("CAMERA ice risks unavailable; routing with the matcher only")
+        return base
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Open the store, build the data sources and start the scheduler; undo it all at shutdown."""
@@ -139,6 +169,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         network = WalkNetwork.load()
         app.state.router = Router(network, load_routing_config())
         # OP-206: matches the store's active obstructions to network edges for routing.
+        # OP-205 wraps it below, once the weather service exists.
         app.state.hazard_provider = HazardProvider(store, network)
     # One HTTP client per flavour, shared by every adapter and closed at shutdown.
     async with httpx.AsyncClient(timeout=10) as async_client:
@@ -161,6 +192,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 scheduler = Scheduler(store, built, clock=clock)
                 app.state.scheduler = scheduler
                 await scheduler.start()
+            if app.state.router is not None:
+                app.state.hazard_provider = camera_ice_provider(
+                    app.state.router.network,
+                    camera_store,
+                    app.state.weather_service,
+                    app.state.hazard_provider,
+                    app.state.mode,
+                )
             try:
                 yield
             finally:

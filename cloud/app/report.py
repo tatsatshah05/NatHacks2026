@@ -26,9 +26,8 @@ Groups
 Records from more than one place
     A report reads one or more ``ItemIndex``: the matcher's, and any other provider's
     items that never pass through the store. OP-205's camera ice risks are full
-    ``Obstruction`` objects (``CameraIceHazardProvider.latest.risks[i].obstruction``),
-    so once that provider is wired in, an index built from them gives camera items
-    the same details as every other item.
+    ``Obstruction`` objects, and ``CameraIceHazardProvider.items`` indexes them, so
+    camera items have the same details as every other item.
 
 Hazards with no record
     If no index has a hazard's item, the report still lists it, from what the hazard

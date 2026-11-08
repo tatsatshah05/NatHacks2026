@@ -3,8 +3,9 @@
 Query: ``from=lat,lng`` ``to=lat,lng`` ``profile=wheelchair|walker_cane|low_vision|standard``.
 
 The app loads the walking network once at startup (``app.state.router``). Hazards
-come from ``app.state.hazard_provider``, which OP-206 sets to the matcher; until
-then routes ignore hazards. The Maps links (OP-209) pin our detours as Google waypoints.
+come from ``app.state.hazard_provider``: OP-205's ``CameraIceHazardProvider``, which
+adds camera ice risks on exact crossings to the OP-206 matcher's map (its ``base``).
+The Maps links (OP-209) pin our detours as Google waypoints.
 Each route carries a ``report`` (OP-208): every known item on it, within 50 m of it
 or avoided by it, grouped by category.
 """
@@ -19,6 +20,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
+from .camera_ice_routing import CameraIceHazardProvider
 from .maps_links import (
     APPLE_MAPS_NOTE,
     apple_maps_url,
@@ -103,16 +105,21 @@ def get_hazards(request: Request) -> HazardMap:
 def get_report_items(
     request: Request, _hazards: Annotated[HazardMap, Depends(get_hazards)]
 ) -> list[ItemIndex]:
-    """The records behind the hazards, for the route report: the matcher's items.
+    """The records behind the hazards, for the route report.
 
-    Depends on ``get_hazards`` so the provider has built its first match before it
-    is read. Any other provider gives no records, so the report lists only the
-    hazards routing met. When OP-205's ``CameraIceHazardProvider`` is wired in, it
-    wraps the matcher as its ``base``: add an index of its
-    ``latest.risks[i].obstruction`` here and look at its ``base`` for the matcher.
-    Check the provider's class, not ``latest``: both classes have one.
+    Depends on ``get_hazards`` so the providers have built their maps before they
+    are read. ``CameraIceHazardProvider`` contributes an index of its camera ice
+    risks (full ``Obstruction`` records, which never pass through the store) and
+    wraps the matcher as its ``base``, which contributes the store's items. The
+    classes are checked, not ``latest``: both have one, of different types. Any
+    other provider gives no records, so the report lists only the hazards routing met.
     """
     provider = getattr(request.app.state, "hazard_provider", None)
+    indexes: list[ItemIndex] = []
+    if isinstance(provider, CameraIceHazardProvider):
+        if provider.items is not None:
+            indexes.append(provider.items)  # first, so its camera records win
+        provider = provider.base
     if isinstance(provider, HazardProvider):
         # ``latest`` is read separately from ``get_hazards``, so a background rebuild
         # finishing in between can pair a newer index with older hazards. That is
@@ -120,8 +127,8 @@ def get_report_items(
         # (``ReportRecord.of_hazard``), and a newer item is at worst listed as nearby.
         latest = provider.latest
         if latest is not None and latest.items is not None:
-            return [latest.items]
-    return []
+            indexes.append(latest.items)
+    return indexes
 
 
 def route_report(route: Route, items: Sequence[ItemIndex]) -> RouteReportOut:
