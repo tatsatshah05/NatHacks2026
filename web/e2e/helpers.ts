@@ -2,7 +2,9 @@
 //
 // Every locator here goes through roles and accessible names, never CSS classes or
 // test ids: if a control cannot be found this way, that is an accessibility bug in
-// the component, to be fixed there with a proper label.
+// the component, to be fixed there with a proper label. A name built from visible
+// text plus a visually hidden span ("Save this route" + ", route 1") is computed as
+// "Save this route , route 1", so those patterns allow a space before the comma.
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import type { components } from "../src/lib/api-types";
 

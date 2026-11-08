@@ -30,8 +30,9 @@ test("a seeded closure is announced and the routes refresh", async ({ page, requ
   expect(body.title).toBe(`Test override: ${TITLE}`);
 
   try {
-    // The assertive region gets the one sentence a screen reader hears.
-    const announcer = page.locator('[aria-live="assertive"]');
+    // The assertive region gets the one sentence a screen reader hears. (Scoped to
+    // the live-updates section: Next.js has its own assertive route announcer.)
+    const announcer = page.getByRole("region", { name: "Live updates" }).locator('[aria-live="assertive"]');
     await expect(announcer).toContainText("Route update:", { timeout: 60_000 });
     await expect(announcer).toContainText(`Test override: ${TITLE} now blocks your route`);
 

@@ -40,5 +40,5 @@ test("the route report lists the four groups, each item with its source", async 
 
   // The sources checked and the Maps hand-off follow.
   await expect(conditions.getByRole("heading", { level: 3, name: "Sources checked" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /^Open in Google Maps, route 1$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Open in Google Maps\s*, route 1$/ })).toBeVisible();
 });

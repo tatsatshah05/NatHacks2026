@@ -27,8 +27,8 @@ test("plan a route from the place search to the route list", async ({ page }) =>
 
   // Every route offers its full report, the save action and the Maps hand-off.
   await expect(page.getByRole("link", { name: /^View route report for route 1$/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Save this route, route 1$/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /^Open in Google Maps, route 1$/ })).toHaveAttribute(
+  await expect(page.getByRole("button", { name: /^Save this route\s*, route 1$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Open in Google Maps\s*, route 1$/ })).toHaveAttribute(
     "href",
     /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1/
   );

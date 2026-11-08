@@ -12,7 +12,7 @@ test("save a route with a name and find it on the Alerts page after a reload", a
   const name = `E2E ${testInfo.project.name} ${Date.now()}`;
   await openPlannedTrip(page, TRIP);
 
-  await page.getByRole("button", { name: /^Save this route, route 1$/ }).click();
+  await page.getByRole("button", { name: /^Save this route\s*, route 1$/ }).click();
   const form = page.getByRole("form", { name: "Save route 1" });
   const nameField = form.getByRole("textbox", { name: "Name for this route" });
   await expect(nameField).toBeFocused();
