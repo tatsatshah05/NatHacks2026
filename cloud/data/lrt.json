@@ -1,0 +1,1169 @@
+{
+ "format_version": 1,
+ "source": {
+  "name": "ETS GTFS schedule",
+  "url": "https://gtfs.edmonton.ca/TMGTFSRealTimeWebService/GTFS/GTFS.zip",
+  "feed_publisher": "Edmonton Transit Service",
+  "feed_version": "261023_1059",
+  "feed_start_date": "20261023",
+  "feed_end_date": "20261212",
+  "built_at": "2026-11-08T15:51:34+00:00",
+  "licence_url": "https://data.edmonton.ca/stories/s/City-of-Edmonton-Open-Data-Terms-of-Use/msh8-if28/",
+  "attribution": "Schedule: Edmonton Transit Service, City of Edmonton Open Data",
+  "devices": "cloud/tests/fixtures/lrt/devices.json"
+ },
+ "timezone": "America/Edmonton",
+ "stations": [
+  {
+   "id": "Q102St",
+   "name": "102 St",
+   "title": "102 St Stop",
+   "gtfs_name": "102 St Stop",
+   "aliases": [],
+   "lat": 53.54316,
+   "lng": -113.494138,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7000",
+   "name": "Bay/Enterprise Square",
+   "title": "Bay/Enterprise Square Station",
+   "gtfs_name": "Bay Enterprise Station",
+   "aliases": [
+    "Bay Enterprise",
+    "Bay Enterprise Square"
+   ],
+   "lat": 53.54091,
+   "lng": -113.497985,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "90",
+     "location": "Platform",
+     "role": "platform"
+    },
+    {
+     "device_id": "91",
+     "location": "North Entrance",
+     "role": "entrance"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "49",
+     "location": "North Entrance"
+    },
+    {
+     "device_id": "50",
+     "location": "West Platform"
+    },
+    {
+     "device_id": "51",
+     "location": "East Platform Down"
+    },
+    {
+     "device_id": "52",
+     "location": "East Platform Up"
+    }
+   ],
+   "gtfs_elevator_pathways": 3,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7001",
+   "name": "Belvedere",
+   "title": "Belvedere Station",
+   "gtfs_name": "Belvedere Station",
+   "aliases": [],
+   "lat": 53.588187,
+   "lng": -113.433239,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "30",
+     "location": "Platform",
+     "role": "platform"
+    },
+    {
+     "device_id": "31",
+     "location": "West Entrance",
+     "role": "entrance"
+    },
+    {
+     "device_id": "32",
+     "location": "East Entrance",
+     "role": "entrance"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "33",
+     "location": "Platform"
+    },
+    {
+     "device_id": "34",
+     "location": "West Entrance"
+    }
+   ],
+   "gtfs_elevator_pathways": 4,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7002",
+   "name": "NAIT-Blatchford Market",
+   "title": "NAIT-Blatchford Market Station",
+   "gtfs_name": "NAIT-Blatchford Market Station",
+   "aliases": [],
+   "lat": 53.566634,
+   "lng": -113.508774,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7003",
+   "name": "Central",
+   "title": "Central Station",
+   "gtfs_name": "Central Station",
+   "aliases": [],
+   "lat": 53.541035,
+   "lng": -113.491717,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "92",
+     "location": "Platform",
+     "role": "platform"
+    },
+    {
+     "device_id": "93",
+     "location": "North Entrance",
+     "role": "entrance"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "53",
+     "location": "East Platform"
+    },
+    {
+     "device_id": "54",
+     "location": "West Platform"
+    },
+    {
+     "device_id": "55",
+     "location": "North Entrance"
+    }
+   ],
+   "gtfs_elevator_pathways": 5,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7004",
+   "name": "Churchill",
+   "title": "Churchill Station",
+   "gtfs_name": "Churchill Station Underground",
+   "aliases": [],
+   "lat": 53.54442,
+   "lng": -113.489045,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "1",
+     "location": "Chancery",
+     "role": "entrance"
+    },
+    {
+     "device_id": "4",
+     "location": "Winspear",
+     "role": "entrance"
+    },
+    {
+     "device_id": "94",
+     "location": "Platform",
+     "role": "platform"
+    },
+    {
+     "device_id": "602",
+     "location": "Churchill Connector",
+     "role": "entrance"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "56",
+     "location": "South Platform"
+    },
+    {
+     "device_id": "57",
+     "location": "North Platform"
+    },
+    {
+     "device_id": "601",
+     "location": "Churchill Connector Escalator"
+    }
+   ],
+   "gtfs_elevator_pathways": 11,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7005",
+   "name": "Clareview",
+   "title": "Clareview Station",
+   "gtfs_name": "Clareview Station",
+   "aliases": [],
+   "lat": 53.601592,
+   "lng": -113.411819,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "29",
+     "location": "Platform",
+     "role": "platform"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "28",
+     "location": "Platform"
+    }
+   ],
+   "gtfs_elevator_pathways": 1,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7006",
+   "name": "Coliseum",
+   "title": "Coliseum Station",
+   "gtfs_name": "Coliseum Station",
+   "aliases": [],
+   "lat": 53.570617,
+   "lng": -113.458655,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "96",
+     "location": "West Entrance",
+     "role": "entrance"
+    },
+    {
+     "device_id": "97",
+     "location": "East Entrance",
+     "role": "entrance"
+    },
+    {
+     "device_id": "98",
+     "location": "Platform",
+     "role": "platform"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "59",
+     "location": "Platform"
+    }
+   ],
+   "gtfs_elevator_pathways": 4,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7007",
+   "name": "Corona",
+   "title": "Corona Station",
+   "gtfs_name": "Corona Station",
+   "aliases": [],
+   "lat": 53.540977,
+   "lng": -113.505358,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "88",
+     "location": "South Entrance",
+     "role": "entrance"
+    },
+    {
+     "device_id": "89",
+     "location": "Platform",
+     "role": "platform"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "45",
+     "location": "South Entrance"
+    },
+    {
+     "device_id": "46",
+     "location": "West Platform"
+    },
+    {
+     "device_id": "47",
+     "location": "East Platform Down"
+    },
+    {
+     "device_id": "48",
+     "location": "East Platform Up"
+    }
+   ],
+   "gtfs_elevator_pathways": 3,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7008",
+   "name": "Government Centre",
+   "title": "Government Centre Station",
+   "gtfs_name": "Government Station",
+   "aliases": [
+    "Government"
+   ],
+   "lat": 53.535885,
+   "lng": -113.510327,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "84",
+     "location": "South Entrance",
+     "role": "entrance"
+    },
+    {
+     "device_id": "85",
+     "location": "South Platform",
+     "role": "platform"
+    },
+    {
+     "device_id": "86",
+     "location": "North Platform",
+     "role": "platform"
+    },
+    {
+     "device_id": "87",
+     "location": "North Entrance",
+     "role": "entrance"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "41",
+     "location": "South Platform Up"
+    },
+    {
+     "device_id": "42",
+     "location": "North Platform"
+    },
+    {
+     "device_id": "43",
+     "location": "South Entrance"
+    },
+    {
+     "device_id": "44",
+     "location": "South Platform Down"
+    }
+   ],
+   "gtfs_elevator_pathways": 6,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7009",
+   "name": "Health Sciences/Jubilee",
+   "title": "Health Sciences/Jubilee Station",
+   "gtfs_name": "Health Sciences Jubilee Station",
+   "aliases": [
+    "Health Sciences Jubilee"
+   ],
+   "lat": 53.519935,
+   "lng": -113.525923,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "100",
+     "location": "Platform",
+     "role": "platform"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "99",
+     "location": "Platform"
+    }
+   ],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7010",
+   "name": "Kingsway RAH",
+   "title": "Kingsway RAH Station",
+   "gtfs_name": "Kingsway RAH Station",
+   "aliases": [],
+   "lat": 53.557963,
+   "lng": -113.501392,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7011",
+   "name": "McKernan Belgravia",
+   "title": "McKernan Belgravia Station",
+   "gtfs_name": "McKernan Belgravia Station",
+   "aliases": [],
+   "lat": 53.513445,
+   "lng": -113.526163,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7012",
+   "name": "South Campus Ft Edmonton",
+   "title": "South Campus Ft Edmonton Station",
+   "gtfs_name": "South Camputs Ft. Edmonton Station",
+   "aliases": [
+    "South Camputs Ft. Edmonton"
+   ],
+   "lat": 53.50294,
+   "lng": -113.528414,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7013",
+   "name": "Southgate",
+   "title": "Southgate Station",
+   "gtfs_name": "Southgate Station",
+   "aliases": [],
+   "lat": 53.485344,
+   "lng": -113.516892,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "114",
+     "location": "Platform",
+     "role": "platform"
+    },
+    {
+     "device_id": "115",
+     "location": "East Entrance",
+     "role": "entrance"
+    },
+    {
+     "device_id": "116",
+     "location": "West Entrance",
+     "role": "entrance"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "119",
+     "location": "East Entrance"
+    },
+    {
+     "device_id": "120",
+     "location": "Platform"
+    }
+   ],
+   "gtfs_elevator_pathways": 4,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7014",
+   "name": "Stadium",
+   "title": "Stadium Station",
+   "gtfs_name": "Stadium Station",
+   "aliases": [],
+   "lat": 53.560126,
+   "lng": -113.47046,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7015",
+   "name": "University",
+   "title": "University Station",
+   "gtfs_name": "University Station",
+   "aliases": [],
+   "lat": 53.525145,
+   "lng": -113.521555,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "111",
+     "location": "East Platform",
+     "role": "platform"
+    },
+    {
+     "device_id": "112",
+     "location": "West Platform",
+     "role": "platform"
+    },
+    {
+     "device_id": "113",
+     "location": "East Entrance",
+     "role": "entrance"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "101",
+     "location": "East Platform Up"
+    },
+    {
+     "device_id": "102",
+     "location": "East Platform Down"
+    },
+    {
+     "device_id": "103",
+     "location": "West Platform Down"
+    },
+    {
+     "device_id": "104",
+     "location": "West Platform Up"
+    },
+    {
+     "device_id": "105",
+     "location": "East Concourse Up"
+    },
+    {
+     "device_id": "106",
+     "location": "East Concourse Down"
+    },
+    {
+     "device_id": "107",
+     "location": "West Concourse Down"
+    },
+    {
+     "device_id": "108",
+     "location": "West Concourse Up"
+    },
+    {
+     "device_id": "109",
+     "location": "East Entrance"
+    },
+    {
+     "device_id": "110",
+     "location": "West Entrance"
+    }
+   ],
+   "gtfs_elevator_pathways": 5,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7016",
+   "name": "MacEwan",
+   "title": "MacEwan Station",
+   "gtfs_name": "MacEwan Station",
+   "aliases": [],
+   "lat": 53.547806,
+   "lng": -113.499219,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "130",
+     "location": "Platform",
+     "role": "platform"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "131",
+     "location": "East Entrance"
+    },
+    {
+     "device_id": "132",
+     "location": "West Entrance"
+    }
+   ],
+   "gtfs_elevator_pathways": 2,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "Q7018",
+   "name": "Century Park",
+   "title": "Century Park Station",
+   "gtfs_name": "Century Park Station",
+   "aliases": [],
+   "lat": 53.457805,
+   "lng": -113.516303,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "117",
+     "location": "Platform",
+     "role": "platform"
+    },
+    {
+     "device_id": "118",
+     "location": "East Entrance",
+     "role": "entrance"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "121",
+     "location": "East Entrance"
+    },
+    {
+     "device_id": "122",
+     "location": "Platform"
+    }
+   ],
+   "gtfs_elevator_pathways": 3,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QAVO",
+   "name": "Avonmore",
+   "title": "Avonmore Stop",
+   "gtfs_name": "Avonmore Stop",
+   "aliases": [],
+   "lat": 53.508301,
+   "lng": -113.455149,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QBON",
+   "name": "Bonnie Doon",
+   "title": "Bonnie Doon Stop",
+   "gtfs_name": "Bonnie Doon Stop",
+   "aliases": [],
+   "lat": 53.519699,
+   "lng": -113.455351,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QCHU",
+   "name": "Churchill",
+   "title": "Churchill Stop",
+   "gtfs_name": "Churchill Stop",
+   "aliases": [],
+   "lat": 53.543471,
+   "lng": -113.489376,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QDAV",
+   "name": "Davies",
+   "title": "Davies Station",
+   "gtfs_name": "Davies Station",
+   "aliases": [],
+   "lat": 53.499621,
+   "lng": -113.443907,
+   "access": "elevator",
+   "elevators": [
+    {
+     "device_id": "610",
+     "location": "Davies Station",
+     "role": "entrance"
+    }
+   ],
+   "escalators": [
+    {
+     "device_id": "611",
+     "location": "Davies Station Escalator (Mezzanine)"
+    },
+    {
+     "device_id": "612",
+     "location": "Davies Station Escalator (Ground)"
+    }
+   ],
+   "gtfs_elevator_pathways": 4,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QGRN",
+   "name": "Grey Nuns",
+   "title": "Grey Nuns Stop",
+   "gtfs_name": "Grey Nuns Stop",
+   "aliases": [],
+   "lat": 53.46302,
+   "lng": -113.434653,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QHOL",
+   "name": "Holyrood",
+   "title": "Holyrood Stop",
+   "gtfs_name": "Holyrood Stop",
+   "aliases": [],
+   "lat": 53.528045,
+   "lng": -113.457534,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QMUT",
+   "name": "Muttart",
+   "title": "Muttart Stop",
+   "gtfs_name": "Muttart Stop",
+   "aliases": [],
+   "lat": 53.536271,
+   "lng": -113.479931,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QMW",
+   "name": "Mill Woods",
+   "title": "Mill Woods Stop",
+   "gtfs_name": "Mill Woods Stop",
+   "aliases": [],
+   "lat": 53.458447,
+   "lng": -113.429725,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QMWO",
+   "name": "Millbourne Woodvale",
+   "title": "Millbourne Woodvale Stop",
+   "gtfs_name": "Millbourne/Woodvale Stop",
+   "aliases": [
+    "Millbourne/Woodvale"
+   ],
+   "lat": 53.474723,
+   "lng": -113.438979,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QQUA",
+   "name": "Quarters",
+   "title": "Quarters Stop",
+   "gtfs_name": "Quarters Stop",
+   "aliases": [],
+   "lat": 53.544426,
+   "lng": -113.484008,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  },
+  {
+   "id": "QSTR",
+   "name": "Strathearn",
+   "title": "Strathearn Stop",
+   "gtfs_name": "Strathearn Stop",
+   "aliases": [],
+   "lat": 53.53169,
+   "lng": -113.462462,
+   "access": "at_grade",
+   "elevators": [],
+   "escalators": [],
+   "gtfs_elevator_pathways": 0,
+   "entry_osm_nodes": []
+  }
+ ],
+ "lines": [
+  {
+   "id": "021R",
+   "name": "Capital Line",
+   "short_name": "Capital",
+   "color": "0081BC",
+   "stations": [
+    "Q7018",
+    "Q7013",
+    "Q7012",
+    "Q7011",
+    "Q7009",
+    "Q7015",
+    "Q7008",
+    "Q7007",
+    "Q7000",
+    "Q7003",
+    "Q7004",
+    "Q7014",
+    "Q7006",
+    "Q7001",
+    "Q7005"
+   ],
+   "ride_s": [
+    300,
+    180,
+    60,
+    180,
+    180,
+    120,
+    120,
+    60,
+    60,
+    120,
+    180,
+    180,
+    180,
+    240
+   ],
+   "headsigns": {
+    "0": "Clareview",
+    "1": "Century Park"
+   },
+   "headway_s": {
+    "weekday": [
+     900,
+     900,
+     null,
+     null,
+     null,
+     720,
+     360,
+     360,
+     360,
+     360,
+     600,
+     600,
+     600,
+     600,
+     360,
+     360,
+     360,
+     360,
+     360,
+     900,
+     900,
+     900,
+     900,
+     900
+    ],
+    "saturday": [
+     900,
+     900,
+     null,
+     null,
+     null,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900
+    ],
+    "sunday": [
+     900,
+     null,
+     null,
+     null,
+     null,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900
+    ]
+   },
+   "trips": 3366,
+   "irregular_trips": 0
+  },
+  {
+   "id": "022R",
+   "name": "Metro Line",
+   "short_name": "Metro",
+   "color": "FF0000",
+   "stations": [
+    "Q7009",
+    "Q7015",
+    "Q7008",
+    "Q7007",
+    "Q7000",
+    "Q7003",
+    "Q7004",
+    "Q7016",
+    "Q7010",
+    "Q7002"
+   ],
+   "ride_s": [
+    120,
+    180,
+    120,
+    60,
+    60,
+    120,
+    120,
+    180,
+    180
+   ],
+   "headsigns": {
+    "0": "Nait Blatchford Market",
+    "1": "Health Sciences"
+   },
+   "headway_s": {
+    "weekday": [
+     900,
+     900,
+     null,
+     null,
+     null,
+     720,
+     720,
+     720,
+     720,
+     720,
+     900,
+     900,
+     900,
+     900,
+     720,
+     720,
+     720,
+     720,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900
+    ],
+    "saturday": [
+     900,
+     null,
+     null,
+     null,
+     null,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900
+    ],
+    "sunday": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900
+    ]
+   },
+   "trips": 1612,
+   "irregular_trips": 0
+  },
+  {
+   "id": "023R",
+   "name": "Valley Line",
+   "short_name": "Valley",
+   "color": "008000",
+   "stations": [
+    "QMW",
+    "QGRN",
+    "QMWO",
+    "QDAV",
+    "QAVO",
+    "QBON",
+    "QHOL",
+    "QSTR",
+    "QMUT",
+    "QQUA",
+    "QCHU",
+    "Q102St"
+   ],
+   "ride_s": [
+    120,
+    180,
+    300,
+    180,
+    180,
+    180,
+    120,
+    240,
+    180,
+    120,
+    120
+   ],
+   "headsigns": {
+    "0": "Downtown",
+    "1": "Mill Woods"
+   },
+   "headway_s": {
+    "weekday": [
+     900,
+     900,
+     null,
+     null,
+     null,
+     600,
+     300,
+     300,
+     300,
+     300,
+     600,
+     600,
+     600,
+     600,
+     300,
+     300,
+     300,
+     300,
+     300,
+     600,
+     600,
+     600,
+     900,
+     900
+    ],
+    "saturday": [
+     900,
+     900,
+     null,
+     null,
+     null,
+     600,
+     600,
+     600,
+     600,
+     600,
+     600,
+     600,
+     600,
+     600,
+     600,
+     600,
+     600,
+     600,
+     600,
+     900,
+     900,
+     900,
+     900,
+     900
+    ],
+    "sunday": [
+     900,
+     null,
+     null,
+     null,
+     null,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900,
+     900
+    ]
+   },
+   "trips": 2372,
+   "irregular_trips": 0
+  }
+ ],
+ "transfers": [
+  {
+   "from": "Q7004",
+   "to": "QCHU",
+   "walk_s": 300
+  }
+ ]
+}

@@ -13,6 +13,14 @@ Replay mode (``DATA_MODE=replay``)
     those files, so no adapter code changes between modes and nothing touches the
     network. The web app shows a Replay badge whenever this mode is on.
 
+The replay clock (OP-305)
+    ``REPLAY_AT`` freezes the app's clock at one instant. ``REPLAY_CLOCK=running``
+    starts the clock at ``REPLAY_AT``, or at the snapshot's ``manifest.json``
+    ``replay_at`` (what ``scripts/record_snapshot.py`` writes), and lets it advance
+    in real time from app start, so freshness ages and expiries behave as they
+    would live. Recorded camera readings (``cameras/readings.json``) are loaded
+    into the camera store at startup, re-labelled ``mode: replay``.
+
 Configuration
     ``config/sources.json`` lists the sources by key, with ``enabled`` and optional
     ``cadence_s`` / ``timeout_s`` / ``retries`` overrides. The adapters themselves
@@ -26,14 +34,17 @@ import asyncio
 import json
 import logging
 import os
+import re
+import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 import httpx
+from pydantic import ValidationError
 
 from .scheduler import Source
 
@@ -41,6 +52,11 @@ log = logging.getLogger("openpath.sources")
 
 EDMONTON = ZoneInfo("America/Edmonton")
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "sources.json"
+# Recorded files that are not Socrata datasets (see scripts/record_snapshot.py).
+CONSTRUCTION_FILE = "construction/permits.json"
+CAMERAS_FILE = "cameras/readings.json"
+WEATHER_ARCHIVE_FILE = "open_meteo_archive.json"  # inside the weather folder
+REPLAY_CLOCKS = ("frozen", "running")
 
 # Socrata dataset id -> recorded file inside the replay snapshot folder.
 # Serving these through a fake HTTP transport means the live adapters run unchanged.
@@ -144,42 +160,191 @@ class ReplayPermitReader:
         return rows
 
 
-def replay_clock(snapshot: Path | None) -> Callable[[], datetime]:
-    """The scheduler's clock in replay mode.
+def parse_replay_time(raw: str | None, name: str = "REPLAY_AT") -> datetime | None:
+    """An ISO 8601 instant with a time zone, or None when unset or empty."""
+    if not raw:
+        return None
+    parsed = datetime.fromisoformat(raw)
+    if parsed.tzinfo is None:
+        raise ValueError(f"{name} must include a time zone, e.g. 2026-11-10T18:00:00Z")
+    return parsed.astimezone(UTC)
 
-    ``REPLAY_AT`` (ISO 8601) freezes time so date-bound records (permits, closures)
-    stay in force during a demo. Without it, replay uses the real clock.
+
+def read_manifest(snapshot: Path | None) -> dict[str, Any]:
+    """The snapshot's ``manifest.json`` (what the recorder writes), or ``{}``."""
+    if snapshot is None:
+        return {}
+    path = Path(snapshot) / "manifest.json"
+    if not path.is_file():
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return data if isinstance(data, dict) else {}
+
+
+def manifest_time(snapshot: Path | None) -> datetime | None:
+    """The clock a recording should start at: ``replay_at``, else ``recorded_at``."""
+    manifest = read_manifest(snapshot)
+    for key in ("replay_at", "recorded_at"):
+        value = manifest.get(key)
+        if isinstance(value, str) and value:
+            return parse_replay_time(value, f"manifest.json {key}")
+    return None
+
+
+def running_clock(
+    start: datetime, *, monotonic: Callable[[], float] | None = None
+) -> Callable[[], datetime]:
+    """A clock that reads ``start`` now and advances in real time from here.
+
+    It counts on the monotonic clock, so a laptop's clock adjustment during a demo
+    cannot make replay time jump or run backwards.
     """
-    raw = os.environ.get("REPLAY_AT")
-    if raw:
-        frozen = datetime.fromisoformat(raw)
-        if frozen.tzinfo is None:
+    tick = monotonic or time.monotonic
+    origin = tick()
+    return lambda: start + timedelta(seconds=tick() - origin)
+
+
+def replay_clock(snapshot: Path | None) -> Callable[[], datetime]:
+    """The app's clock in replay mode (scheduler, map and route hazards).
+
+    ``REPLAY_AT`` (ISO 8601 with a zone) freezes time so date-bound records
+    (permits, closures) stay in force during a demo. ``REPLAY_CLOCK=running`` starts
+    at ``REPLAY_AT``, or at the snapshot manifest's ``replay_at``, and advances in
+    real time from app start. ``REPLAY_CLOCK=frozen`` freezes at the manifest time
+    when ``REPLAY_AT`` is unset. Without either, replay uses the real clock
+    (``make dev`` with the test fixtures).
+    """
+    kind = (os.environ.get("REPLAY_CLOCK") or "").strip().lower()
+    if kind and kind not in REPLAY_CLOCKS:
+        raise ValueError(f"REPLAY_CLOCK must be 'frozen' or 'running', not {kind!r}")
+    start = parse_replay_time(os.environ.get("REPLAY_AT"))
+    if start is None and kind:
+        start = manifest_time(snapshot)
+        if start is None:
             raise ValueError(
-                "REPLAY_AT must include a time zone, e.g. 2026-11-10T18:00:00Z"
+                f"REPLAY_CLOCK={kind} needs REPLAY_AT or a manifest.json with "
+                f"replay_at in the REPLAY_SNAPSHOT folder ({snapshot})"
             )
-        return lambda: frozen
-    return lambda: datetime.now(UTC)
+    if start is None:
+        return lambda: datetime.now(UTC)
+    if kind == "running":
+        log.info("REPLAY clock running from %s", start.isoformat())
+        return running_clock(start)
+    log.info("REPLAY clock frozen at %s", start.isoformat())
+    return lambda: start
+
+
+def load_replay_cameras(snapshot: Path, camera_store: Any, now: datetime) -> int:
+    """Load recorded camera readings (``cameras/readings.json``) into the store.
+
+    The recorder copies ``GET /api/cameras`` of a live API. Each feature becomes
+    the reading the worker would have posted, labelled ``mode: replay`` so the map
+    and the ice rule never mistake it for a live reading. Times stay as recorded,
+    so the readings show only while the replay clock is inside their lifetime.
+    Returns how many were stored; a bad feature is skipped with a log line.
+    """
+    from .camera_readings import CameraReadingIn
+
+    path = Path(snapshot) / CAMERAS_FILE
+    if not path.is_file():
+        return 0
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        # A bad recording must never stop the demo: serve the rest without cameras.
+        log.warning("REPLAY cameras unreadable, none loaded: %s (%s)", path, error)
+        return 0
+    features = data.get("features", []) if isinstance(data, dict) else []
+    stored = skipped = 0
+    for feature in features:
+        try:
+            props = dict(feature["properties"])
+            props.pop("age_s", None)
+            lng, lat = feature["geometry"]["coordinates"]
+            reading = CameraReadingIn(
+                **{**props, "latitude": lat, "longitude": lng, "mode": "replay"}
+            )
+        except (KeyError, TypeError, ValueError, ValidationError) as error:
+            skipped += 1
+            log.warning("SKIP replay camera reading: %s", str(error).splitlines()[0])
+            continue
+        camera_store.upsert(reading, now)
+        stored += 1
+    log.info("REPLAY cameras loaded=%d skipped=%d from %s", stored, skipped, path)
+    return stored
 
 
 # ------------------------------------------------------------------- the weather
 
 
+def replay_weather_folder(snapshot: Path) -> Path:
+    """``<snapshot>/weather``, or a named recording under it chosen by ``WEATHER_REPLAY``.
+
+    ``WEATHER_REPLAY=freeze_thaw`` with the test fixtures serves the recorded
+    freeze-thaw night in ``cloud/tests/fixtures/weather/freeze_thaw/``.
+    """
+    folder = Path(snapshot) / "weather"
+    variant = (os.environ.get("WEATHER_REPLAY") or "").strip()
+    if not variant:
+        return folder
+    if not re.fullmatch(r"[a-z0-9_]+", variant):
+        raise ValueError(
+            f"WEATHER_REPLAY must name a folder under weather/ (letters, digits, "
+            f"underscores), not {variant!r}"
+        )
+    folder = folder / variant
+    if not folder.is_dir():
+        raise ValueError(f"WEATHER_REPLAY={variant}: {folder} is not a folder")
+    return folder
+
+
 def build_weather_service(
-    mode: str, snapshot: Path | None, client: httpx.AsyncClient
+    mode: str,
+    snapshot: Path | None,
+    client: httpx.AsyncClient,
+    clock: Callable[[], datetime] | None = None,
 ) -> Any:
-    """The weather watch (OP-109), live from ECCC and Open-Meteo or from recorded files."""
+    """The weather watch (OP-109), live from ECCC and Open-Meteo or from recorded files.
+
+    Replay reads the weather folder of the snapshot. A recorded live pair
+    (``eccc.json`` and ``open_meteo.json``) is served at its observation time, as
+    before. A recorded archive night (``open_meteo_archive.json``, OP-305) is served
+    at the hour the app's ``clock`` points at, or at the recording's documented demo
+    hour when the clock is outside the night; see ``weather_replay``.
+    """
     from .adapters.weather import WeatherSources, normalize_weather, timestamp
     from .weather_service import WeatherService
 
     if mode == "replay":
         if snapshot is None:
             raise ValueError("DATA_MODE=replay requires REPLAY_SNAPSHOT")
-        eccc = json.loads(
-            (snapshot / "weather" / "eccc.json").read_text(encoding="utf-8")
-        )
-        meteo = json.loads(
-            (snapshot / "weather" / "open_meteo.json").read_text(encoding="utf-8")
-        )
+        folder = replay_weather_folder(snapshot)
+        archive_path = folder / WEATHER_ARCHIVE_FILE
+        if archive_path.is_file():
+            from . import weather_replay
+
+            archive = json.loads(archive_path.read_text(encoding="utf-8"))
+            manifest_path = folder / "manifest.json"
+            manifest = (
+                json.loads(manifest_path.read_text(encoding="utf-8"))
+                if manifest_path.is_file()
+                else {}
+            )
+            demo_at = parse_replay_time(
+                manifest.get("replay_at"), "weather manifest.json replay_at"
+            ) or weather_replay.demo_hour(weather_replay.watch_table(archive))
+            log.info(
+                "REPLAY weather from archive %s, demo hour %s",
+                archive_path,
+                demo_at.isoformat(),
+            )
+            return WeatherService(
+                weather_replay.archive_fetch(archive, demo_at),
+                mode="replay",
+                clock=clock or (lambda: demo_at),
+            )
+        eccc = json.loads((folder / "eccc.json").read_text(encoding="utf-8"))
+        meteo = json.loads((folder / "open_meteo.json").read_text(encoding="utf-8"))
         recorded = max(
             timestamp(f["properties"]["obs_date_tm"]) for f in eccc["features"]
         )
@@ -420,10 +585,20 @@ _BUILDERS: dict[str, Builder] = {
 }
 
 __all__ = [
+    "CAMERAS_FILE",
+    "CONSTRUCTION_FILE",
+    "REPLAY_FILES",
+    "WEATHER_ARCHIVE_FILE",
     "SourceConfig",
     "build_sources",
     "build_weather_service",
     "load_config",
+    "load_replay_cameras",
+    "manifest_time",
+    "parse_replay_time",
+    "read_manifest",
     "replay_clock",
     "replay_transport",
+    "replay_weather_folder",
+    "running_clock",
 ]

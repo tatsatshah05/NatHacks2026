@@ -10,5 +10,7 @@ uvicorn[standard]>=0.30,<1
 # The prebuilt walking network, cloud/app/network.py (OP-104).
 numpy>=2,<3
 scipy>=1.13,<2
+# Web Push for saved-route alerts (OP-304); brings py-vapid and cryptography.
+pywebpush>=2,<3
 # Time zones for zoneinfo (America/Edmonton); Windows has no system time zone database.
 tzdata>=2026.6

@@ -1118,6 +1118,8 @@ Discuss these as a team; the lead records each decision in this table by the tim
 
 **Decided:** the camera worker posts a reading only when the ONNX model and Claude agree (November 8, lead). Any disagreement, refusal or API error gives `unknown`. Claude Haiku 5.5 checks readings by default to keep cost down; Opus 5.5 and Sonnet 5.5 are available with `--ai-check`. Frames are sent to the Anthropic API in memory and never stored by us. Measured results are in `vision/MODEL_CARD.md`.
 
+**Decided:** saved routes and push alerts (OP-304) add three endpoints to section 10's API for the alerts page (OP-306), as a Phase 3 decision recorded with OP-304 (November 8): `GET /api/saved-routes?client_id=` and `DELETE /api/saved-routes/{id}?client_id=` to list and remove a browser's saved routes, `POST /api/push/test` for the "Send me a test alert" button, plus `GET /api/push/public-key` so the web app reads the VAPID public key at run time. There are still no accounts: the anonymous `client_id` is a random id the browser generates and keeps, and whoever holds it can list and delete that browser's routes. Limits: 10 saved routes and 5 push subscriptions per `client_id`.
+
 ## 17. Sources
 
 - [City of Edmonton Open Data portal](https://data.edmonton.ca)

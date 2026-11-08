@@ -108,6 +108,13 @@ One section per source. Each adapter's owner keeps their section current: what t
   timestamps, wrong units and negative precipitation.
 - Attribution: Weather data by Open-Meteo.com, CC BY 4.0:
   https://open-meteo.com/en/licence
+- Historical archive (OP-305, replay only): https://archive-api.open-meteo.com/v1/archive
+  (ERA5 reanalysis), hourly `temperature_2m`, `dew_point_2m`, `precipitation` and
+  `soil_temperature_0_to_7cm` in UTC. Recorded by `scripts/record_snapshot.py
+  --weather-archive`; the committed freeze-thaw night is in
+  `cloud/tests/fixtures/weather/freeze_thaw/` (see [OP-305](OP-305.md)). Its soil
+  value is a 0 to 7 cm layer average, not the 0 cm surface value. Attribution adds
+  "Contains modified Copernicus Climate Change Service information".
 
 ## Reliability and recordings
 
@@ -144,3 +151,81 @@ shared app's sources page when integrated.
 **Licence and attribution.** City of Edmonton Open Data Terms of Use; shown as "City of Edmonton Open Data".
 
 **Recorded sample.** `cloud/tests/fixtures/traffic_disruptions/current.json` holds 30 current rows recorded on November 8, 2026 (see `manifest.json`), used by the tests and by replay mode.
+
+## Parcel Addresses, LRT Stations and Named Places: Search (OP-302, Matthew)
+
+**What it is.** The index behind `GET /api/search?q=`, which turns typed text into a point to route from or to. It has three parts:
+
+- **Addresses:** the City's Parcel Addresses (dataset `ut27-nrpn`, updated weekly).
+- **LRT stations and stops:** the City's LRT Stations and Stops (dataset `fhxi-cnhe`).
+- **Named places:** about fifty well-known destinations from `config/places.json`.
+
+**How we access it.** `scripts/build_search_index.py` reads both datasets once, on a laptop, from the City open data API (`https://data.edmonton.ca/resource/<id>.json`, paged with `$limit`/`$offset`, sending `SOCRATA_APP_TOKEN` as `X-App-Token` when it is set). It writes `cloud/data/search.npz`, which is committed. The API loads that file at startup (`cloud/app/search.py`). No external geocoder is ever called, and nothing is downloaded at request time. `python scripts/build_search_index.py --fixtures` builds a small index offline from the recorded sample.
+
+**Licence and attribution.** City of Edmonton Open Data Terms of Use (the dataset metadata lists "See Terms of Use" and attribution "City of Edmonton"). Shown as "City of Edmonton Open Data" on `/sources` and with search results. The index stores public address points only: no owner names or other personal information.
+
+**Update cadence.** Rebuild weekly, or when a new address is missing. Run `python scripts/build_search_index.py --write-places` (20 seconds on November 8, almost all of it downloading), check the printed counts, and commit `cloud/data/search.npz` and `config/places.json`.
+
+**What the index holds.**
+
+- **Addresses:** one entry per (house number, street). The point is the mean of the address's parcel points. An address that exists only as suites (58,064 of them, including Edmonton City Centre and Stantec Tower) uses the mean of its suite points instead.
+- **Stations:** one entry per station or stop name, at the mean of its platform points.
+- **Places:** each place in `config/places.json` with its street address. Its coordinate source is recorded:
+  - `parcel_address`: the parcel point of the place's own address (48 places).
+  - `lrt_station`: the address is not in the dataset, so the point is the station beside the place (6 places). The entry's note says how far away the station is (about 100 to 370 m).
+- **Station aliases:** `config/places.json` also adds names people use, such as "Government Centre" for Government Station.
+
+**Measured on November 8, 2026** (live build at 15:51 UTC):
+
+| Measurement | Value |
+| --- | --- |
+| Rows read | 298,785 parcel rows and 264,967 distinct suite points (all 778,288 rows of the dataset) |
+| Addresses indexed / streets | 346,922 / 2,913 |
+| Stations / named places | 29 / 54 |
+| Coverage | The whole city: bbox -113.7134, 53.3384 to -113.2784, 53.7152, so no central-area limit is needed |
+| File size | 1.7 MB |
+| Load time / memory added | about 20 ms / about 10 MB |
+| Search time, 200 realistic queries in process (`python -m cloud.app.search --bench`) | p50 0.12 ms, p95 0.70 ms, max 0.75 ms |
+| Search time, the same 200 queries over HTTP to a local `uvicorn` | p50 0.69 ms, p95 1.87 ms, max 18.85 ms |
+
+The target is under 200 ms for the top 8 results. These measurements are from one laptop (Apple M4, macOS). Render's CPU is not measured yet; it will be slower, but these times leave a wide margin.
+
+**Recorded sample.** `cloud/tests/fixtures/parcel_addresses/` holds unmodified responses for a downtown box (latitude 53.539 to 53.548, longitude -113.500 to -113.485): 310 parcel rows and 515 suite points, recorded on November 8, 2026. `manifest.json` lists the queries and SHA-256 hashes. Tests and the `--fixtures` build use it with the recorded LRT stations; they never call the network.
+
+**Known limits.**
+- Unit numbers (`sub_address`, such as suite 71 or REAR) are merged into the base address, so units are not searchable.
+- A street with no house number ("jasper ave") finds no addresses, only places and stations whose names or addresses contain those words.
+- House numbers with a letter suffix ("1A Sir Winston Churchill Square") are not in the dataset's numeric `house_number`, so places at such addresses are left out (the Law Courts).
+- Some well-known sites have no matching parcel address: the Valley Zoo, Louise McKinney Park, Victoria Park and the Old Strathcona Farmers' Market. They are left out of `config/places.json` rather than given a guessed point. Whyte Avenue is a street, so its place uses one Whyte Avenue parcel near 104 Street.
+
+## ETS GTFS Schedule (OP-311)
+
+**What it is.** The Edmonton Transit Service timetable in GTFS form: routes, stops, trips, stop times, calendars, station pathways and transfers. OpenPath uses only the light-rail routes (`route_type` 0: Capital Line `021R`, Metro Line `022R`, Valley Line `023R`, all `agency_id` 1, Edmonton Transit Service) for walk and LRT trips. The feed also carries the regional agencies (St. Albert, Strathcona County and others); they are ignored.
+
+**How we access it.** One official download of `https://gtfs.edmonton.ca/TMGTFSRealTimeWebService/GTFS/GTFS.zip`, the City's GTFS server (the producer URL the feed lists), by `scripts/build_lrt_graph.py` (`make lrt`) on a laptop. The script reads the zip in a temporary folder, writes the compact `cloud/data/lrt.json` and deletes the zip. The zip is never committed, and the API never downloads or reads GTFS: it loads `lrt.json` at startup.
+
+**Licence and attribution.** The feed's own `attributions.txt` names Edmonton Transit Service as producer and links the [City of Edmonton Open Data Terms of Use](https://data.edmonton.ca/stories/s/City-of-Edmonton-Open-Data-Terms-of-Use/msh8-if28/). Shown as "Schedule: Edmonton Transit Service, City of Edmonton Open Data" on every walk and LRT trip (`lrt.attribution`) and, once the web app lists it, on `/sources`. The terms were checked only through the feed's `attributions.txt`; confirm the wording on that page before launch.
+
+**Update cadence.** The City republishes the feed several times a season; PLAN.md section 6 plans a weekly rebuild. Each walk and LRT trip warns when the date has passed the schedule's `feed_end_date`.
+
+**Measured on November 8, 2026** (`python scripts/build_lrt_graph.py --gtfs <zip>`):
+
+| Measurement | Value |
+| --- | --- |
+| Feed version / service dates | `261023_1059` / October 23 to December 12, 2026 |
+| Zip size | 17.7 MB (`stop_times.txt` alone is 166 MB unzipped) |
+| Light-rail trips with stop times | 7,350 (0 irregular) |
+| Passenger stations | 30: Capital 15, Metro 10, Valley 12 (shared stations counted once) |
+| Scheduled end-to-end ride | Capital 36 min, Metro 19 min, Valley 32 min |
+| Weekday headway at 08:00 | Capital 6 min, Metro 12 min, Valley 5 min |
+| City elevators tied to a station / at-grade stations | 32 of 32 / 16 |
+| `cloud/data/lrt.json` | 20.3 kB |
+| Build time from a downloaded zip | about 5 s |
+
+**What `lrt.json` holds.** Stations (GTFS parent station id, City name, location, access type, the City elevators and escalators by device id with a `platform` or `entrance` role, and any reviewed OP-106 entry nodes), lines (station order, median scheduled ride time between consecutive stations, headsigns, median headway per hour for a weekday, Saturday and Sunday) and transfer pairs between nearby stations of different lines. `docs/OP-311.md` explains each rule.
+
+**Known limits.**
+- Three platforms where no trip lets anyone board or alight (Heath Sciences Tail Track, DL Macdonald Platform and Kathleen Andrews Platform) are not passenger stations; ride times span them.
+- Holidays are not modelled: the busiest date of each day type stands for it.
+- A station with no City elevator and no GTFS elevator pathway is treated as reachable without stairs (`at_grade`). That is an inference from the two datasets, not a survey.
+- Live LRT status is the City outage feed (`snws-u3zx`, OP-105), never the GTFS feed. Waits are schedule estimates, never live arrivals.

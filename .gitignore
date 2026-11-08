@@ -41,3 +41,7 @@ web/*.tsbuildinfo
 
 # Local agent worktrees (Claude Code); never part of the repository
 .claude/worktrees/
+
+# Replay snapshots from `make record` (OP-305). A full one is over CI's 5 MB file
+# limit, so snapshots stay on the laptop; see docs/OP-305.md.
+snapshots/

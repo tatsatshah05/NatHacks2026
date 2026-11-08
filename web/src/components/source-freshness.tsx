@@ -1,34 +1,34 @@
+import TimeAgo from "./ui/time-ago";
 import { SourceStatus } from "@/lib/planner-types";
-import { formatAgo, formatDate, plural, sourceLabel } from "@/lib/report-format";
+import { formatAgo, plural, sourceLabel } from "@/lib/report-format";
 
 // When each source was last read. A stale source keeps its last good data, and says so.
 export default function SourceFreshness({ sources, now }: { sources: SourceStatus[]; now: Date }) {
   return (
-    <ul className="source-list">
+    <ul className="sources">
       {sources.map((source) => {
-        const ago = formatAgo(source.last_success, now);
         const failed = plural(source.consecutive_failures, "attempt", "attempts");
         return (
           <li key={source.source} className={source.stale ? "is-stale" : undefined}>
-            <span className="source-name">
-              {source.stale && <span aria-hidden="true">⚠ </span>}
-              {sourceLabel(source.source)}
-            </span>
+            <strong>{sourceLabel(source.source)}</strong>
             <span>
-              {source.stale ? "Out of date: last read " : "Checked "}
-              {ago && source.last_success ? (
-                <time dateTime={source.last_success} title={formatDate(source.last_success)}>{ago}</time>
+              {source.stale ? (
+                <>
+                  <strong>Out of date.</strong> Last read{" "}
+                  {formatAgo(source.last_success, now) ?? "at an unknown time"}. {failed} failed; its last known items
+                  are still used.
+                </>
               ) : (
-                "at an unknown time"
+                <TimeAgo iso={source.last_success} now={now} />
               )}
-              {source.stale
-                ? `. ${failed} failed; its last known items are still used.`
-                : ""}
             </span>
             {source.url && (
-              <a href={source.url} rel="noreferrer">
-                Dataset<span className="sr-only"> for {sourceLabel(source.source)}</span>
-              </a>
+              <>
+                {" "}
+                <a href={source.url} rel="noreferrer">
+                  Dataset<span className="sr-only"> for {sourceLabel(source.source)}</span>
+                </a>
+              </>
             )}
           </li>
         );

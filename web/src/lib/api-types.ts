@@ -124,6 +124,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Report
+         * @description Report snow, ice or a blocked path at a point in Edmonton, with an optional photo.
+         *
+         *     The report becomes a ``community_report`` obstruction straight away and expires
+         *     after the hours in ``config/reports.json``. A photo that a photo check confirms
+         *     gives medium confidence; anything else gives low. The photo is never stored.
+         */
+        post: operations["post_report_api_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -453,6 +477,25 @@ export interface components {
          * @enum {string}
          */
         Outcome: "new" | "changed" | "same" | "older";
+        /**
+         * PhotoResult
+         * @description What happened to the photo, for the response. Never the photo itself.
+         */
+        PhotoResult: {
+            /** Received */
+            received: boolean;
+            /** Checked */
+            checked: boolean;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "none" | "agrees" | "disagrees" | "unusable" | "unverifiable" | "unavailable";
+            /** Label */
+            label: string | null;
+            /** Note */
+            note: string;
+        };
         /** ReportGroupOut */
         ReportGroupOut: {
             category: components["schemas"]["Category"];
@@ -505,6 +548,39 @@ export interface components {
              * @description Why the item cannot change routes, when that is not obvious.
              */
             note: string | null;
+        };
+        /**
+         * ReportResult
+         * @description The ``POST /api/reports`` response: the stored item's identity and what happened.
+         */
+        ReportResult: {
+            /** Id */
+            id: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "snow" | "ice" | "blocked";
+            kind: components["schemas"]["Kind"];
+            effect: components["schemas"]["Effect"];
+            confidence: components["schemas"]["Confidence"];
+            /** Title */
+            title: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Expires In Hours */
+            expires_in_hours: number;
+            photo: components["schemas"]["PhotoResult"];
+            /** Message */
+            message: string;
         };
         /** RouteOut */
         RouteOut: {
@@ -846,6 +922,104 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CameraCollection"];
                 };
+            };
+        };
+    };
+    post_report_api_reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Client Id
+                     * @description The device's anonymous id: 16 to 64 letters, digits, _ or -.
+                     * @example 3f9c2a7d1e8b4c6f9a0d2e4b6c8f1a3d
+                     */
+                    client_id: string;
+                    /**
+                     * Type
+                     * @enum {string}
+                     */
+                    type: "snow" | "ice" | "blocked";
+                    /** Lat */
+                    lat: number;
+                    /** Lng */
+                    lng: number;
+                    /**
+                     * Note
+                     * @description Optional plain text shown with the report.
+                     */
+                    note?: string | null;
+                    /**
+                     * Photo
+                     * @description Optional JPEG or PNG file, at most 5 MB. Classified in memory and never stored.
+                     */
+                    photo?: string | null;
+                };
+                "application/json": {
+                    /**
+                     * Client Id
+                     * @description The device's anonymous id: 16 to 64 letters, digits, _ or -.
+                     * @example 3f9c2a7d1e8b4c6f9a0d2e4b6c8f1a3d
+                     */
+                    client_id: string;
+                    /**
+                     * Type
+                     * @enum {string}
+                     */
+                    type: "snow" | "ice" | "blocked";
+                    /** Lat */
+                    lat: number;
+                    /** Lng */
+                    lng: number;
+                    /**
+                     * Note
+                     * @description Optional plain text shown with the report.
+                     */
+                    note?: string | null;
+                    /**
+                     * Photo
+                     * @description Optional JPEG or PNG, base64 encoded (a data: URL is accepted), at most 5 MB decoded. Classified in memory and never stored.
+                     */
+                    photo?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResult"];
+                };
+            };
+            /** @description The body or the photo is too large (5 MB photo limit). */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not JSON or multipart, or the photo is not JPEG or PNG. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many reports; see the Retry-After header. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
