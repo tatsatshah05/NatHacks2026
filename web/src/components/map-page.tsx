@@ -4,8 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getObstructions } from "@/lib/api";
 import { Obstruction } from "@/lib/types";
 import MapView from "./map-view";
-import { formatObserved, getKindMeta, kindMeta } from "./obstruction-meta";
-import Link from "next/link";
+import { getKindMeta } from "./obstruction-meta";
+import Button from "./ui/button";
+import HazardMark, { HAZARD_SHAPES, effectShape, effectText } from "./ui/hazard-mark";
+import SiteFooter from "./ui/site-footer";
+import SiteHeader from "./ui/site-header";
+import StatusLine from "./ui/status-line";
+import TimeAgo from "./ui/time-ago";
+
+// The four shapes a city obstruction can take, for the legend under the map.
+const LEGEND = HAZARD_SHAPES.filter((shape) => shape !== "start" && shape !== "clear");
+const LEGEND_TEXT: Record<string, string> = { blocked: "Blocked", ice: "Ice risk", snow: "Snow", caution: "Caution" };
 
 export default function MapPage() {
   const [obstructions, setObstructions] = useState<Obstruction[]>([]);
@@ -13,16 +22,19 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
       setObstructions(await getObstructions(signal));
-      setLastUpdated(new Date());
+      const at = new Date();
+      setLastUpdated(at);
+      setNow(at);
     } catch (reason) {
       if (reason instanceof DOMException && reason.name === "AbortError") return;
-      setError(reason instanceof Error ? reason.message : "Unable to load current conditions.");
+      setError(reason instanceof Error ? reason.message : "The condition service did not answer.");
     } finally {
       setLoading(false);
     }
@@ -31,53 +43,109 @@ export default function MapPage() {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    return () => controller.abort();
+    const timer = window.setInterval(() => setNow(new Date()), 30000);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+    };
   }, [load]);
 
   const selected = useMemo(() => obstructions.find((item) => item.id === selectedId), [obstructions, selectedId]);
+  const count = loading
+    ? "Loading current conditions."
+    : error
+      ? ""
+      : obstructions.length
+        ? `${obstructions.length} current ${obstructions.length === 1 ? "condition" : "conditions"} across Edmonton.`
+        : "";
 
   return (
-    <main className="app-shell">
-      <header className="site-header">
-        <Link className="brand" href="/" aria-label="OpenPath home"><span className="brand-mark" aria-hidden="true">⌁</span><span>OpenPath</span></Link>
-        <nav aria-label="Primary navigation"><a href="#conditions">Conditions</a><a href="#legend">Legend</a><a href="#about">About</a></nav>
-        <button className="outline-button" type="button" onClick={() => void load()}>Refresh</button>
-      </header>
+    <div className="shell">
+      <SiteHeader current="city" />
 
-      <section className="hero" aria-labelledby="page-title">
-        <p className="eyebrow">Edmonton · live accessibility conditions</p>
-        <h1 id="page-title">Know before you go.</h1>
-        <p className="hero-copy">A clear view of current barriers, closures, snow and ice risks across the city.</p>
-      </section>
+      <main id="main" className="page">
+        <div className="page-main">
+          <h1 className="page-title">City conditions</h1>
+          <div className="freshness">
+            <p className="muted">
+              {lastUpdated ? <TimeAgo iso={lastUpdated.toISOString()} now={now} verb="Updated" /> : "Not loaded yet."}
+            </p>
+            <Button variant="secondary" onClick={() => void load()} disabled={loading}>
+              Refresh conditions
+            </Button>
+          </div>
 
-      <section id="conditions" className="workspace" aria-label="Current conditions">
-        <div className="map-panel">
-          <div className="panel-heading"><div><p className="eyebrow">City overview</p><h2>Current obstructions</h2></div><span className="live-pill"><span aria-hidden="true" /> Live data</span></div>
-          {error && <div className="alert" role="alert"><strong>Conditions are unavailable.</strong><span>{error}</span><button type="button" onClick={() => void load()}>Try again</button></div>}
-          {loading && <div className="loading-bar" aria-label="Loading current conditions" />}
-          <MapView obstructions={obstructions} selectedId={selectedId} onSelect={setSelectedId} />
-          <p className="map-help">Use the + and − controls to zoom. Select a marker or use the list to inspect an obstruction.</p>
+          {error && (
+            <div className="alert" role="alert">
+              <p>
+                <strong>Conditions could not be loaded.</strong> {error} Try again, or plan a route with the last known
+                conditions.
+              </p>
+              <Button variant="secondary" onClick={() => void load()}>
+                Try again
+              </Button>
+            </div>
+          )}
+          <StatusLine>{count}</StatusLine>
+
+          {!loading && !error && !obstructions.length && (
+            <p>No current obstructions are reported. Plan a route to see conditions along it.</p>
+          )}
+          {obstructions.length > 0 && (
+            <ul className="city-list" aria-label="Current conditions">
+              {obstructions.map((item) => {
+                const kind = getKindMeta(item.kind).label;
+                const pressed = selectedId === item.id;
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      className="list-button"
+                      aria-pressed={pressed}
+                      onClick={() => setSelectedId(pressed ? null : item.id)}
+                    >
+                      <HazardMark shape={effectShape(item.effect)} label={kind} />
+                      <p className="item-title">{item.title}</p>
+                      {item.detail && <p className="muted">{item.detail}</p>}
+                      <p className="muted">
+                        <TimeAgo iso={item.observed_at} now={now} />
+                      </p>
+                      <span className="sr-only">{pressed ? ", shown on the map" : ", show on the map"}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {selected && (
+            <div className="selected-detail" role="status">
+              <h2>{selected.title}</h2>
+              <p>
+                {effectText(selected.effect)}. {selected.detail || "No more detail from the source."}
+              </p>
+              {selected.attribution && <p className="muted">Source: {selected.attribution}</p>}
+            </div>
+          )}
         </div>
 
-        <aside className="side-panel" aria-labelledby="list-title">
-          <div className="panel-heading"><div><p className="eyebrow">At a glance</p><h2 id="list-title">{obstructions.length} reported</h2></div>{lastUpdated && <time dateTime={lastUpdated.toISOString()}>Updated {lastUpdated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time>}</div>
-          <div className="obstruction-list">
-            {!loading && !error && !obstructions.length && <p className="empty-state">No current obstructions were reported by the data service.</p>}
-            {obstructions.map((item) => {
-              const meta = getKindMeta(item.kind);
-              return <button key={item.id} type="button" className={`obstruction-card${selectedId === item.id ? " selected" : ""}`} onClick={() => setSelectedId(item.id)} aria-pressed={selectedId === item.id}>
-                <span className={`card-icon ${meta.pattern}`} aria-hidden="true">{meta.icon}</span>
-                <span className="card-content"><strong>{item.title}</strong><span>{item.detail || meta.label}</span><small>{formatObserved(item.observed_at)}</small></span>
-                <span className="sr-only">Select on map</span>
-              </button>;
-            })}
-          </div>
-          {selected && <div className="selected-detail" role="status"><strong>{selected.title}</strong><p>{selected.detail || "No additional detail available."}</p>{selected.attribution && <small>Source: {selected.attribution}</small>}</div>}
-        </aside>
-      </section>
+        <div className="page-side">
+          <h2 className="sr-only">Map</h2>
+          <MapView obstructions={obstructions} selectedId={selectedId} onSelect={setSelectedId} />
+          <ul className="legend" aria-label="Map shapes">
+            {LEGEND.map((shape) => (
+              <li key={shape}>
+                <HazardMark shape={shape} label={LEGEND_TEXT[shape]} size={18} />
+              </li>
+            ))}
+          </ul>
+          <p className="muted">The list holds everything the map shows. Use the + and − buttons to zoom.</p>
+        </div>
+      </main>
 
-      <section id="legend" className="legend-section" aria-labelledby="legend-title"><div><p className="eyebrow">Read the map</p><h2 id="legend-title">Every condition has a sign</h2></div><div className="legend-grid">{Object.entries(kindMeta).map(([kind, meta]) => <div className="legend-item" key={kind}><span className={`card-icon ${meta.pattern}`} aria-hidden="true">{meta.icon}</span><span>{meta.label}</span></div>)}</div></section>
-      <footer id="about"><strong>OpenPath</strong><span>Accessible information for every Edmonton journey.</span><span>Map data © OpenStreetMap contributors.</span></footer>
-    </main>
+      <SiteFooter>
+        <p>Map data © OpenStreetMap contributors.</p>
+      </SiteFooter>
+    </div>
   );
 }
