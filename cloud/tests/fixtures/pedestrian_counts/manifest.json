@@ -1,0 +1,15 @@
+{
+  "source": "https://data.edmonton.ca/resource/sw7k-ptx8.json",
+  "recorded_at": "2026-11-08T16:28:39Z",
+  "query": "https://data.edmonton.ca/resource/sw7k-ptx8.json {\"$select\": \"counter_location_description,latitude,longitude,log_timstamp,total_pedestrian_count\", \"$where\": \"log_timstamp >= '2026-07-11T00:00:00'\", \"$order\": \":id\"}",
+  "content": "The official rows of the named counters only; no token.",
+  "locations": [
+    "103 Street N of 102 Avenue",
+    "Funicular @ 100 St",
+    "Hermitage South",
+    "High Level Bridge West",
+    "Railtown Park SUP"
+  ],
+  "days": "2026-10-04 to 2026-11-07",
+  "rows": 171
+}
