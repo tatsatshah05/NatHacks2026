@@ -16,7 +16,12 @@ import { HazardShape, HazardShapeIcon } from "./ui/hazard-mark";
 import SegmentedChoice from "./ui/segmented-choice";
 import styles from "./report-button.module.css";
 
-type ReportResult = components["schemas"]["ReportResult"];
+// `photo.checked_by` is additive in the API (branch op-308-photo-check-both, not yet in
+// api-types.ts): the checks that answered, in order. Optional until `make types` picks
+// it up after that merge; then this widening can go.
+type CheckName = "model" | "claude";
+type PhotoResult = components["schemas"]["PhotoResult"] & { checked_by?: CheckName[] };
+type ReportResult = Omit<components["schemas"]["ReportResult"], "photo"> & { photo: PhotoResult };
 type ValidationErrorBody = components["schemas"]["HTTPValidationError"];
 type ReportForm =
   operations["post_report_api_reports_post"]["requestBody"]["content"]["multipart/form-data"];
@@ -70,6 +75,15 @@ function placeText(location: ReportLocation, source: LocationSource): string {
   if (location.label) return location.label;
   const where = source === "device" ? "your location" : "the map centre";
   return `${where} (${location.lat.toFixed(5)}, ${location.lng.toFixed(5)})`;
+}
+
+const CHECK_TEXT: Record<CheckName, string> = { model: "the model", claude: "Claude" };
+
+/** "Photo checked by the model and Claude", "Photo not checked"; null for an older API. */
+function checkedText(photo: PhotoResult): string | null {
+  if (!photo.received || !photo.checked_by) return null;
+  if (!photo.checked_by.length) return "Photo not checked.";
+  return `Photo checked by ${photo.checked_by.map((name) => CHECK_TEXT[name] ?? name).join(" and ")}.`;
 }
 
 function hoursText(hours: number): string {
@@ -406,7 +420,8 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
                 aria-describedby={describedBy("photo-hint", Boolean(errors.photo) && "photo-error")}
               />
               <p id={id("photo-hint")} className={styles.hint}>
-                A photo can help confirm snow or ice. OpenPath never stores photos.
+                A photo helps confirm snow, ice or a blocked path. It is checked by our model and by Claude, then deleted;
+                we never keep it.
               </p>
               {photo && (
                 <div className={styles.photoChosen}>
@@ -466,6 +481,7 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
         {step === "done" && result && (
           <div className={styles.body}>
             <p className={styles.success}>Thanks. Your report is live for the next {hoursText(result.expires_in_hours)}.</p>
+            {checkedText(result.photo) && <p>{checkedText(result.photo)}</p>}
             <p>{result.photo.note}</p>
             <p className={styles.hint}>
               Shown to others as &ldquo;{result.title}&rdquo; with {result.confidence} confidence.
