@@ -19,10 +19,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
-- **November 7, 2026:** Phase 1 is in progress. OP-104's walking network is merged through PR #97. OP-101 (contracts) and OP-102 (skeleton) remain integration dependencies on this branch.
-- **OP-105 review updates on this branch:** outage freshness uses our UTC fetch time; individual invalid rows are logged/countable without deleting their previous records; failed lookup refreshes use cached tables. OP-103 owns retry/backoff and the 120-second cadence. See `cloud/app/adapters/README.md`; shared schema/store/scheduler integration is still pending.
-- **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
-- **November 7, 2026:** planning is complete and there is no application code yet. Phase 1 starts with OP-101 (contracts) and OP-102 (skeleton), which create the folders described below.
+- **November 7, 2026:** planning is complete and Phase 1 is under way. OP-102 adds the skeleton: the FastAPI app (`GET /health`, plus OP-101's `GET /api/obstructions` and store), the Makefile, `render.yaml` and `.env.example`. The web app in `web/` comes from OP-113.
+- **Deploys:** the one-time Render, Vercel and GitHub setup is in [docs/DEPLOY.md](docs/DEPLOY.md).
 - **CI/CD is live, and every branch below is protected.** Every pull request needs the `CI passed` check and an approval from Tatsat, Ipsa or Kashish. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Phase branches:** Phase 1 work goes into the `phase_1` branch, which is the default branch. When the phase passes its checkpoint, `phase_1` is released into `main`, and `phase_2` starts from `main`.
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
@@ -35,7 +33,7 @@ Update this section whenever the status changes.
 | Every user story with its owner and story points | [docs/USER_STORIES.md](docs/USER_STORIES.md) |
 | Acceptance criteria and live status of a story | GitHub issues `OP-101` to `OP-414` (#29 to #81) |
 | Team workflow and Definition of Done | [GUIDELINE.md](GUIDELINE.md) |
-| CI checks, merge rules and deployment | [docs/CI_CD.md](docs/CI_CD.md) |
+| CI checks, merge rules and deployment | [docs/CI_CD.md](docs/CI_CD.md) and [docs/DEPLOY.md](docs/DEPLOY.md) |
 | Data source details and licences (created in Phase 1) | `docs/DATA_SOURCES.md` |
 
 `PLAN.md` section 14 and `docs/USER_STORIES.md` are generated from the backlog. To change a story, edit its GitHub issue and tell the lead; do not edit those sections by hand.
@@ -49,7 +47,7 @@ Update this section whenever the status changes.
 | Estella | `estella1221` | `person: Estella` |
 | Kaleb | `kalebpham` | `person: Kaleb` |
 | Kashish (reviewer) | `kashishgupta2911` | `person: Kashish` |
-| Matthew | not yet a collaborator | `person: Matthew` |
+| Matthew | `Maosro` | `person: Matthew` |
 
 Issues also carry `phase N: ...`, `points: N`, `priority: must|should|could` and `epic: ...` labels, and one of four phase milestones.
 
@@ -166,7 +164,7 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 - **Apple Maps:** `https://maps.apple.com/?saddr=LAT,LNG&daddr=LAT,LNG&dirflg=w`, and the UI notes that it may not keep the detour.
 
 **API:**
-- **Health:** `GET /health` returns `{"status": "ok", "version": "<git commit>"}` from `RENDER_GIT_COMMIT`. The deploy job waits for this version.
+- **Health:** `GET /health` returns `{"status": "ok", "version": "<git commit>", "mode": "live"}`. `version` comes from `RENDER_GIT_COMMIT` (`dev` locally), and the deploy job waits for it. `mode` is `DATA_MODE` (`live` or `replay`); the web app shows the Replay badge when it is `replay`.
 - **Read:** `GET /health`, `/api/status`, `/api/obstructions?bbox=`, `/api/route?from=&to=&profile=&mode=walk|walk_lrt`, `/api/search?q=`, `/api/weather`, `/api/cameras`, `/api/priority`.
 - **Write:** `POST /api/reports`, `/api/push/subscribe`, `/api/saved-routes`, `/api/ingest/camera` (`X-Worker-Key`), `/api/admin/override` (`X-Admin-Key`, testing only).
 - **Live:** `WS /ws` with events `obstruction_changed`, `route_changed` and `source_status`.
@@ -196,37 +194,37 @@ These live in the root Makefile and are available after OP-102.
 
 | Command | What it does |
 | --- | --- |
-| `make setup` | Creates `.venv` (cloud + vision), runs `npm ci` in `web/` |
+| `make setup` | Creates `.venv` with every `cloud/` and `vision/` requirements file (as CI installs them), runs `npm ci` in `web/` |
 | `make dev` | API on :8000 (SQLite, recorded fixtures, no keys) + web on :3000 |
+| `make web` | Only the web app on :3000, pointed at the API on :8000 |
 | `make test` | `pytest` for cloud and vision, plus `npm run lint` and `npm run typecheck` in `web/` |
-| `make graph` | Rebuilds `cloud/data/network.npz` with OSMnx (local only, then commit). Until OP-102 adds the Makefile: `pip install -r scripts/requirements-graph.txt` then `python scripts/build_graph.py` |
-| `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` |
+| `make graph` | Installs `scripts/requirements-graph.txt`, then rebuilds `cloud/data/network.npz` with OSMnx (local only, then commit). macOS or Linux for now: `scripts/build_graph.py` uses the Unix-only `resource` module |
+| `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` (with `npx openapi-typescript`) |
 | `make record` | Records a replay snapshot of every source (no images) |
 | `make worker` | Runs the vision worker locally |
+| `make lint` | `ruff check`, `ruff format --check` and `npm run lint` (the same lint CI runs) |
+| `make format` | `ruff check --fix`, then `ruff format` |
+| `make build` | Production build of the web app (`npm run build`) |
 
-OP-105's standalone preview is available before the shared skeleton is merged:
+`make record` and `make worker` print "not built yet" and exit with an error until OP-305 and OP-204 add their scripts. While `web/` is missing, the web steps of `make setup`, `make test` and `make lint` are skipped, `make dev` starts only the API, and `make web`, `make build` and `make types` stop with an error. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux.
 
-```bash
-python -m cloud.app.adapters.lrt_devices --fixtures cloud/tests/fixtures/lrt --source-timezone America/Edmonton --at 2026-11-07T23:00:00Z
-```
-
-`--at` sets the simulated fetch time for recorded data only. Live previews use
-`--live` and our current UTC clock. Confirm the source timezone for outage start
-times before live integration. Scheduler integration must expose `last_error`
-for partial polls and respect the `retry_after_s` hint on HTTP 429 failures.
+`make dev` and `make web` run `scripts/dev.py`. It removes API keys from the environment and sets `DATA_MODE=replay` with `REPLAY_SNAPSHOT=cloud/tests/fixtures`, so adapters must read their fixtures in replay mode. If one server stops (for example because its port is in use), the other is stopped too and `make dev` fails with that server's exit code.
 
 ## Environment Variables
 
-Never commit values. Keep `.env.example` current.
+Never commit values. Keep `.env.example` current. Nothing loads `.env.example` or a `.env` file: Render and Vercel take values from their dashboards, and `make dev` sets its own.
 
 - **cloud:** `DATABASE_URL`, `ADMIN_KEY`, `WORKER_KEY`, `CORS_ORIGINS`, `SOCRATA_APP_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DATA_MODE` (`live` or `replay`), `REPLAY_SNAPSHOT`, `WEATHER_LAT`, `WEATHER_LNG`, `LRT_TRIPS`
 - **vision:** `CLOUD_URL`, `WORKER_KEY`, `ALBERTA_511_KEY`, `MODEL_URL`
-- **web:** `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- **web:** `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. The OP-113 web app currently reads `NEXT_PUBLIC_API_BASE_URL` instead of `NEXT_PUBLIC_API_URL`; `make dev` and docs/DEPLOY.md set both until the two agree.
+
+`REPLAY_SNAPSHOT` is a folder, not a file: one subfolder of recorded responses per source, as in `cloud/tests/fixtures/`. `CORS_ORIGINS` is comma-separated, and a `*` matches part of one host-name label (`https://openpath-*-<team-slug>.vercel.app`). It is not a security boundary; see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Conventions
 
 - **Python 3.12:**
   - Type hints everywhere; Pydantic v2 and SQLModel; `ruff format` and `ruff check`; `pytest`.
+  - Imports are rooted at the repository: `from cloud.app import db`, run as `uvicorn cloud.app.main:app` from the root. Tool settings live in the root `pyproject.toml`; dependencies in `cloud/requirements*.txt` and `vision/requirements.txt`.
   - Put units in names (`length_m`, `eta_min`, `air_c`).
   - Use UTC with ISO 8601 everywhere.
 - **Logging:** one line per state change, for example `CHANGE city_lrt_devices:1234 new elevator_out Central/West Platform`.
@@ -250,7 +248,7 @@ These apply to the web app, and judges will check them.
 
 ## Testing
 
-Until OP-102 adds `make test`, run the cloud tests from the repository root with `PYTHONPATH=.:cloud pytest -q cloud/tests`. Tests import code as `cloud.app.<module>`.
+Run `make test` from the repository root. Tests import code as `cloud.app.<module>`; the root `pyproject.toml` puts the repository on the import path.
 
 - **cloud:**
   - Each adapter with recorded fixtures, including a failing source and a changed schema.
