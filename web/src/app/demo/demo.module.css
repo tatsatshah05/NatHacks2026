@@ -1,0 +1,125 @@
+/*
+  OP-411 judge page (docs/design/DESIGN.md section 10). One screen at 1280 x 800:
+  words on the left at the planner's 44ch measure, the QR code on the right where
+  other screens put the map. The code is the one bold element; nothing else is
+  drawn. On a phone it is one column in the same order.
+*/
+.main {
+  display: grid;
+  gap: 24px 56px;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 24px 0 16px;
+}
+.intro,
+.more {
+  min-width: 0;
+}
+.intro h1 {
+  margin-bottom: 12px;
+}
+/* The pitch: one sentence, one step up from body, so it reads from a distance. */
+.pitch {
+  font-size: 1.5625rem;
+  line-height: 1.3;
+  margin: 0;
+  max-width: 24em;
+}
+.more h2 {
+  margin: 0 0 8px;
+}
+.more section + section {
+  margin-top: 24px;
+}
+/* The trip link and the "then" lines read at the lead size; the detail under the
+   trip is body text. */
+.trip,
+.more li {
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+.more p {
+  margin: 0 0 8px;
+  max-width: 60ch;
+}
+.trip a {
+  font-weight: 700;
+}
+.then {
+  list-style: disc;
+  margin: 0;
+  padding-left: 1.25rem;
+}
+.then li {
+  max-width: 34em;
+}
+.then li + li {
+  margin-top: 6px;
+}
+.then li::marker {
+  color: var(--muted);
+}
+
+/*
+  The code. Its modules are always ink on white, in dark mode too: many phone
+  cameras refuse an inverted code, and this page has one job. The white tile is
+  the quiet zone (4 modules on every side) made visible. The side is clamped so
+  the page fits 800 px of height with the header and footer, and the code is
+  still the largest thing on the screen.
+*/
+.code {
+  --qr-side: min(100%, 520px);
+  margin: 0;
+  min-width: 0;
+}
+.qr {
+  aspect-ratio: 1 / 1;
+  background: #ffffff;
+  display: block;
+  height: auto;
+  shape-rendering: crispEdges;
+  /* Never wider than its column, so large text sizes reflow instead of scrolling. */
+  width: min(100%, var(--qr-side));
+}
+.qr path {
+  fill: #0d1f2d;
+}
+/* The address, as people read it: large, a link, under the code's left edge. */
+.address {
+  font-size: 1.5625rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 12px 0 0;
+  overflow-wrap: anywhere;
+}
+.address a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
+}
+.testNote {
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+@media (min-width: 900px) {
+  .main {
+    /* 52ch of words, but at most 55% of the width, so the code keeps its column
+       when the text size setting makes a ch wider. */
+    grid-template-columns: minmax(0, min(52ch, 55%)) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    padding-top: 28px;
+  }
+  .intro {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .more {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .code {
+    --qr-side: clamp(240px, calc(100vh - 360px), 520px);
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
