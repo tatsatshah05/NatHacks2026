@@ -31,3 +31,10 @@ vision/.cache/
 .DS_Store
 Thumbs.db
 .idea/
+
+# Added by other Phase 1 stories
+web/node_modules/
+web/.next/
+web/.vercel/
+web/.env.local
+web/*.tsbuildinfo
