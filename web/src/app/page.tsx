@@ -1,5 +1,5 @@
-import MapPage from "@/components/map-page";
+import PlannerPage from "@/components/planner-page";
 
 export default function Page() {
-  return <MapPage />;
+  return <PlannerPage />;
 }
