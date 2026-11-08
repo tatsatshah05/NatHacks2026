@@ -445,6 +445,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         choices=("claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"),
         help="Post a reading only when this Claude model agrees with the ONNX model; needs ANTHROPIC_API_KEY",
     )
+    parser.add_argument(
+        "--snow-model-file",
+        type=Path,
+        help="A second ONNX model that adds snow and ice readings beside the main model (vision/snow_assist.py)",
+    )
+    parser.add_argument(
+        "--snow-model-labels", type=Path, help="The snow model's labels.json"
+    )
+    parser.add_argument(
+        "--snow-model-sha256", help="Expected SHA-256 of the snow model"
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     if not math.isfinite(args.interval_s) or args.interval_s <= 0:
@@ -471,6 +482,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     if args.ai_check and not os.environ.get("ANTHROPIC_API_KEY"):
         parser.error("--ai-check requires ANTHROPIC_API_KEY")
+    snow_args = (args.snow_model_file, args.snow_model_labels, args.snow_model_sha256)
+    if any(snow_args) and not all(snow_args):
+        parser.error(
+            "--snow-model-file, --snow-model-labels and --snow-model-sha256 go together"
+        )
     try:
         spec = ModelSpec.from_training_labels(
             json.loads(args.model_labels.read_text("utf-8")),
@@ -485,6 +501,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else download_model(client, os.environ["MODEL_URL"])
             )
             classifier: Classifier = OnnxClassifier.load(model_bytes, spec)
+            if args.snow_model_file:
+                # Lead decision, November 8: a second model adds snow and ice readings.
+                from vision.snow_assist import SnowAssistClassifier
+
+                snow_spec = ModelSpec.from_training_labels(
+                    json.loads(args.snow_model_labels.read_text("utf-8")),
+                    sha256=args.snow_model_sha256,
+                    min_score=args.min_score,
+                )
+                classifier = SnowAssistClassifier(
+                    classifier,
+                    OnnxClassifier.load(args.snow_model_file.read_bytes(), snow_spec),
+                )
             if args.ai_check:
                 # Lead decision, November 8: Claude must agree before a reading is posted.
                 from vision.ai_check import AgreeingClassifier, ClaudeCheck

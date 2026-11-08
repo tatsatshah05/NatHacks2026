@@ -29,6 +29,8 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from cloud.app.adapters._text import clip_detail
+
 SOURCE = "city_construction"
 DATASET = "7wiq-4rgy"
 SOURCE_URL = f"https://data.edmonton.ca/d/{DATASET}"
@@ -338,15 +340,19 @@ def normalize_permits(
         # them by file_number; keep IDs stable across row ordering/date edits.
         digest = hashlib.sha256(identity.encode()).hexdigest()[:16]
         source_ref = f"{permit}:{digest}"
-        detail = "; ".join(
+        described = "; ".join(
             part
             for part in (
                 permit,
                 str(row.get("work_reason") or "").strip(),
                 intersections,
-                f"Active {start.isoformat()} through {finish.isoformat()} (inclusive)",
             )
             if part
+        )
+        # Long City text is shortened, never dropped; the active dates stay whole.
+        detail = clip_detail(
+            described,
+            keep=f"; Active {start.isoformat()} through {finish.isoformat()} (inclusive)",
         )
         item = {
             "id": f"{SOURCE}:{source_ref}",

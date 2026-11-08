@@ -115,8 +115,8 @@ WAIT_WARNING = (
     "at this hour), not live arrivals."
 )
 UNMAPPED_ENTRY_WARNING = (
-    "Station elevators are not yet matched to the map (OP-106), so the walk ends at "
-    "the station's location; follow the station signs to an elevator."
+    "Station elevators are not yet matched to the map, so the walk ends at the "
+    "station's location; follow the station signs to an elevator."
 )
 MAPS_NOTE = (
     "Google Maps and Apple Maps plan their own transit trip and may not use the same "
@@ -319,6 +319,17 @@ def device_records(indexes: Iterable[ItemIndex]) -> list[ReportRecord]:
     return list(found.values())
 
 
+def outage_place(detail: str | None) -> str:
+    """The "<station>, <location>" lead of an outage's ``detail``.
+
+    OP-313 adds sentences about the station's other in-service devices
+    ("Central, West Platform. In service at Central: ..."); a short reason needs
+    only the first one.
+    """
+    place = (detail or "").split(". ", 1)[0].strip().rstrip(".")
+    return place or "location unknown"
+
+
 def match_outages(
     schedule: LrtSchedule, records: Iterable[ReportRecord]
 ) -> list[DeviceOutage]:
@@ -402,7 +413,7 @@ def station_access(
     unknown = [o for o in outages if o.is_elevator and o.device is None]
     if unknown:
         return closed(
-            f"an elevator is out of service ({unknown[0].record.detail or 'location unknown'}) "
+            f"an elevator is out of service ({outage_place(unknown[0].record.detail)}) "
             "and OpenPath cannot tell which one"
         )
     platform_out = [
