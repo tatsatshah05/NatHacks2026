@@ -1,0 +1,43 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local databases and secrets
+*.db
+*.db-journal
+.env
+.env.*
+!.env.example
+secrets.h
+
+# Node, Next.js and Vercel (web/)
+node_modules/
+.next/
+.vercel/
+*.tsbuildinfo
+web/openapi.json
+
+# Vision: weights and images are never committed (PLAN.md section 7.5)
+*.onnx
+*.pt
+*.pth
+vision/data/
+vision/.cache/
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.idea/
+
+# Added by other Phase 1 stories
+web/node_modules/
+web/.next/
+web/.vercel/
+web/.env.local
+web/*.tsbuildinfo
+
+# Local agent worktrees (Claude Code); never part of the repository
+.claude/worktrees/

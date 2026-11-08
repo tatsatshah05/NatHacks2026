@@ -1,0 +1,55 @@
+# Render Blueprint: the OpenPath API and its Postgres database.
+# Plans are free tier until decision D-2 (PLAN.md section 16) picks always-on instances.
+# The vision worker (OP-204) is added here as a background worker when it exists.
+# Render sets RENDER_GIT_COMMIT itself; /health reports it as `version`, and DATA_MODE as `mode`.
+
+services:
+  - type: web
+    name: openpath-api
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    # Off on purpose: CI's "Deploy to production" job calls the deploy hook only
+    # after every check passes on main (docs/CI_CD.md).
+    autoDeploy: false
+    buildCommand: pip install -r cloud/requirements.txt
+    startCommand: uvicorn cloud.app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: DATABASE_URL
+        fromDatabase:
+          name: openpath-db
+          property: connectionString
+      - key: ADMIN_KEY
+        generateValue: true
+      - key: WORKER_KEY
+        generateValue: true
+      - key: DATA_MODE
+        value: live
+      - key: LRT_TRIPS
+        value: "false"
+      # Set these in the Render dashboard; values are never committed.
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SOCRATA_APP_TOKEN
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: WEATHER_LAT
+        sync: false
+      - key: WEATHER_LNG
+        sync: false
+
+databases:
+  - name: openpath-db
+    plan: free
+    region: oregon
+    databaseName: openpath
+    user: openpath

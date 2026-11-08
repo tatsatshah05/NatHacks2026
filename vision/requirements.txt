@@ -1,0 +1,11 @@
+# Vision worker and tools dependencies. Test tools (pytest, ruff) come from cloud/requirements-dev.txt.
+# 511 Alberta camera adapter (OP-112).
+httpx>=0.27,<0.29
+pydantic>=2.9,<3
+# Labelling tool (OP-115) and, later, the worker. The headless OpenCV build has no
+# window support; a labelling laptop replaces it with opencv-python (see vision/LABELS.md).
+opencv-python-headless>=4.9,<5
+numpy>=2,<3
+# Pillow 13.0.0 is the first release without open high-severity advisories;
+# CI's dependency review rejects any range that admits an older release.
+pillow>=13,<14

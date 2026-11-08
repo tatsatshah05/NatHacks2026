@@ -1,0 +1,41 @@
+# One requested reviewer per pull request.
+#
+# CODEOWNERS lists three reviewers, and GitHub requests all of them on every pull
+# request, which looks like three approvals are needed. They are not: one approval
+# from any of the three merges the pull request. This workflow keeps the request
+# list to one person, chosen in turn by pull request number and never the author,
+# so everyone knows whose turn it is. Any of the three can still approve.
+
+name: Assign reviewer
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const reviewers = ["tatsatshah05", "ipsamanhas", "kashishgupta2911"];
+            const pr = context.payload.pull_request;
+            const { owner, repo } = context.repo;
+            const candidates = reviewers.filter((login) => login !== pr.user.login);
+            const pick = candidates[pr.number % candidates.length];
+            const requested = pr.requested_reviewers.map((user) => user.login);
+            const extra = requested.filter((login) => reviewers.includes(login) && login !== pick);
+            if (extra.length) {
+              await github.rest.pulls.removeRequestedReviewers({ owner, repo, pull_number: pr.number, reviewers: extra });
+            }
+            // Only add on open-type events; on a new push, just trim so a finished
+            // review is not re-requested.
+            if (context.payload.action !== "synchronize" && !requested.includes(pick)) {
+              await github.rest.pulls.requestReviewers({ owner, repo, pull_number: pr.number, reviewers: [pick] });
+            }
+            core.info(`Reviewer for #${pr.number}: ${pick}. Removed: ${extra.join(", ") || "none"}.`);
