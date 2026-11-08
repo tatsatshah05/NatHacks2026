@@ -35,6 +35,7 @@ from starlette.concurrency import run_in_threadpool
 
 from . import reports
 from .obstructions_api import get_now, get_store
+from .rate_limit import public_write_limit
 from .reports import (
     MAX_PHOTO_BYTES,
     PhotoChecks,
@@ -260,6 +261,7 @@ _REQUEST_BODY = {
     "/reports",
     response_model=ReportResult,
     status_code=201,
+    dependencies=[Depends(public_write_limit)],  # OP-401: per connection, per minute
     responses={
         413: {"description": "The body or the photo is too large (5 MB photo limit)."},
         415: {"description": "Not JSON or multipart, or the photo is not JPEG or PNG."},
