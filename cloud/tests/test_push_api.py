@@ -90,7 +90,12 @@ class FakeWebPush:
 
 class Harness:
     def __init__(
-        self, network: WalkNetwork, *, keys=True, min_push_interval_s: float = 120.0
+        self,
+        network: WalkNetwork,
+        *,
+        keys=True,
+        min_push_interval_s: float = 120.0,
+        warmup_s: float = 0.0,
     ) -> None:
         self.clock = Clock()
         self.hazards = Hazards()
@@ -115,6 +120,7 @@ class Harness:
             hazard_clock=self.clock,
             clock=self.clock,
             min_push_interval_s=min_push_interval_s,
+            warmup_s=warmup_s,
         )
         app = FastAPI()
         app.include_router(push_api.router)
@@ -429,6 +435,73 @@ def test_a_change_held_by_the_limit_is_dropped_if_it_reverts_first(h, grid) -> N
     h.watcher.tick()
     assert len(h.webpush.calls) == 2
     assert h.listed()["routes"][0]["status"] == "ok"
+
+
+def test_warm_up_sends_nothing_then_checks_every_route_once(grid) -> None:
+    """After a restart, expired items are missing until the scheduler fetches again:
+    the watcher must not mistake that for a recovery."""
+    _, index = grid
+    h = Harness(grid[0], warmup_s=120)
+    h.subscribe()
+    h.save(1, 3, name="Work")
+    h.hazards.set(index[(1, 2)], "c:1", Effect.BLOCKED)
+    assert h.watcher.tick() == []  # warming up: the map is read, nothing rechecked
+    h.hazards.clear(index[(1, 2)])
+    h.clock.advance(60)
+    assert h.watcher.tick() == []
+    assert h.webpush.calls == []
+    h.hazards.set(index[(1, 2)], "c:1", Effect.BLOCKED)  # the scheduler caught up
+    h.clock.advance(60)
+    assert h.watcher.tick() == [1]  # 120 s: the one full recheck
+    assert [p["status"] for p in h.webpush.payloads()] == ["changed"]
+    h.clock.advance(15)
+    assert h.watcher.tick() == []  # back to rechecking by changed edges only
+
+
+def test_a_recovery_while_the_api_was_asleep_is_sent_after_the_warm_up(grid) -> None:
+    _, index = grid
+    h = Harness(grid[0])
+    h.subscribe()
+    h.save(1, 3, name="Work")
+    h.watcher.tick()
+    h.hazards.set(index[(1, 2)], "c:1", Effect.BLOCKED)
+    h.watcher.tick()
+    assert [p["status"] for p in h.webpush.payloads()] == ["changed"]
+    # The instance sleeps; the closure ends meanwhile; a new process wakes up.
+    h.hazards.clear(index[(1, 2)])
+    h.clock.advance(3600)
+    woke = RouteWatcher(
+        h.routes,
+        h.router,
+        h.hazards,
+        h.sender,
+        hazard_clock=h.clock,
+        clock=h.clock,
+        warmup_s=120,
+    )
+    assert woke.tick() == []
+    h.clock.advance(120)
+    assert woke.tick() == [1]
+    assert [p["status"] for p in h.webpush.payloads()] == ["changed", "clear"]
+
+
+def test_a_newly_saved_route_is_rechecked_once(h, grid) -> None:
+    _, index = grid
+    h.subscribe()
+    h.watcher.tick()
+    h.save(1, 3)
+    # Its edges changed after the baseline but before the watcher looked again.
+    h.hazards.set(index[(1, 2)], "c:1", Effect.BLOCKED)
+    h.watcher.previous = h.hazards(START)  # the watcher already saw the new map
+    assert h.watcher.tick() == [1]
+    assert [p["status"] for p in h.webpush.payloads()] == ["changed"]
+    assert h.watcher.tick() == []
+
+
+def test_start_and_end_at_the_same_place_is_422(h) -> None:
+    response = h.save(1, 1)
+    assert response.status_code == 422
+    assert response.json()["detail"] == "The start and end are at the same place."
 
 
 def test_deleted_route_is_dropped_from_the_index(h, grid) -> None:

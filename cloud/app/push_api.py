@@ -214,9 +214,9 @@ def get_saved_routes(
     return push.routes
 
 
-def _mark_dirty(push: PushServices) -> None:
+def _mark_dirty(push: PushServices, added: int | None = None) -> None:
     if push.watcher is not None:
-        push.watcher.mark_dirty()
+        push.watcher.mark_dirty(added)
 
 
 # ------------------------------------------------------------------ push
@@ -302,6 +302,9 @@ def save_route(
         )
     except RoutingError as error:
         raise HTTPException(422, str(error)) from None
+    if not result.routes and result.origin[0] == result.destination[0]:
+        raise HTTPException(422, "The start and end are at the same place.")
+    # No route at all is still saved: the watcher says when one becomes possible.
     baseline = result.routes[0] if result.routes else None
     try:
         row = push.routes.add(
@@ -317,7 +320,7 @@ def save_route(
         )
     except saved_routes.LimitReached as error:
         raise HTTPException(429, str(error)) from None
-    _mark_dirty(push)
+    _mark_dirty(push, row.id)
     return SavedRouteOut.of(row)
 
 

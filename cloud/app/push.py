@@ -20,7 +20,10 @@ Three parts, all built by ``start_route_watcher`` at app startup (``main.py``):
     asks the hazard provider for the current ``HazardMap`` (which also keeps the
     matcher's map fresh without traffic), diffs it with the previous one, and
     rechecks only the saved routes that touch a changed edge (through an
-    ``edge -> route ids`` index) plus every route that is impossible right now.
+    ``edge -> route ids`` index of each route's current and usual edges), every
+    route that is impossible right now, and routes saved since the last pass.
+    After ``WARMUP_S`` from startup it rechecks every route once, so a change
+    that happened while the API was down or asleep is not missed.
     ``saved_routes.decide`` applies the change rules; a push goes out at most once
     per saved route every ``MIN_PUSH_INTERVAL_S``, and a change that falls inside
     that window stays pending and is sent on a later tick, unless the route is
@@ -71,6 +74,12 @@ MAX_SUBSCRIPTIONS_PER_CLIENT = 5
 MAX_FAILURES = 5  # a subscription is dropped after this many failed sends in a row
 MIN_PUSH_INTERVAL_S = 120.0  # at most one push per saved route in this window
 WATCH_INTERVAL_S = 15.0  # how often the watcher looks at the hazard map
+# After a start (or a Render free-plan wake-up) items that expired while the API was
+# down are missing until the scheduler fetches again, so the watcher rechecks
+# nothing and sends nothing for this long. Derived from the settings, not measured:
+# a source's first round takes at most about 47 s (4 attempts with 10 s timeouts and
+# 1, 2 and 4 s back-off), then one 30 s map refresh and one 15 s tick.
+WARMUP_S = 120.0
 PUSH_TTL_S = 15 * 60  # how long a push service keeps an undelivered message
 PUSH_TIMEOUT_S = 10.0
 
@@ -474,6 +483,7 @@ class RouteWatcher:
         clock: Callable[[], datetime] = utcnow,
         interval_s: float = WATCH_INTERVAL_S,
         min_push_interval_s: float = MIN_PUSH_INTERVAL_S,
+        warmup_s: float = WARMUP_S,
     ) -> None:
         self.routes = routes
         self.router = router
@@ -483,6 +493,9 @@ class RouteWatcher:
         self.clock = clock
         self.interval_s = interval_s
         self.min_push_interval = timedelta(seconds=min_push_interval_s)
+        self.warmup = timedelta(seconds=warmup_s)
+        self.started_at: datetime | None = None  # the first tick, for the warm-up
+        self.checked_all = False  # the one full recheck after the warm-up is done
         self.previous: HazardMap | None = None
         self.by_edge: dict[int, set[int]] = {}
         self.impossible: set[int] = set()
@@ -490,6 +503,8 @@ class RouteWatcher:
         self.dirty = True  # the index must be rebuilt from the database
         self.ticks = 0
         self.pushes = 0
+        self._fresh: set[int] = set()  # routes saved since the last tick
+        self._fresh_lock = threading.Lock()  # the API adds to _fresh from its threads
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -518,9 +533,20 @@ class RouteWatcher:
                 log.exception("WATCH tick failed; trying again next time")
             self._stop.wait(self.interval_s)
 
-    def mark_dirty(self) -> None:
-        """A route was saved or deleted: rebuild the edge index on the next tick."""
+    def mark_dirty(self, added: int | None = None) -> None:
+        """A route was saved (``added``) or deleted: rebuild the edge index on the
+        next tick, and recheck a new route once, in case hazards moved between its
+        baseline and the watcher's last look."""
+        if added is not None:
+            with self._fresh_lock:
+                self._fresh.add(added)
         self.dirty = True
+
+    def warming(self) -> bool:
+        """True during the warm-up after startup; the first call starts it."""
+        if self.started_at is None:
+            self.started_at = self.clock()
+        return self.clock() - self.started_at < self.warmup
 
     # -- one pass ------------------------------------------------------------
 
@@ -535,21 +561,26 @@ class RouteWatcher:
             except Exception:
                 log.exception("WATCH could not read hazards; keeping the last map")
                 return []
+            with self._fresh_lock:
+                fresh, self._fresh = self._fresh, set()
             if self.dirty:
                 self._rebuild_index()
-            first = self.previous is None
             changed = changed_edges(self.previous, current)
             self.previous = current
-            if first:
-                # A restart: the stored state may be stale, so check every route once.
+            if self.warming():
+                return []
+            if not self.checked_all:
+                # After a start or a wake-up the stored state may be stale: check
+                # every route once.
+                self.checked_all = True
                 due = {route_id for ids in self.by_edge.values() for route_id in ids}
                 due |= self.impossible
-            elif changed:
-                due = set(self.impossible)
-                for edge in changed:
-                    due |= self.by_edge.get(edge, set())
             else:
-                due = set()
+                due = fresh
+                if changed:
+                    due |= self.impossible
+                    for edge in changed:
+                        due |= self.by_edge.get(edge, set())
             if changed:
                 log.info(
                     "WATCH %d edges changed; %d saved routes to recheck",
@@ -742,6 +773,7 @@ def start_route_watcher(
             hazards if hazards is not None else (lambda now: {}),
             sender,
             hazard_clock=hazard_clock,
+            warmup_s=WARMUP_S if run else 0.0,
         )
         if run:
             watcher.start()
