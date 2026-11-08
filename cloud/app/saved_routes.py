@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, Column, Index
 from sqlalchemy.engine import Engine
 from sqlmodel import Field, Session, SQLModel, col, select
 
@@ -56,6 +56,12 @@ class SavedRouteRow(SQLModel, table=True):
     """One watched trip. Coordinates, a name and a profile: no personal data."""
 
     __tablename__ = "saved_route"
+    __table_args__ = (
+        # for_client() filters on client_id and orders by created_at; this index
+        # serves both, so the database no longer sorts the rows (OP-404). The older
+        # single-column index stays: nothing is dropped from a live database.
+        Index("ix_saved_route_client_created", "client_id", "created_at"),
+    )
 
     id: int | None = Field(default=None, primary_key=True)
     client_id: str = Field(index=True, max_length=64)
