@@ -1,6 +1,6 @@
 "use client";
 
-// OP-308: a floating "Report a problem" button. It opens a native modal <dialog>
+// OP-308: a "Report a problem" button (in the page flow since OP-301). It opens a native modal <dialog>
 // (focus stays inside, Escape closes, focus returns to the button):
 //   1. choose the problem and the place, with an optional note and photo
 //   2. confirm in words ("You're reporting an icy sidewalk at ... Send it?")
@@ -9,7 +9,11 @@
 
 import { FormEvent, useEffect, useId, useRef, useState } from "react";
 import type { components, operations } from "@/lib/api-types";
+import { apiBase as defaultApiBase } from "@/lib/api";
 import { getAnonymousClientId } from "@/lib/client-id";
+import Button from "./ui/button";
+import { HazardShape, HazardShapeIcon } from "./ui/hazard-mark";
+import SegmentedChoice from "./ui/segmented-choice";
 import styles from "./report-button.module.css";
 
 type ReportResult = components["schemas"]["ReportResult"];
@@ -40,10 +44,11 @@ type Step = "edit" | "confirm" | "done";
 type LocationSource = "device" | "map";
 type Errors = Partial<Record<"type" | "location" | "photo" | "send", string>>;
 
-const TYPES: Array<{ id: ReportType; label: string; icon: string; phrase: string }> = [
-  { id: "snow", label: "Snow on the path", icon: "❄", phrase: "snow on the sidewalk" },
-  { id: "ice", label: "Ice on the path", icon: "◇", phrase: "an icy sidewalk" },
-  { id: "blocked", label: "Path blocked", icon: "!", phrase: "a blocked sidewalk" }
+// Each problem uses the hazard shape of the effect it reports (docs/design/DESIGN.md).
+const TYPES: Array<{ id: ReportType; label: string; shape: HazardShape; phrase: string }> = [
+  { id: "snow", label: "Snow on the path", shape: "snow", phrase: "snow on the sidewalk" },
+  { id: "ice", label: "Ice on the path", shape: "ice", phrase: "an icy sidewalk" },
+  { id: "blocked", label: "Path blocked", shape: "blocked", phrase: "a blocked sidewalk" }
 ];
 
 const MAX_NOTE_CHARS = 120;
@@ -56,10 +61,6 @@ const STEP_TITLES: Record<Step, string> = {
   confirm: "Check your report",
   done: "Report sent"
 };
-
-function defaultApiBase(): string {
-  return process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
-}
 
 function inEdmonton({ lat, lng }: ReportLocation): boolean {
   return lat >= EDMONTON.minLat && lat <= EDMONTON.maxLat && lng >= EDMONTON.minLng && lng <= EDMONTON.maxLng;
@@ -248,7 +249,7 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
     if (!location) next.location = "Set where the problem is.";
     if (errors.photo) next.photo = errors.photo;
     setErrors(next);
-    if (next.type) document.getElementById(id("type-snow"))?.focus();
+    if (next.type) dialogRef.current?.querySelector<HTMLInputElement>(`input[name="${id("type")}"]`)?.focus();
     else if (next.location) document.getElementById(id("use-device"))?.focus();
     else if (next.photo) photoRef.current?.focus();
     else setStep("confirm");
@@ -273,7 +274,7 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
           return;
         }
       }
-      const response = await fetch(`${apiBase ?? defaultApiBase()}/api/reports`, { method: "POST", body });
+      const response = await fetch(`${apiBase ?? defaultApiBase}/api/reports`, { method: "POST", body });
       if (!response.ok) {
         setErrors({ send: await errorText(response) });
         return;
@@ -294,9 +295,8 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
 
   return (
     <>
-      <button ref={triggerRef} type="button" className={styles.trigger} aria-haspopup="dialog" onClick={open}>
-        <span className={styles.triggerIcon} aria-hidden="true">!</span>
-        <span>Report a problem</span>
+      <button ref={triggerRef} type="button" className="button button-secondary" aria-haspopup="dialog" onClick={open}>
+        Report a problem
       </button>
 
       <dialog ref={dialogRef} className={styles.dialog} aria-labelledby={id("title")} onClose={handleClosed}>
@@ -304,74 +304,64 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
           <h2 id={id("title")} ref={headingRef} tabIndex={-1}>
             {STEP_TITLES[step]}
           </h2>
-          <button type="button" className={styles.secondary} onClick={close}>
+          <Button variant="secondary" onClick={close}>
             Close
-          </button>
+          </Button>
         </div>
 
         {step === "edit" && (
           <form className={styles.body} onSubmit={toConfirm} noValidate>
-            <fieldset className={styles.fieldset}>
-              <legend>What is the problem?</legend>
-              <div className={styles.types}>
-                {TYPES.map((option) => (
-                  <label key={option.id} className={styles.typeOption} data-type={option.id}>
-                    <input
-                      id={id(`type-${option.id}`)}
-                      type="radio"
-                      name="report-type"
-                      value={option.id}
-                      checked={type === option.id}
-                      onChange={() => {
-                        setType(option.id);
-                        setErrors((current) => ({ ...current, type: undefined }));
-                      }}
-                      aria-describedby={describedBy(Boolean(errors.type) && "type-error")}
-                    />
-                    <span className={styles.typeIcon} aria-hidden="true">{option.icon}</span>
-                    <span className={styles.typeLabel}>{option.label}</span>
-                  </label>
-                ))}
-              </div>
-              {errors.type && (
-                <p id={id("type-error")} className={styles.error}>
-                  {errors.type}
-                </p>
-              )}
-            </fieldset>
+            <SegmentedChoice
+              legend={
+                <>
+                  What is the problem?
+                  {errors.type && <span className={`field-error ${styles.legendError}`}>{errors.type}</span>}
+                </>
+              }
+              name={id("type")}
+              layout="stack"
+              options={TYPES.map((option) => ({
+                id: option.id,
+                label: option.label,
+                icon: <HazardShapeIcon shape={option.shape} size={24} />
+              }))}
+              value={type}
+              onChange={(next) => {
+                setType(next);
+                setErrors((current) => ({ ...current, type: undefined }));
+              }}
+            />
 
             <fieldset className={styles.fieldset}>
               <legend>Where is it?</legend>
               <div className={styles.locationButtons}>
-                <button
+                <Button
                   id={id("use-device")}
-                  type="button"
-                  className={styles.secondary}
+                  variant="secondary"
                   onClick={() => void findLocation("device")}
                   aria-describedby={describedBy("location-status", Boolean(errors.location) && "location-error")}
                 >
                   Use my location
-                </button>
+                </Button>
                 {getLocation && (
-                  <button
-                    type="button"
-                    className={styles.secondary}
+                  <Button
+                    variant="secondary"
                     onClick={() => void findLocation("map")}
                     aria-describedby={describedBy("location-status", Boolean(errors.location) && "location-error")}
                   >
                     Use the map centre
-                  </button>
+                  </Button>
                 )}
               </div>
               <p id={id("location-status")} className={styles.status} role="status">
                 {locating
-                  ? "Finding the place…"
+                  ? "Finding the place."
                   : location
                     ? `Place set: ${placeText(location, locationSource)}.`
                     : "No place set yet."}
               </p>
               {errors.location && (
-                <p id={id("location-error")} className={styles.error}>
+                <p id={id("location-error")} className="field-error">
                   {errors.location}
                 </p>
               )}
@@ -416,25 +406,23 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
               {photo && (
                 <div className={styles.photoChosen}>
                   <span>Photo chosen: {photo.name || "camera photo"}</span>
-                  <button type="button" className={styles.secondary} onClick={removePhoto}>
+                  <Button variant="secondary" onClick={removePhoto}>
                     Remove photo
-                  </button>
+                  </Button>
                 </div>
               )}
               {errors.photo && (
-                <p id={id("photo-error")} className={styles.error}>
+                <p id={id("photo-error")} className="field-error">
                   {errors.photo}
                 </p>
               )}
             </div>
 
             <div className={styles.actions}>
-              <button type="submit" className={styles.primary}>
-                Next: check and send
-              </button>
-              <button type="button" className={styles.secondary} onClick={close}>
+              <Button type="submit">Review the report</Button>
+              <Button variant="secondary" onClick={close}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -451,23 +439,21 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
               <dd>{photo ? "One photo (never stored)" : "No photo"}</dd>
             </dl>
             {errors.send && (
-              <p id={id("send-error")} className={styles.error} role="alert">
+              <p id={id("send-error")} className="field-error" role="alert">
                 {errors.send}
               </p>
             )}
             <div className={styles.actions}>
-              <button
-                type="button"
-                className={styles.primary}
+              <Button
                 onClick={() => void send()}
                 aria-disabled={sending ? true : undefined}
                 aria-describedby={describedBy(Boolean(errors.send) && "send-error")}
               >
-                {sending ? "Sending…" : "Send report"}
-              </button>
-              <button type="button" className={styles.secondary} onClick={() => setStep("edit")} disabled={sending}>
+                {sending ? "Sending the report" : "Send report"}
+              </Button>
+              <Button variant="secondary" onClick={() => setStep("edit")} disabled={sending}>
                 Back
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -480,12 +466,10 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
               Shown to others as &ldquo;{result.title}&rdquo; with {result.confidence} confidence.
             </p>
             <div className={styles.actions}>
-              <button type="button" className={styles.primary} onClick={close}>
-                Done
-              </button>
-              <button type="button" className={styles.secondary} onClick={reset}>
+              <Button onClick={close}>Done</Button>
+              <Button variant="secondary" onClick={reset}>
                 Report another problem
-              </button>
+              </Button>
             </div>
           </div>
         )}

@@ -1,4 +1,5 @@
-import type { ReportItem, RouteOut, TravelProfile } from "@/lib/planner-types";
+import type { ReactNode } from "react";
+import type { LegOut, ReportItem, RouteOut, StationOut, TravelProfile } from "@/lib/planner-types";
 import { formatDistance, isCityWide, plural } from "@/lib/report-format";
 import { HazardShapeIcon, effectShape, effectText } from "./hazard-mark";
 import TimeAgo from "./time-ago";
@@ -19,6 +20,11 @@ function stops(route: RouteOut): Stop[] {
       .filter((item) => !isCityWide(item))
       .map((item) => ({ key: `${group.category}-${item.id}-${item.status}`, item }))
   );
+}
+
+/** The element id of a condition's stop, so the map can jump to it. */
+export function stopId(rank: number, itemId: string): string {
+  return `route-${rank}-stop-${itemId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 }
 
 /** City-wide items across a set of routes, once each. */
@@ -80,7 +86,8 @@ export function RouteHeading({ route, routeCount, profile, headingId, headingLev
   return (
     <>
       <Heading className="route-heading" id={headingId}>
-        <span className="route-eta">{Math.round(route.eta_min)} min</span>, {formatDistance(route.distance_m)}
+        <span className="route-eta">{Math.round(route.eta_min)} min</span>,{" "}
+        {route.lrt ? `${formatDistance(route.lrt.walk_distance_m)} on foot` : formatDistance(route.distance_m)}
         {extra ? (
           <>
             , <span className="nowrap">{extra}</span>
@@ -108,69 +115,220 @@ type StopsProps = {
   compact?: boolean;
 };
 
+type StopContext = { rank: number; now: Date; compact: boolean };
+// Which line runs past a row: the single walking line or the double LRT line.
+type Rail = "walk" | "ride";
+
+function EndStop({ name, label, first }: { name: string; label: string; first?: boolean }) {
+  return (
+    <li className={first ? "stop is-first" : "stop is-last"}>
+      <span className="stop-mark">
+        <HazardShapeIcon shape="start" size={24} />
+      </span>
+      <div className="stop-body">
+        <p className="stop-title">{name}</p>
+        <p className="stop-label">{label}</p>
+      </div>
+    </li>
+  );
+}
+
+function ConditionStop({ item, context, rail = "walk" }: { item: ReportItem; context: StopContext; rail?: Rail }) {
+  const avoided = item.status === "avoided";
+  const classes = ["stop", avoided ? "is-avoided" : "", rail === "ride" ? "on-ride" : ""].filter(Boolean).join(" ");
+  return (
+    <li className={classes} id={stopId(context.rank, item.id)} tabIndex={-1}>
+      {avoided && (
+        <svg className="stop-kink" viewBox="0 0 56 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <path
+            d="M16 0 V22 L6 36 V64 L16 78 V100"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      )}
+      <span className="stop-mark">
+        <HazardShapeIcon shape={effectShape(item.effect)} size={24} />
+      </span>
+      <div className="stop-body">
+        <p className="stop-title">{item.title}</p>
+        <p className="stop-label">
+          <strong>{statusText(item)}</strong>: {effectText(item.effect).toLowerCase()}
+        </p>
+        {!context.compact && item.detail && <p className="stop-detail">{item.detail}</p>}
+        {!context.compact && (
+          <p className="stop-checked">
+            <TimeAgo iso={item.observed_at} now={context.now} />
+          </p>
+        )}
+      </div>
+    </li>
+  );
+}
+
 /** The line itself: start, each condition on or near the route, end. */
 export function RouteStops({ route, from, to, now, reveal = false, compact = false }: StopsProps) {
+  const context: StopContext = { rank: route.rank, now, compact };
+  const legs = route.legs ?? [];
   return (
     <ol
       className={reveal ? "route-line is-revealing" : "route-line"}
       // Safari drops list semantics when list-style is none; keep them.
       role="list"
-      aria-label={`Route ${route.rank}: start, conditions and end`}
+      aria-label={`Route ${route.rank}: start, ${legs.length ? "walks, rides, stations, " : ""}conditions and end`}
     >
-      <li className="stop is-first">
-        <span className="stop-mark">
-          <HazardShapeIcon shape="start" size={24} />
-        </span>
-        <div className="stop-body">
-          <p className="stop-title">{from}</p>
-          <p className="stop-label">Start</p>
-        </div>
-      </li>
-      {stops(route).map(({ key, item }) => {
-        const avoided = item.status === "avoided";
-        return (
-          <li className={avoided ? "stop is-avoided" : "stop"} key={key}>
-            {avoided && (
-              <svg className="stop-kink" viewBox="0 0 56 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                <path
-                  d="M16 0 V22 L6 36 V64 L16 78 V100"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
-            )}
-            <span className="stop-mark">
-              <HazardShapeIcon shape={effectShape(item.effect)} size={24} />
-            </span>
-            <div className="stop-body">
-              <p className="stop-title">{item.title}</p>
-              <p className="stop-label">
-                <strong>{statusText(item)}</strong>: {effectText(item.effect).toLowerCase()}
-              </p>
-              {!compact && item.detail && <p className="stop-detail">{item.detail}</p>}
-              {!compact && (
-                <p className="stop-checked">
-                  <TimeAgo iso={item.observed_at} now={now} />
-                </p>
-              )}
-            </div>
-          </li>
-        );
-      })}
-      <li className="stop is-last">
-        <span className="stop-mark">
-          <HazardShapeIcon shape="start" size={24} />
-        </span>
-        <div className="stop-body">
-          <p className="stop-title">{to}</p>
-          <p className="stop-label">End</p>
-        </div>
-      </li>
+      <EndStop name={from} label="Start" first />
+      {legs.length ? (
+        <TripRows route={route} legs={legs} from={from} to={to} context={context} />
+      ) : (
+        stops(route).map(({ key, item }) => <ConditionStop key={key} item={item} context={context} />)
+      )}
+      <EndStop name={to} label="End" />
     </ol>
   );
+}
+
+// ------------------------------------------------- walk and LRT trips (OP-311)
+
+const minutes = (value: number) => `${Math.max(1, Math.round(value))} min`;
+
+/** "Capital Line toward Century Park", or both lines on a shared track. */
+function rideTitle(leg: LegOut): string {
+  const lines = leg.lines ?? [];
+  const heads = leg.headsigns ?? [];
+  if (!lines.length) return `LRT toward ${heads.join(" or ") || leg.to_name}`;
+  return lines.map((line, index) => (heads[index] ? `${line} toward ${heads[index]}` : line)).join(" or ");
+}
+
+function LegRow({ leg, from, to }: { leg: LegOut; from: string; to: string }) {
+  let body: ReactNode;
+  if (leg.kind === "ride") {
+    const stopsText = leg.stops ? `${plural(leg.stops, "stop", "stops")}, ` : "";
+    body = (
+      <>
+        <p className="stop-title">{rideTitle(leg)}</p>
+        <p className="stop-label">
+          {stopsText}
+          {minutes(leg.ride_min ?? leg.duration_min)}
+        </p>
+        {leg.wait && <p className="stop-label">About {minutes(leg.wait.minutes)} wait (estimate)</p>}
+      </>
+    );
+  } else {
+    const verb = leg.kind === "transfer" ? "Change trains: walk" : "Walk";
+    const target = leg.to_name === "Destination" ? to : leg.to_name;
+    const origin = leg.from_name === "Start" ? from : leg.from_name;
+    body = (
+      <p className="stop-label">
+        {verb} {formatDistance(leg.distance_m)}, about {minutes(leg.duration_min)}
+        <span className="sr-only">
+          , from {origin} to {target}
+        </span>
+      </p>
+    );
+  }
+  return (
+    <li className={`stop leg is-${leg.kind === "ride" ? "ride" : "walk"}`}>
+      <span className="stop-mark" aria-hidden="true" />
+      <div className="stop-body">{body}</div>
+    </li>
+  );
+}
+
+function StationStop({
+  name,
+  station,
+  railIn,
+  railOut,
+  context
+}: {
+  name: string;
+  station: StationOut | null;
+  railIn: Rail;
+  railOut: Rail;
+  context: StopContext;
+}) {
+  const classes = ["stop", "is-station", railIn === "ride" ? "ride-in" : "", railOut === "ride" ? "ride-out" : ""]
+    .filter(Boolean)
+    .join(" ");
+  const access = station?.access === "at_grade" ? "LRT stop at street level" : "LRT station";
+  return (
+    <li className={classes}>
+      <span className="stop-mark">
+        <svg className="station-mark" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="8" fill="var(--card)" stroke="currentColor" strokeWidth="4" />
+        </svg>
+      </span>
+      <div className="stop-body">
+        <p className="stop-title">{station?.name ?? name}</p>
+        <p className="stop-label">{access}</p>
+        {!context.compact && station?.note && <p className="stop-detail">{station.note}</p>}
+      </div>
+    </li>
+  );
+}
+
+const DEVICE_SOURCE = "city_lrt_devices";
+
+/**
+ * A walk and LRT trip as a line: walks as the single line, rides as a double line with
+ * the line name, stations as rings. A station's elevator and escalator outages are
+ * stops beside it, on its walking side. Other conditions have no position yet, so they
+ * follow the last leg in the report's order.
+ */
+function TripRows({
+  route,
+  legs,
+  from,
+  to,
+  context
+}: {
+  route: RouteOut;
+  legs: LegOut[];
+  from: string;
+  to: string;
+  context: StopContext;
+}) {
+  const stations = route.lrt?.stations ?? [];
+  const items = stops(route);
+  const used = new Set<string>();
+  const atStation = (station: StationOut | null) => {
+    if (!station) return [];
+    const ids = new Set(station.devices.map((device) => `${DEVICE_SOURCE}:${device.device_id}`));
+    return items.filter(({ key, item }) => ids.has(item.id) && !used.has(key) && used.add(key));
+  };
+  const rows: ReactNode[] = [];
+  legs.forEach((leg, index) => {
+    if (index > 0 && legs[index - 1].to_name === leg.from_name) {
+      const station = stations.find((option) => option.name === leg.from_name) ?? null;
+      const railIn: Rail = legs[index - 1].kind === "ride" ? "ride" : "walk";
+      const railOut: Rail = leg.kind === "ride" ? "ride" : "walk";
+      const conditions = atStation(station).map(({ key, item }) => (
+        <ConditionStop key={key} item={item} context={context} rail={railIn === "ride" && railOut === "ride" ? "ride" : "walk"} />
+      ));
+      const stop = (
+        <StationStop
+          key={`station-${index}`}
+          name={leg.from_name}
+          station={station}
+          railIn={railIn}
+          railOut={railOut}
+          context={context}
+        />
+      );
+      // Outages sit on the station's walking side: before it when boarding, after it otherwise.
+      if (railOut === "ride" && railIn === "walk") rows.push(...conditions, stop);
+      else rows.push(stop, ...conditions);
+    }
+    rows.push(<LegRow key={`leg-${index}`} leg={leg} from={from} to={to} />);
+  });
+  for (const { key, item } of items) {
+    if (!used.has(key)) rows.push(<ConditionStop key={key} item={item} context={context} />);
+  }
+  return <>{rows}</>;
 }
 
 type Props = HeadingProps & Omit<StopsProps, "route">;
