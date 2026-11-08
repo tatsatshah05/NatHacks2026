@@ -4,7 +4,7 @@ Query: ``from=lat,lng`` ``to=lat,lng`` ``profile=wheelchair|walker_cane|low_visi
 
 The app loads the walking network once at startup (``app.state.router``). Hazards
 come from ``app.state.hazard_provider``, which OP-206 sets to the matcher; until
-then routes ignore hazards. The Maps links are filled by OP-209.
+then routes ignore hazards. The Maps links (OP-209) pin our detours as Google waypoints.
 """
 
 from __future__ import annotations
@@ -15,6 +15,12 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
+from .maps_links import (
+    APPLE_MAPS_NOTE,
+    apple_maps_url,
+    detour_waypoints,
+    google_maps_url,
+)
 from .routing import HazardMap, Router, RoutingError
 
 router = APIRouter(prefix="/api", tags=["routing"])
@@ -42,8 +48,10 @@ class RouteOut(BaseModel):
     hazards_avoided: list[HazardOut]
     warnings: list[str]
     reason: str | None
-    google_maps_url: str | None = None  # OP-209
-    apple_maps_url: str | None = None  # OP-209
+    google_maps_url: (
+        str  # walking directions with up to 3 waypoints that pin our detours
+    )
+    apple_maps_url: str  # start to end only; see apple_maps_note on the response
 
 
 class RouteResponse(BaseModel):
@@ -53,6 +61,7 @@ class RouteResponse(BaseModel):
     destination_snap_m: float
     routes: list[RouteOut]
     warnings: list[str]
+    apple_maps_note: str  # shown next to the Apple Maps button
 
 
 def parse_point(value: str, name: str) -> tuple[float, float]:
@@ -107,6 +116,7 @@ def get_route(
         origin_snap_m=round(result.origin[1], 1),
         destination_snap_m=round(result.destination[1], 1),
         warnings=result.warnings,
+        apple_maps_note=APPLE_MAPS_NOTE,
         routes=[
             RouteOut(
                 rank=i + 1,
@@ -137,6 +147,12 @@ def get_route(
                 ],
                 warnings=r.warnings,
                 reason=r.reason,
+                google_maps_url=google_maps_url(
+                    (from_lat, from_lng),
+                    (to_lat, to_lng),
+                    detour_waypoints(router_.network, r.nodes, result.plain_nodes),
+                ),
+                apple_maps_url=apple_maps_url((from_lat, from_lng), (to_lat, to_lng)),
             )
             for i, r in enumerate(result.routes)
         ],

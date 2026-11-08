@@ -86,6 +86,9 @@ class RouteResult:
     destination: tuple[int, float]
     routes: list[Route]
     warnings: list[str] = field(default_factory=list)
+    # The plain shortest route's nodes (hazards ignored), so the Maps hand-off (OP-209)
+    # can pin the places where a route departs from it. None when unreachable.
+    plain_nodes: tuple[int, ...] | None = None
 
 
 class RoutingError(ValueError):
@@ -209,7 +212,7 @@ class Router:
             )
             for path, edges in found
         ]
-        return RouteResult(profile_key, origin, destination, routes, warnings)
+        return RouteResult(profile_key, origin, destination, routes, warnings, plain)
 
     # -- pieces --------------------------------------------------------------
 

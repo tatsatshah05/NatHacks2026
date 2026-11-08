@@ -29,7 +29,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from cloud.app import obstructions_api, routing_api, sources, status, weather_service
+from cloud.app import (
+    ingest_api,
+    obstructions_api,
+    routing_api,
+    sources,
+    status,
+    weather_service,
+)
+from cloud.app.camera_readings import CameraReadingStore
 from cloud.app.db import make_engine
 from cloud.app.matching import HazardProvider
 from cloud.app.network import DEFAULT_NETWORK_PATH, WalkNetwork
@@ -112,6 +120,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     store = ObstructionStore(make_engine())
     store.create_tables()
     app.state.store = store  # read by obstructions_api.get_store
+    # OP-213: readings from the vision worker, in their own table.
+    camera_store = CameraReadingStore(store.engine)
+    camera_store.create_tables()
+    camera_store.purge_expired(utcnow())  # drop readings that expired over a week ago
+    app.state.camera_store = camera_store
     mode: str = app.state.mode
     snapshot_raw = os.environ.get("REPLAY_SNAPSHOT")
     snapshot = Path(snapshot_raw) if snapshot_raw else None
@@ -178,6 +191,7 @@ def create_app() -> FastAPI:
     app.include_router(status.router)
     app.include_router(routing_api.router)
     app.include_router(weather_service.router)
+    app.include_router(ingest_api.router)
 
     @app.get("/health", tags=["ops"])
     def health() -> Health:
