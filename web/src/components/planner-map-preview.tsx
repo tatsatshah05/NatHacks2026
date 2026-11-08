@@ -6,29 +6,42 @@ type Props = {
   onPick: (field: PlaceField) => void;
 };
 
-// A drawn stand-in for the map: two labelled buttons choose the demo start and
-// destination. It comes after the results in reading and tab order, and the search
-// fields do everything it does.
+// Where the two demo places sit on the drawn map, as percentages of its box.
+const POINTS = { from: { x: 22, y: 30 }, to: { x: 74, y: 70 } };
+
+// A drawn stand-in for the map until OP-301: two labelled buttons choose the demo
+// start and destination, and a line joins them once both are set. It comes after
+// the results in reading and tab order, and the search fields do everything it does.
 export default function PlannerMapPreview({ from, to, onPick }: Props) {
   return (
-    <section className="planner-map-panel" aria-labelledby="map-preview-title">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">Map preview</p>
-          <h2 id="map-preview-title">Or choose on the map</h2>
-        </div>
-        <span className="mock-badge">Demo map</span>
-      </div>
-      <div className="planner-map">
-        <span className="map-road road-one" aria-hidden="true" />
-        <span className="map-road road-two" aria-hidden="true" />
-        <span className="map-river" aria-hidden="true" />
+    <section className="preview" aria-labelledby="map-preview-title">
+      <h2 className="sr-only" id="map-preview-title">
+        Demo map
+      </h2>
+      <div className="preview-map">
+        <svg className="preview-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <g stroke="var(--line)" strokeWidth="12" fill="none">
+            <path d="M-5 42 L105 22" vectorEffect="non-scaling-stroke" />
+            <path d="M-5 80 L105 62" vectorEffect="non-scaling-stroke" />
+            <path d="M30 -5 L38 105" vectorEffect="non-scaling-stroke" />
+            <path d="M68 -5 L62 105" vectorEffect="non-scaling-stroke" />
+          </g>
+          {from && to && (
+            <path
+              d={`M${POINTS.from.x} ${POINTS.from.y} L${POINTS.from.x} ${POINTS.to.y - 12} L${POINTS.to.x} ${POINTS.to.y}`}
+              stroke="var(--action)"
+              strokeWidth="4"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              fill="none"
+            />
+          )}
+        </svg>
         <MapPlace field="from" place={from} onPick={onPick} />
         <MapPlace field="to" place={to} onPick={onPick} />
-        <p className="map-legend">Demo preview. Use search for exact places.</p>
       </div>
-      <p className="map-help">
-        The map is optional: the Start and Destination buttons work with a keyboard, and search does the same job.
+      <p className="preview-caption">
+        Demo map. The Start and Destination buttons choose sample places; search does the same job.
       </p>
     </section>
   );
@@ -44,9 +57,11 @@ function MapPlace({ field, place, onPick }: MapPlaceProps) {
       className={`map-place ${field === "from" ? "place-one" : "place-two"}${place ? " chosen" : ""}`}
       onClick={() => onPick(field)}
     >
-      <span className="map-place-mark" aria-hidden="true">{place ? "✓" : field === "from" ? "A" : "B"}</span>
-      <strong>{noun}</strong>
-      <small>{place ? `Set: ${place.name}` : "Not set"}</small>
+      <span className="map-place-mark" aria-hidden="true" />
+      <span>
+        <strong>{noun}</strong>
+        <span>{place ? place.name : "Not set"}</span>
+      </span>
     </button>
   );
 }

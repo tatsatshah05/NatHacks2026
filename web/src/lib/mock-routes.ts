@@ -18,6 +18,7 @@ import type {
   StatusResponse,
   TravelProfile
 } from "./planner-types";
+import { CITYWIDE_NOTE as CITYWIDE } from "./report-format";
 
 export const mockPlaces: PlannerPlace[] = [
   {
@@ -70,7 +71,8 @@ const CITY = "City of Edmonton Open Data";
 const STATION_NOTE =
   "Reported for the whole station: the exact elevator or escalator is not mapped, " +
   "so routes cannot avoid it.";
-const CITYWIDE_NOTE = "Covers the whole city, so it applies to every route and changes none.";
+// Same wording as cloud/app/report.py NOTES["citywide"].
+const CITYWIDE_NOTE = CITYWIDE;
 
 type DemoItem = Omit<ReportItem, "status" | "distance_m" | "observed_at" | "starts_at" | "ends_at"> & {
   category: Category;

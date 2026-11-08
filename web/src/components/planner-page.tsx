@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import PlaceInput, { placeInputId } from "./place-input";
 import PlannerMapPreview from "./planner-map-preview";
-import ProfilePicker from "./profile-picker";
-import RouteCard from "./route-card";
-import SiteHeader from "./site-header";
+import ProfileIcon from "./profile-icons";
+import RouteResult from "./route-result";
+import Button from "./ui/button";
+import CityWideConditions from "./ui/city-wide-conditions";
+import Panel from "./ui/panel";
+import { cityWideItems } from "./ui/route-line";
+import SegmentedChoice from "./ui/segmented-choice";
+import SiteFooter from "./ui/site-footer";
+import SiteHeader from "./ui/site-header";
+import StatusLine from "./ui/status-line";
 import { getMockRouteResponse, mockPlaces } from "@/lib/mock-routes";
 import {
   PlaceField,
@@ -14,14 +20,22 @@ import {
   PlannerQuery,
   RouteResponse,
   TravelProfile,
-  profileLabel
+  profilePhrase,
+  travelProfiles
 } from "@/lib/planner-types";
-import { reportHref } from "@/lib/route-link";
 
 type ByField<T> = Record<PlaceField, T>;
 
 const FIELD_LABEL: ByField<string> = { from: "From", to: "To" };
 const FIELD_NOUN: ByField<string> = { from: "Start", to: "Destination" };
+
+const PROFILE_OPTIONS = travelProfiles.map((option) => ({
+  id: option.id,
+  label: option.label,
+  icon: <ProfileIcon profile={option.id} />
+}));
+
+type Result = { query: PlannerQuery; response: RouteResponse; now: Date };
 
 export default function PlannerPage() {
   const [places, setPlaces] = useState<ByField<PlannerPlace | null>>({ from: null, to: null });
@@ -30,7 +44,7 @@ export default function PlannerPage() {
   const [profile, setProfile] = useState<TravelProfile>("wheelchair");
   const [locationMessage, setLocationMessage] = useState("");
   // Demo routes for the current places and profile; any change clears them.
-  const [result, setResult] = useState<{ query: PlannerQuery; response: RouteResponse } | null>(null);
+  const [result, setResult] = useState<Result | null>(null);
 
   function choosePlace(field: PlaceField, place: PlannerPlace) {
     setPlaces((current) => ({ ...current, [field]: place }));
@@ -52,10 +66,10 @@ export default function PlannerPage() {
 
   function requestCurrentLocation() {
     if (!navigator.geolocation) {
-      setLocationMessage("Current location is not available in this browser. Search for a starting place instead.");
+      setLocationMessage("This browser cannot share your location. Search for a starting place instead.");
       return;
     }
-    setLocationMessage("Requesting your current location…");
+    setLocationMessage("Asking for your location.");
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         choosePlace("from", {
@@ -64,9 +78,9 @@ export default function PlannerPage() {
           description: `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`,
           coordinates: [coords.longitude, coords.latitude]
         });
-        setLocationMessage("Using your current location as the starting point.");
+        setLocationMessage("Starting from your current location.");
       },
-      () => setLocationMessage("We could not access your location. Search for a starting place instead."),
+      () => setLocationMessage("Your location is not available. Search for a starting place instead."),
       { timeout: 8000 }
     );
   }
@@ -77,7 +91,7 @@ export default function PlannerPage() {
     setLocationMessage(`${FIELD_NOUN[field]} set to ${place.name} from the demo map.`);
   }
 
-  function compare() {
+  function findRoutes() {
     const missing = (["from", "to"] as const).find((field) => !places[field]);
     const same = places.from && places.to && places.from.id === places.to.id;
     if (missing || same) {
@@ -92,13 +106,15 @@ export default function PlannerPage() {
     if (!places.from || !places.to) return;
     setErrors({ from: "", to: "" });
     const query = { from: places.from, to: places.to, profile };
-    setResult({ query, response: getMockRouteResponse(query, new Date()) });
+    const now = new Date();
+    setResult({ query, response: getMockRouteResponse(query, now), now });
   }
 
   const routes = result?.response.routes ?? [];
+  const everywhere = cityWideItems(routes);
   const status = result
-    ? `${routes.length} demo ${routes.length === 1 ? "route" : "routes"} for ${profileLabel(profile)}.`
-    : "Choose places and compare routes to see demo results.";
+    ? `${routes.length} demo ${routes.length === 1 ? "route" : "routes"} ${profilePhrase(result.query.profile)}, best first.`
+    : "";
 
   function placeInput(field: PlaceField) {
     return (
@@ -112,86 +128,87 @@ export default function PlannerPage() {
         onQueryChange={updateQuery}
         onChoose={choosePlace}
         onMapPick={pickOnMap}
+        footer={
+          field === "from" ? (
+            <>
+              <Button variant="text" onClick={requestCurrentLocation}>
+                Use my current location
+              </Button>
+              <p className="field-note" role="status">
+                {locationMessage}
+              </p>
+            </>
+          ) : undefined
+        }
       />
     );
   }
 
   return (
-    <div className="app-shell planner-shell">
+    <div className="shell">
       <SiteHeader current="plan" />
 
-      <main id="main">
-        <section className="planner-hero" aria-labelledby="planner-title">
-          <p className="eyebrow">Accessible trip planner</p>
-          <h1 id="planner-title">Where are you going?</h1>
-          <p className="hero-copy">
-            Choose your start, destination and travel needs. We&apos;ll compare routes around current obstructions.
+      <main id="main" className="page">
+        <div className="page-main">
+          <h1 className="page-title">Where are you going?</h1>
+          <p className="note">
+            <strong>Demo data.</strong> Places, routes and conditions here are samples, not current Edmonton
+            conditions, until the planner connects to the route service.
           </p>
-          <p className="demo-note">
-            <strong>Demo data.</strong> Places, routes and conditions on this page are samples until the planner
-            connects to the live route service.
-          </p>
-        </section>
 
-        <div className="planner-layout">
           <form
-            className="planner-form-panel"
-            aria-labelledby="trip-title"
+            className="form-stack"
+            aria-labelledby="planner-form-name"
             noValidate
             onSubmit={(event) => {
               event.preventDefault();
-              compare();
+              findRoutes();
             }}
           >
-            <div className="planner-section-heading">
-              <div>
-                <p className="eyebrow">1. Your trip</p>
-                <h2 id="trip-title">Start and destination</h2>
-              </div>
-              <span className="mock-badge">Demo data</span>
-            </div>
+            <span className="sr-only" id="planner-form-name">
+              Plan a trip
+            </span>
             {placeInput("from")}
-            <button className="location-button" type="button" onClick={requestCurrentLocation}>
-              <span aria-hidden="true">◎ </span>Use my current location for From
-            </button>
-            <p className="form-status" role="status">{locationMessage}</p>
             {placeInput("to")}
-            <ProfilePicker value={profile} onChange={chooseProfile} />
-            <button className="primary-button" type="submit">Compare accessible routes</button>
-            <p className="form-hint">Choose both places to compare up to three routes.</p>
+            <SegmentedChoice
+              legend="How do you get around?"
+              name="travel-profile"
+              options={PROFILE_OPTIONS}
+              value={profile}
+              onChange={chooseProfile}
+            />
+            <Button type="submit" size="large" block>
+              Find routes
+            </Button>
           </form>
 
-          <section className="route-results" aria-labelledby="route-results-title">
-            <div className="results-heading">
-              <div>
-                <p className="eyebrow">3. Compare routes</p>
-                <h2 id="route-results-title">Route options</h2>
-              </div>
-              <span className="results-status">Demo route data</span>
-            </div>
-            <p className="route-status" role="status">{status}</p>
-            {routes.length > 0 && (
-              <div className="route-card-grid">
+          <section className="results" aria-label="Routes">
+            <StatusLine>{status}</StatusLine>
+            {result && <CityWideConditions items={everywhere} now={result.now} />}
+            {result && routes.length > 0 && (
+              <ol className="routes" role="list">
                 {routes.map((route) => (
-                  <RouteCard
-                    key={route.rank}
-                    route={route}
-                    reportHref={result ? reportHref(result.query, route.rank) : "/route"}
-                  />
+                  <Panel as="li" key={`${result.now.getTime()}-${route.rank}`} aria-labelledby={`route-${route.rank}-heading`}>
+                    <RouteResult
+                      route={route}
+                      routeCount={routes.length}
+                      query={result.query}
+                      now={result.now}
+                      appleMapsNote={result.response.apple_maps_note}
+                    />
+                  </Panel>
                 ))}
-              </div>
+              </ol>
             )}
           </section>
+        </div>
 
+        <div className="page-side">
           <PlannerMapPreview from={places.from} to={places.to} onPick={pickOnMap} />
         </div>
       </main>
 
-      <footer>
-        <strong>OpenPath</strong>
-        <span>Accessible information for every Edmonton journey.</span>
-        <Link href="/city">View city conditions</Link>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

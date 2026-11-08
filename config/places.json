@@ -1,0 +1,578 @@
+{
+  "about": "Named places for address and place search (OP-302). LRT stations are indexed separately from the City's LRT Stations and Stops dataset (fhxi-cnhe), with the aliases below. No coordinate here is typed by hand: scripts/build_search_index.py --write-places fills lat and lng from coord_source.",
+  "coord_sources": {
+    "parcel_address": "The City of Edmonton Parcel Addresses point (ut27-nrpn) of the place's street address: the mean of its parcel points, or of its suite points where it has no parcel.",
+    "lrt_station": "The address is not in Parcel Addresses, so the point is the named LRT station beside the place (fhxi-cnhe, the mean of its platform points). Each such entry's note says how far away it is."
+  },
+  "attribution": "City of Edmonton Open Data",
+  "station_aliases": {
+    "Government Station": [
+      "Government Centre Station",
+      "Government Centre"
+    ],
+    "Bay Enterprise Square Station": [
+      "Bay Station",
+      "Enterprise Square"
+    ],
+    "Health Sciences Jubilee Station": [
+      "Health Sciences Station",
+      "Jubilee Station"
+    ],
+    "South Campus Ft Edmonton Station": [
+      "South Campus Fort Edmonton Park Station",
+      "South Campus Station"
+    ],
+    "Kingsway RAH Station": [
+      "Kingsway Royal Alex Station"
+    ],
+    "Stadium Station": [
+      "Commonwealth Stadium Station"
+    ]
+  },
+  "places": [
+    {
+      "name": "Rogers Place",
+      "address": "10220 104 Avenue NW",
+      "aliases": [
+        "Ice District",
+        "Oilers arena"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.547016,
+      "lng": -113.497787
+    },
+    {
+      "name": "Sir Winston Churchill Square",
+      "address": "1 Sir Winston Churchill Square NW",
+      "aliases": [
+        "Churchill Square"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.545536,
+      "lng": -113.488846
+    },
+    {
+      "name": "Edmonton City Hall",
+      "address": "1 Sir Winston Churchill Square NW",
+      "aliases": [
+        "City Hall"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.545536,
+      "lng": -113.488846
+    },
+    {
+      "name": "Edmonton City Centre",
+      "address": "10200 102 Avenue NW",
+      "aliases": [
+        "City Centre Mall"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.54324,
+      "lng": -113.495529
+    },
+    {
+      "name": "Stanley A. Milner Library",
+      "address": "7 Sir Winston Churchill Square NW",
+      "aliases": [
+        "Milner Library",
+        "Downtown library"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.542862,
+      "lng": -113.489693
+    },
+    {
+      "name": "Art Gallery of Alberta",
+      "address": "2 Sir Winston Churchill Square NW",
+      "aliases": [
+        "AGA"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.544914,
+      "lng": -113.488548
+    },
+    {
+      "name": "Winspear Centre",
+      "address": "4 Sir Winston Churchill Square NW",
+      "aliases": [
+        "Francis Winspear Centre for Music"
+      ],
+      "coord_source": "lrt_station",
+      "station": "Churchill Station",
+      "note": "The address is not in Parcel Addresses; Churchill Station is about 100 m away, beside the hall.",
+      "lat": 53.544074,
+      "lng": -113.489008
+    },
+    {
+      "name": "Citadel Theatre",
+      "address": "9828 101A Avenue NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.542923,
+      "lng": -113.48806
+    },
+    {
+      "name": "Edmonton Convention Centre",
+      "address": "9797 Jasper Avenue NW",
+      "aliases": [
+        "Shaw Conference Centre"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.541286,
+      "lng": -113.486191
+    },
+    {
+      "name": "Royal Alberta Museum",
+      "address": "9810 103A Avenue NW",
+      "aliases": [
+        "RAM"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.547249,
+      "lng": -113.488579
+    },
+    {
+      "name": "Edmonton Tower",
+      "address": "10111 104 Avenue NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.545712,
+      "lng": -113.494629
+    },
+    {
+      "name": "Stantec Tower",
+      "address": "10220 103 Avenue NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.544918,
+      "lng": -113.496521
+    },
+    {
+      "name": "Canada Place",
+      "address": "9700 Jasper Avenue NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.542515,
+      "lng": -113.486687
+    },
+    {
+      "name": "Manulife Place",
+      "address": "10180 101 Street NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.54261,
+      "lng": -113.494644
+    },
+    {
+      "name": "Fairmont Hotel Macdonald",
+      "address": "10065 100 Street NW",
+      "aliases": [
+        "Hotel Macdonald"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.540386,
+      "lng": -113.489105
+    },
+    {
+      "name": "JW Marriott Edmonton Ice District",
+      "address": "10344 102 Street NW",
+      "aliases": [
+        "JW Marriott"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.545647,
+      "lng": -113.495819
+    },
+    {
+      "name": "Scotia Place",
+      "address": "10060 Jasper Avenue NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.5415,
+      "lng": -113.492844
+    },
+    {
+      "name": "Alberta Legislature",
+      "address": "10800 97 Avenue NW",
+      "aliases": [
+        "Legislature Grounds",
+        "Legislative Building"
+      ],
+      "coord_source": "lrt_station",
+      "station": "Government Station",
+      "note": "The address is not in Parcel Addresses; Government Station is under the Legislature grounds.",
+      "lat": 53.536229,
+      "lng": -113.510275
+    },
+    {
+      "name": "Royal Alexandra Hospital",
+      "address": "10240 Kingsway NW",
+      "aliases": [
+        "Royal Alex",
+        "RAH"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.557198,
+      "lng": -113.497635
+    },
+    {
+      "name": "Glenrose Rehabilitation Hospital",
+      "address": "10230 111 Avenue NW",
+      "aliases": [
+        "Glenrose"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.560005,
+      "lng": -113.497704
+    },
+    {
+      "name": "University of Alberta Hospital",
+      "address": "8440 112 Street NW",
+      "aliases": [
+        "UAH",
+        "U of A Hospital"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.520802,
+      "lng": -113.523163
+    },
+    {
+      "name": "Stollery Children's Hospital",
+      "address": "8440 112 Street NW",
+      "aliases": [
+        "Stollery"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.520802,
+      "lng": -113.523163
+    },
+    {
+      "name": "Mazankowski Alberta Heart Institute",
+      "address": "11220 83 Avenue NW",
+      "aliases": [
+        "Mazankowski"
+      ],
+      "coord_source": "lrt_station",
+      "station": "Health Sciences Jubilee Station",
+      "note": "The address is not in Parcel Addresses; Health Sciences Jubilee Station is about 200 m away, beside the hospital complex.",
+      "lat": 53.520161,
+      "lng": -113.52587
+    },
+    {
+      "name": "Cross Cancer Institute",
+      "address": "11560 University Avenue NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.518105,
+      "lng": -113.531281
+    },
+    {
+      "name": "Grey Nuns Community Hospital",
+      "address": "1100 Youville Drive West NW",
+      "aliases": [
+        "Grey Nuns Hospital"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.46207,
+      "lng": -113.429718
+    },
+    {
+      "name": "Misericordia Community Hospital",
+      "address": "16940 87 Avenue NW",
+      "aliases": [
+        "Misericordia Hospital"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.521759,
+      "lng": -113.611595
+    },
+    {
+      "name": "University of Alberta",
+      "address": "8900 114 Street NW",
+      "aliases": [
+        "U of A",
+        "UofA",
+        "Students' Union Building",
+        "SUB",
+        "North Campus"
+      ],
+      "coord_source": "parcel_address",
+      "note": "The point is the Students' Union Building on the main quad.",
+      "lat": 53.52528,
+      "lng": -113.526382
+    },
+    {
+      "name": "Edmonton Clinic Health Academy",
+      "address": "11405 87 Avenue NW",
+      "aliases": [
+        "ECHA"
+      ],
+      "coord_source": "lrt_station",
+      "station": "Health Sciences Jubilee Station",
+      "note": "The address is not in Parcel Addresses; Health Sciences Jubilee Station is about 180 m away, beside the building.",
+      "lat": 53.520161,
+      "lng": -113.52587
+    },
+    {
+      "name": "MacEwan University",
+      "address": "10700 104 Avenue NW",
+      "aliases": [
+        "Grant MacEwan"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.547264,
+      "lng": -113.507523
+    },
+    {
+      "name": "NAIT Main Campus",
+      "address": "11762 106 Street NW",
+      "aliases": [
+        "NAIT",
+        "Northern Alberta Institute of Technology"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.568138,
+      "lng": -113.505249
+    },
+    {
+      "name": "NorQuest College",
+      "address": "10215 108 Street NW",
+      "aliases": [
+        "NorQuest"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.543812,
+      "lng": -113.505669
+    },
+    {
+      "name": "Concordia University of Edmonton",
+      "address": "7128 Ada Boulevard NW",
+      "aliases": [
+        "Concordia"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.560474,
+      "lng": -113.446381
+    },
+    {
+      "name": "The King's University",
+      "address": "9125 50 Street NW",
+      "aliases": [
+        "King's University"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.525749,
+      "lng": -113.416656
+    },
+    {
+      "name": "West Edmonton Mall",
+      "address": "8882 170 Street NW",
+      "aliases": [
+        "WEM"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.522652,
+      "lng": -113.623398
+    },
+    {
+      "name": "Southgate Centre",
+      "address": "5015 111 Street NW",
+      "aliases": [
+        "Southgate Mall"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.484962,
+      "lng": -113.515259
+    },
+    {
+      "name": "Kingsway Mall",
+      "address": "1 Kingsway Garden Mall NW",
+      "aliases": [
+        "Kingsway Garden Mall"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.562489,
+      "lng": -113.505676
+    },
+    {
+      "name": "Londonderry Mall",
+      "address": "1 Londonderry Mall NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.602654,
+      "lng": -113.44603
+    },
+    {
+      "name": "Northgate Centre",
+      "address": "9499 137 Avenue NW",
+      "aliases": [
+        "Northgate Mall"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.598366,
+      "lng": -113.489784
+    },
+    {
+      "name": "Bonnie Doon Shopping Centre",
+      "address": "8330 82 Avenue NW",
+      "aliases": [
+        "Bonnie Doon Mall"
+      ],
+      "coord_source": "lrt_station",
+      "station": "Bonnie Doon Stop",
+      "note": "The address is not in Parcel Addresses; Bonnie Doon Stop is about 200 m away, beside the centre.",
+      "lat": 53.519377,
+      "lng": -113.455423
+    },
+    {
+      "name": "Mill Woods Town Centre",
+      "address": "2331 66 Street NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.456001,
+      "lng": -113.430481
+    },
+    {
+      "name": "Old Strathcona (Whyte Avenue)",
+      "address": "10324 82 Avenue NW",
+      "aliases": [
+        "Whyte Avenue",
+        "Whyte Ave",
+        "Old Strathcona"
+      ],
+      "coord_source": "parcel_address",
+      "note": "Whyte Avenue is a street, not one address; the point is a Whyte Avenue parcel near 104 Street, in the Old Strathcona core.",
+      "lat": 53.518391,
+      "lng": -113.495903
+    },
+    {
+      "name": "Garneau Theatre",
+      "address": "8712 109 Street NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.523121,
+      "lng": -113.512314
+    },
+    {
+      "name": "Commonwealth Stadium",
+      "address": "11000 Stadium Road NW",
+      "aliases": [
+        "Commonwealth"
+      ],
+      "coord_source": "lrt_station",
+      "station": "Stadium Station",
+      "note": "The address is not in Parcel Addresses; Stadium Station is at the stadium's edge, about 370 m from the recreation centre parcel.",
+      "lat": 53.559945,
+      "lng": -113.470775
+    },
+    {
+      "name": "Edmonton EXPO Centre",
+      "address": "7515 118 Avenue NW",
+      "aliases": [
+        "Expo Centre",
+        "Northlands"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.569347,
+      "lng": -113.456833
+    },
+    {
+      "name": "Muttart Conservatory",
+      "address": "9626 96A Street NW",
+      "aliases": [
+        "Muttart",
+        "Pyramids"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.535416,
+      "lng": -113.477303
+    },
+    {
+      "name": "William Hawrelak Park",
+      "address": "9330 Groat Road NW",
+      "aliases": [
+        "Hawrelak Park"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.526699,
+      "lng": -113.545021
+    },
+    {
+      "name": "Kinsmen Sports Centre",
+      "address": "9100 Walterdale Hill NW",
+      "aliases": [
+        "Kinsmen"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.527012,
+      "lng": -113.507011
+    },
+    {
+      "name": "Rundle Park",
+      "address": "2909 113 Avenue NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.560871,
+      "lng": -113.384552
+    },
+    {
+      "name": "Fort Edmonton Park",
+      "address": "7000 143 Street NW",
+      "aliases": [],
+      "coord_source": "parcel_address",
+      "lat": 53.501499,
+      "lng": -113.578705
+    },
+    {
+      "name": "TELUS World of Science",
+      "address": "11211 142 Street NW",
+      "aliases": [
+        "Science Centre"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.560627,
+      "lng": -113.56292
+    },
+    {
+      "name": "Alberta Aviation Museum",
+      "address": "11410 Kingsway NW",
+      "aliases": [
+        "Aviation Museum"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.565559,
+      "lng": -113.517426
+    },
+    {
+      "name": "Terwillegar Community Recreation Centre",
+      "address": "2051 Leger Road NW",
+      "aliases": [
+        "Terwillegar Rec Centre"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.45829,
+      "lng": -113.582367
+    },
+    {
+      "name": "Clareview Community Recreation Centre",
+      "address": "3804 139 Avenue NW",
+      "aliases": [
+        "Clareview Rec Centre"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.602512,
+      "lng": -113.402885
+    },
+    {
+      "name": "The Meadows Community Recreation Centre",
+      "address": "2704 17 Street NW",
+      "aliases": [
+        "Meadows Rec Centre"
+      ],
+      "coord_source": "parcel_address",
+      "lat": 53.457729,
+      "lng": -113.371651
+    }
+  ]
+}

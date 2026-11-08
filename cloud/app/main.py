@@ -11,7 +11,9 @@
 - ``SCHEDULER``: ``on`` (the default) runs every data source on its cadence (OP-103);
   ``off`` serves only what the database already holds, which tests rely on.
 - ``REPLAY_SNAPSHOT``: in replay mode, the folder of recorded responses
-  (``cloud/tests/fixtures`` for ``make dev``). ``REPLAY_AT`` optionally freezes the clock.
+  (``cloud/tests/fixtures`` for ``make dev``). ``REPLAY_AT`` optionally freezes the clock;
+  ``REPLAY_CLOCK=running`` lets it advance from the recording's time (OP-305), and
+  ``WEATHER_REPLAY`` picks a named weather recording (``sources.py``).
 - ``SOCRATA_APP_TOKEN``: raises the City open data rate limit. Optional.
 """
 
@@ -33,8 +35,11 @@ from pydantic import BaseModel
 from cloud.app import (
     ingest_api,
     obstructions_api,
+    push,
+    push_api,
     reports_api,
     routing_api,
+    search,
     sources,
     status,
     weather_service,
@@ -165,6 +170,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # In replay mode REPLAY_AT freezes it, so recorded closures stay active everywhere.
     clock = sources.replay_clock(snapshot) if mode == "replay" else utcnow
     app.state.clock = clock
+    if mode == "replay" and snapshot is not None:
+        # OP-305: recorded camera readings, re-labelled "replay"; none in the fixtures.
+        sources.load_replay_cameras(snapshot, camera_store, clock())
     app.state.scheduler = None
     app.state.weather_service = None
     # Routing (OP-207): the prebuilt walking network loads in well under a second.
@@ -182,7 +190,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         with httpx.Client(timeout=10) as sync_client:
             scheduler: Scheduler | None = None
             if run_scheduler:
-                weather = sources.build_weather_service(mode, snapshot, async_client)
+                weather = sources.build_weather_service(
+                    mode, snapshot, async_client, clock=clock
+                )
                 app.state.weather_service = (
                     weather  # read by weather_service.get_weather
                 )
@@ -205,9 +215,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     app.state.hazard_provider,
                     app.state.mode,
                 )
+            # OP-304: saved routes and push alerts; the watcher thread rechecks saved
+            # routes when hazards change (idle with SCHEDULER=off, as in tests).
+            app.state.push = push.start_route_watcher(
+                store.engine,
+                app.state.router,
+                app.state.hazard_provider,
+                hazard_clock=clock,
+                run=run_scheduler,
+            )
             try:
                 yield
             finally:
+                if app.state.push.watcher is not None:
+                    app.state.push.watcher.stop()
                 if scheduler is not None:
                     await scheduler.stop()
                 store.engine.dispose()
@@ -227,7 +248,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=origins,
         allow_origin_regex=origin_regex,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
     )
 
@@ -236,6 +257,9 @@ def create_app() -> FastAPI:
     app.include_router(routing_api.router)
     app.include_router(weather_service.router)
     app.include_router(ingest_api.router)
+    app.include_router(push_api.router)
+    app.include_router(search.router)
+    app.state.search = search.load_index()  # OP-302: prebuilt, None if missing (503)
     app.include_router(reports_api.router)
 
     @app.get("/health", tags=["ops"])

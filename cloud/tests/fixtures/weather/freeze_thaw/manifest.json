@@ -1,0 +1,37 @@
+{
+ "source": "Open-Meteo historical weather archive (ERA5 reanalysis)",
+ "url": "https://archive-api.open-meteo.com/v1/archive?latitude=53.57&longitude=-113.52&start_date=2025-11-05&end_date=2025-11-06&hourly=temperature_2m%2Cdew_point_2m%2Cprecipitation%2Csoil_temperature_0_to_7cm&timezone=UTC&temperature_unit=celsius&precipitation_unit=mm",
+ "file": "open_meteo_archive.json",
+ "sha256": "852c1188a83ff8d2482b41ff72224965b822e97aea05e76f995b3ade52ce075b",
+ "attribution": "Weather data by Open-Meteo.com (CC BY 4.0); contains modified Copernicus Climate Change Service information (ERA5)",
+ "night_begins_local": "2025-11-05",
+ "recorded_at": "2026-11-08T15:55:31Z",
+ "replay_at": "2025-11-06T12:00:00Z",
+ "ground_field": "soil_temperature_0_to_7cm",
+ "ground_note": "The archive gives a 0 to 7 cm soil layer average, used as ground_c; the live service uses the forecast API's 0 cm surface value.",
+ "watch_active_hours": [
+  "2025-11-05T11:00:00Z",
+  "2025-11-05T12:00:00Z",
+  "2025-11-05T13:00:00Z",
+  "2025-11-05T17:00:00Z",
+  "2025-11-05T18:00:00Z",
+  "2025-11-05T19:00:00Z",
+  "2025-11-05T20:00:00Z",
+  "2025-11-06T12:00:00Z",
+  "2025-11-06T13:00:00Z",
+  "2025-11-06T14:00:00Z",
+  "2025-11-06T15:00:00Z",
+  "2025-11-06T16:00:00Z",
+  "2025-11-06T17:00:00Z",
+  "2025-11-06T18:00:00Z"
+ ],
+ "demo_hour": {
+  "at": "2025-11-06T12:00:00Z",
+  "air_c": -0.1,
+  "dew_c": -0.4,
+  "ground_c": 0.2,
+  "precipitation_last_6h_mm": 3.5,
+  "max_air_last_12h_c": 3.0,
+  "reason": "Ice risk: freezing conditions with precipitation in the last 6 hours; melt and refreeze conditions in the last 12 hours; air temperature within 1 C of the dew point."
+ }
+}

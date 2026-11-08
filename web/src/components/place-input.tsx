@@ -1,6 +1,7 @@
 "use client";
 
-import { FocusEvent, KeyboardEvent, useMemo, useRef, useState } from "react";
+import { FocusEvent, KeyboardEvent, ReactNode, useMemo, useRef, useState } from "react";
+import Field from "./ui/field";
 import { PlaceField, PlannerPlace } from "@/lib/planner-types";
 
 type PlaceInputProps = {
@@ -13,6 +14,8 @@ type PlaceInputProps = {
   onQueryChange: (field: PlaceField, value: string) => void;
   onChoose: (field: PlaceField, place: PlannerPlace) => void;
   onMapPick: (field: PlaceField) => void;
+  /** Related actions under the field, such as "Use my current location". */
+  footer?: ReactNode;
 };
 
 // A labelled search field with a plain list of suggestion buttons (no listbox role,
@@ -28,7 +31,8 @@ export default function PlaceInput({
   error,
   onQueryChange,
   onChoose,
-  onMapPick
+  onMapPick,
+  footer
 }: PlaceInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -41,7 +45,6 @@ export default function PlaceInput({
   const showList = open && suggestions.length > 0;
   const status = !open || !query ? "" : suggestionStatus(suggestions.length);
   const inputId = placeInputId(field);
-  const describedBy = [`${field}-hint`, error ? `${field}-error` : ""].filter(Boolean).join(" ");
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === "Escape" && open) {
@@ -63,58 +66,64 @@ export default function PlaceInput({
   }
 
   return (
-    <div className="place-field" onBlur={handleBlur} onKeyDown={handleKeyDown}>
-      <label htmlFor={inputId}>{label}</label>
-      <div className={`place-input-row${error ? " has-error" : ""}`}>
-        <span className="place-symbol" aria-hidden="true">{field === "from" ? "A" : "B"}</span>
-        <input
-          id={inputId}
-          ref={inputRef}
-          value={value}
-          autoComplete="off"
-          aria-describedby={describedBy}
-          aria-invalid={error ? true : undefined}
-          placeholder={field === "from" ? "Search starting point" : "Search destination"}
-          onChange={(event) => {
+    <div onBlur={handleBlur} onKeyDown={handleKeyDown}>
+      <Field
+        id={inputId}
+        label={label}
+        help="Type to search demo places, or choose one on the demo map."
+        helpHidden
+        error={error}
+        note={selected ? `Selected: ${selected.name}, ${selected.description}` : undefined}
+        inputProps={{
+          ref: inputRef,
+          value,
+          autoComplete: "off",
+          placeholder: field === "from" ? "Search a starting place" : "Search a destination",
+          onChange: (event) => {
             onQueryChange(field, event.target.value);
             setOpen(true);
-          }}
-        />
-        <button
-          type="button"
-          className="map-pick-button"
-          aria-label={`Choose ${label} on the demo map`}
-          onClick={() => {
-            setOpen(false);
-            onMapPick(field);
-          }}
-        >
-          <span aria-hidden="true">⌖</span>
-        </button>
-      </div>
-      <span className="sr-only" id={`${field}-hint`}>
-        Type to search demo places, or choose one on the demo map.
-      </span>
-      {error && <p className="field-error" id={`${field}-error`}>{error}</p>}
-      {selected && <p className="selected-place">Selected: {selected.name}, {selected.description}</p>}
-      <p className="suggestion-status" role="status">{status}</p>
-      {showList && (
-        <ul className="suggestion-list" aria-label={`${label} suggestions`}>
-          {suggestions.map((place) => (
-            <li key={place.id}>
-              <button
-                type="button"
-                // Keep focus in the field on pointer press, so blur does not close the list first.
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => choose(place)}
-              >
-                <strong>{place.name}</strong>
-                <small>{place.description}</small>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+          }
+        }}
+        trailing={
+          <button
+            type="button"
+            className="control-trailing"
+            aria-label={`Choose ${label} on the demo map`}
+            onClick={() => {
+              setOpen(false);
+              onMapPick(field);
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="6" />
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4" strokeLinecap="round" />
+            </svg>
+          </button>
+        }
+      >
+        <p className="field-note" role="status">
+          {status}
+        </p>
+        {showList && (
+          <ul className="suggestions" aria-label={`${label} suggestions`}>
+            {suggestions.map((place) => (
+              <li key={place.id}>
+                <button
+                  type="button"
+                  className="suggestion"
+                  // Keep focus in the field on pointer press, so blur does not close the list first.
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => choose(place)}
+                >
+                  <strong>{place.name}</strong>
+                  <span>{place.description}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {footer}
+      </Field>
     </div>
   );
 }
