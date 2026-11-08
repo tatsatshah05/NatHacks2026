@@ -1,6 +1,6 @@
 # Deploying OpenPath
 
-The API and its database run on Render, and the web app runs on Vercel. Merges to `main` deploy through CI: the `Deploy to production` job calls the Render deploy hook after `CI passed`, then waits until `/health` reports the new commit. Vercel builds a preview for every pull request and deploys production on every merge. [docs/CI_CD.md](CI_CD.md) has the full pipeline and merge rules; this page is the one-time setup in detail.
+The API and its database run on Render, and the web app runs on Vercel. Merges to `main` deploy through CI: the `Deploy to production` job calls the Render deploy hook after `CI passed`, then waits until `/health` reports the new commit. Vercel deploys production on every merge to `main` and nothing else: preview deployments are off in `web/vercel.json` (see [docs/CI_CD.md](CI_CD.md)). [docs/CI_CD.md](CI_CD.md) has the full pipeline and merge rules; this page is the one-time setup in detail.
 
 Secrets live only in the Render, Vercel and GitHub settings, never in the repository. Every variable is listed in [`.env.example`](../.env.example). Nothing reads a `.env` file.
 

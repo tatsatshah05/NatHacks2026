@@ -12,7 +12,8 @@ type Props<T extends string> = {
   legend: ReactNode;
   name: string;
   options: ReadonlyArray<SegmentOption<T>>;
-  value: T;
+  /** The chosen option, or null when nothing is chosen yet. */
+  value: T | null;
   onChange: (id: T) => void;
   /** grid: connected segments, two per row. stack: one row per option. */
   layout?: "grid" | "stack";
