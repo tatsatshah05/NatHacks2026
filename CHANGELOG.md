@@ -10,13 +10,7 @@ All notable changes to OpenPath, built from the merged pull requests on GitHub (
 
 No Phase 4 pull request has merged yet.
 
-### Pending merge into `phase_3`
-
-This pull request is open, not merged. It is included in the Phase 4 base that the first Phase 4 branches start from, so it is listed here until it merges.
-
-- OP-310: The city dashboard, with OP-309 camera readings on the map (#167).
-
-### Phase 3: Web App and Alerts (merged into `phase_3`, not yet released into `main`)
+### Phase 3: Web App and Alerts (released into `main` on November 8, 2026, #170)
 
 #### Added
 
@@ -28,6 +22,7 @@ This pull request is open, not merged. It is included in the Phase 4 base that t
 - OP-306: The alerts page and the push client in the browser, with the service worker and an installable app (#161).
 - OP-307: Accessibility settings on the device, with OP-312's about, sources and privacy pages (#160).
 - OP-308: Community reports with an optional photo check (#153).
+- OP-310: The city dashboard, with OP-309 camera readings on the map (#167).
 - OP-311: Walk and LRT trips behind the `LRT_TRIPS` flag (#154).
 - OP-313: Each LRT outage lists the other elevators and escalators in service at the station (#157).
 - A snow and ice model beside the main camera model, and the day-and-night model card (#164).
