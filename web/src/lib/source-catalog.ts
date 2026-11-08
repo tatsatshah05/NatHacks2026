@@ -203,6 +203,16 @@ export const SOURCE_SECTIONS: ReadonlyArray<SourceSection> = [
         freshness: { kind: "fixed", text: "Built into OpenPath on November 7, 2026. Rebuilt weekly." }
       },
       {
+        name: "OpenStreetMap points of interest",
+        href: "https://www.openstreetmap.org/copyright",
+        details: ["Named shops, restaurants, cafes, clinics, pharmacies, libraries, parks and other places in Edmonton"],
+        licence: { text: "Open Database License (ODbL)", href: "https://www.openstreetmap.org/copyright" },
+        credit: "© OpenStreetMap contributors",
+        usedFor:
+          "Place search, so you can type a shop or place name instead of its address. Each result says what the place is and its address.",
+        freshness: { kind: "fixed", text: "Built into search on November 8, 2026. Rebuilt weekly." }
+      },
+      {
         name: "OpenFreeMap",
         href: "https://openfreemap.org",
         details: ["Map tiles in the OpenMapTiles schema"],

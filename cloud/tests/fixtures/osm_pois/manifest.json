@@ -1,0 +1,18 @@
+{
+  "source": "OpenStreetMap via the Overpass API",
+  "url": "https://overpass-api.de/api/interpreter",
+  "attribution": "© OpenStreetMap contributors",
+  "licence": "Open Database License (ODbL), https://www.openstreetmap.org/copyright",
+  "area": "Downtown Edmonton: latitude 53.539 to 53.548, longitude -113.500 to -113.485 (the Parcel Addresses fixture box)",
+  "note": "Unmodified Overpass response, recorded for offline tests and scripts/build_search_index.py --fixtures. Named features with an amenity, shop, tourism, leisure, healthcare or office tag, centres only (out center), never geometry. No personal information and no keys.",
+  "files": [
+    {
+      "file": "elements.json",
+      "query": "[out:json][timeout:90];\n(\n  nwr[\"amenity\"][\"name\"](53.539,-113.500,53.548,-113.485);\n  nwr[\"shop\"][\"name\"](53.539,-113.500,53.548,-113.485);\n  nwr[\"tourism\"][\"name\"](53.539,-113.500,53.548,-113.485);\n  nwr[\"leisure\"][\"name\"](53.539,-113.500,53.548,-113.485);\n  nwr[\"healthcare\"][\"name\"](53.539,-113.500,53.548,-113.485);\n  nwr[\"office\"][\"name\"](53.539,-113.500,53.548,-113.485);\n);\nout center;",
+      "captured_at": "2026-11-08T20:49:33Z",
+      "osm_base": "2026-11-08T20:48:34Z",
+      "elements": 322,
+      "sha256": "dbf03b28182c271b557bfa8bb2d088a66c9fe924aa4ab21275e9ab1403b18f70"
+    }
+  ]
+}
