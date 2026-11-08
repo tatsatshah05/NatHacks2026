@@ -47,8 +47,11 @@ In **Settings → Secrets and variables → Actions**:
 | Secret | `RENDER_WORKER_DEPLOY_HOOK` | Not used: the camera worker runs on a laptop (section 4) |
 | Variable | `API_URL` | The Render API URL, for example `https://openpath-api.onrender.com` |
 | Variable | `WEB_URL` | The Vercel production URL |
+| Repository secret | `DATABASE_URL` | `openpath-db`'s External Database URL, for the nightly backup (OP-405, docs/RUNBOOK.md section 3) |
+| Repository secret | `BACKUP_PASSPHRASE` | A long random passphrase that encrypts the nightly dump; keep a copy in the team's password manager |
+| Repository variable | `DEMO_CHECK_MODE` | Only while the API runs the replay fallback: `replay`, so the uptime check (OP-402) expects it |
 
-Until these are set, the deploy job skips each step with a notice instead of failing.
+Until these are set, the deploy job skips each step with a notice instead of failing, and the backup workflow skips the database with a notice.
 
 ## 4. Camera worker on demo day
 
@@ -136,7 +139,7 @@ The lead does these steps once.
 
 3. **Deploy.** The new build command reaches Render with `render.yaml` when this change is released into `main`. Check that **Settings → Build Command** reads `pip install -r cloud/requirements.txt -r cloud/requirements-photo-check.txt`; if it does not, run **Manual Sync** on the Blueprint. The order of steps 2 and 3 does not matter: without the packages, the API logs that a check is not available and keeps accepting reports at low confidence.
 
-4. **Check it.** The API configures no INFO logging, so Render's log shows only warnings. A correct setup starts with no `REPORT photo check` warning; each problem has its own line:
+4. **Check it.** Since OP-402 the API logs its INFO lines too (`LOG_LEVEL`, docs/RUNBOOK.md), so a correct setup starts with `REPORT photo check: onnx:... + claude:...; medium confidence needs both to agree` and no `REPORT photo check` warning; each problem has its own line:
    - `REPORT photo check: only ... is running; the decided setup is the ONNX model and Claude together (check ...)`: one check is missing, and the line names what to set.
    - `REPORT photo check: the ONNX model is not available (ValueError)`: usually `MODEL_SHA256` does not match `model.onnx` or the `sha256` inside `labels.json`. The API refuses both rather than use the wrong model.
    - `... not available (ModuleNotFoundError)`: the build did not install `cloud/requirements-photo-check.txt` (step 3).

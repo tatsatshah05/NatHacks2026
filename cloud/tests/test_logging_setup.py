@@ -240,12 +240,13 @@ def test_install_once_sets_levels_and_formats(saved_logging: None) -> None:
 
 
 def test_install_formats_uvicorn_handlers(saved_logging: None) -> None:
-    from uvicorn.config import LOGGING_CONFIG, Config
-
-    async def app(scope: object, receive: object, send: object) -> None:
-        return None
-
-    Config(app=app, log_config=LOGGING_CONFIG)  # uvicorn's own set-up, as on Render
+    # The handlers uvicorn's own set-up adds (stderr for "uvicorn", stdout for the
+    # access log). uvicorn's dictConfig is not run here: it replaces every handler
+    # in the process, pytest's too. The real run is in docs/RUNBOOK.md's examples.
+    error_handler = logging.StreamHandler(sys.stderr)
+    access_handler = logging.StreamHandler(sys.stdout)
+    logging.getLogger("uvicorn").addHandler(error_handler)
+    logging.getLogger("uvicorn.access").addHandler(access_handler)
     install("json", None)
     handlers = (
         logging.getLogger("uvicorn").handlers

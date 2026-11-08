@@ -423,8 +423,9 @@ def check_webapi(ctx: Context) -> list[Result]:
         Result(
             "FAIL",
             name,
-            f"none of the page's {len(urls)} scripts names {needle}; check "
-            "NEXT_PUBLIC_API_BASE_URL and NEXT_PUBLIC_API_URL on Vercel",
+            f"none of the page's {len(urls)} scripts names {needle}, so the "
+            "browser does not call this API: a web release without API calls, or "
+            "NEXT_PUBLIC_API_BASE_URL and NEXT_PUBLIC_API_URL on Vercel name another",
         )
     ]
 

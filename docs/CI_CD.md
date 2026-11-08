@@ -64,6 +64,15 @@ Vercel's Git integration deploys production from `main` only. `web/vercel.json` 
 
 `GET /health` returns `{"status": "ok", "version": "<git commit>"}`, using Render's `RENDER_GIT_COMMIT`, so the smoke test can confirm that the new version is live. Until an environment is configured, the deploy job skips cleanly.
 
+## Scheduled Workflows
+
+| Workflow | When | What it does |
+| --- | --- | --- |
+| [`uptime.yml`](../.github/workflows/uptime.yml) | Every 10 minutes | Runs `scripts/demo_check.py --only health,status,web` against production; a red run emails the lead (OP-402) |
+| [`backup.yml`](../.github/workflows/backup.yml) | Daily at 09:17 UTC | Saves the replay snapshot and, with the `DATABASE_URL` and `BACKUP_PASSPHRASE` secrets, an encrypted database dump, both kept 14 days, then runs a restore drill (OP-405) |
+
+GitHub runs scheduled workflows only from the default branch. What to do when one fails is in [RUNBOOK.md](RUNBOOK.md).
+
 ## Moving to the Next Phase (Scrum Master)
 
 1. Run the checkpoint demo on staging. Everything for the phase must be merged into `phase_N`.

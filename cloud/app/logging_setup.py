@@ -22,7 +22,8 @@ Only two things are set besides the format:
   for example httpx does not log every request.
 
 A bad ``LOG_FORMAT`` or ``LOG_LEVEL`` never stops the API: it falls back to the
-default and logs one warning.
+default and logs one warning. With ``uvicorn --reload`` (``make dev``) the reloader
+process never imports the app, so its own two start-up lines keep uvicorn's format.
 """
 
 from __future__ import annotations
