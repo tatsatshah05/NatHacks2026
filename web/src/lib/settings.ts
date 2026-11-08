@@ -134,6 +134,11 @@ export function updateSettings(change: Partial<Settings>): Settings {
   return readSettings();
 }
 
+/** False when the last change could not be stored and lasts only for this page visit. */
+export function settingsSaved(): boolean {
+  return memory === null;
+}
+
 /** Back to the defaults: speech and vibration on, normal text, follow the device. */
 export function resetSettings(): Settings {
   return updateSettings({ ...DEFAULT_SETTINGS });

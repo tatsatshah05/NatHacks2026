@@ -1,0 +1,12 @@
+/* OP-312: the two reading pages every page links to. 44 px targets, no decoration. */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+  width: 100%;
+}
+.links a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
+}

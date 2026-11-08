@@ -1,0 +1,222 @@
+/*
+  OP-312 reading pages: /about, /sources and /privacy. Long text on the system's
+  type scale (16 / 18 / 20 / 25 / 31, Atkinson Hyperlegible), a 68ch measure, left
+  aligned, headings that stand alone. No hero, no cards, no decoration: the only
+  drawn element is the route line on /about, because that list is a real sequence.
+*/
+.main {
+  padding: 24px 0 56px;
+}
+.prose {
+  max-width: 68ch;
+}
+.prose > h1 {
+  margin: 0 0 12px;
+}
+.lead {
+  font-size: 1.125rem;
+  margin-bottom: 8px;
+}
+.dated {
+  color: var(--muted);
+  margin-bottom: 0;
+}
+.prose h2 {
+  margin: 2.5rem 0 0.75rem;
+}
+.prose h3 {
+  margin: 1.75rem 0 0.5rem;
+}
+.prose ul {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+}
+.prose li {
+  max-width: 66ch;
+}
+.prose li + li {
+  margin-top: 0.5rem;
+}
+.prose li::marker {
+  color: var(--muted);
+}
+.prose code {
+  font-family: inherit;
+  font-weight: 700;
+}
+
+.section > h2 {
+  margin: 2.5rem 0 0.75rem;
+}
+
+/* Term and explanation: profiles, what is stored. */
+.terms {
+  margin: 0 0 1rem;
+}
+.terms dt {
+  font-weight: 700;
+}
+.terms dd {
+  margin: 0 0 1rem;
+}
+.terms dd:last-child {
+  margin-bottom: 0;
+}
+
+/* How a route is built: drawn as the route line, start and end filled, steps open.
+   The circle sits on the first line of text at any text size (0.75em is half of a
+   1.5 line-height). */
+.line {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+.line li {
+  padding: 0 0 1.25rem 2.5rem;
+  position: relative;
+}
+.line li + li {
+  margin-top: 0;
+}
+.line li::before {
+  background: var(--action);
+  bottom: 0;
+  content: "";
+  left: 10px;
+  position: absolute;
+  top: 0;
+  width: 4px;
+}
+.line li:first-child::before {
+  top: 0.75em;
+}
+.line li:last-child {
+  padding-bottom: 0;
+}
+.line li:last-child::before {
+  bottom: auto;
+  height: 0.75em;
+}
+.line li::after {
+  background: var(--snow);
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  content: "";
+  height: 18px;
+  left: 3px;
+  position: absolute;
+  top: calc(0.75em - 9px);
+  width: 18px;
+}
+.line li:first-child::after,
+.line li:last-child::after {
+  background: var(--ink);
+}
+.line strong {
+  display: block;
+}
+
+/* Sources: one table per publisher. Below about 40 characters of width, each row
+   becomes a block with its column names shown; the explicit roles keep the table
+   semantics when the display changes. */
+.tableWrap {
+  container-type: inline-size;
+  margin: 1rem 0 0;
+  max-width: 72rem;
+}
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.table th,
+.table td {
+  border-top: 1px solid var(--line);
+  padding: 12px 20px 14px 0;
+  text-align: left;
+  vertical-align: top;
+}
+.table th:last-child,
+.table td:last-child {
+  padding-right: 0;
+}
+.table thead th {
+  border-bottom: 2px solid var(--ink);
+  border-top: 0;
+  padding-bottom: 8px;
+}
+.table thead + tbody tr:first-child > * {
+  border-top: 0;
+}
+.colSource {
+  width: 36%;
+}
+.colUse {
+  width: 36%;
+}
+.sourceName {
+  display: block;
+  font-weight: 700;
+}
+.detail {
+  color: var(--muted);
+  display: block;
+  font-weight: 400;
+}
+.credit {
+  display: block;
+  font-weight: 400;
+  margin-top: 4px;
+}
+.cellLabel {
+  display: none;
+}
+.stale {
+  font-weight: 700;
+}
+@container (max-width: 44em) {
+  .table,
+  .table tbody,
+  .table tr,
+  .table th,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+  .table thead {
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+  .table tr {
+    border-top: 1px solid var(--line);
+    padding: 14px 0 16px;
+  }
+  .table tbody tr:first-child {
+    border-top: 2px solid var(--ink);
+  }
+  .table th,
+  .table td {
+    border: 0;
+    padding: 0;
+  }
+  .table td {
+    margin-top: 10px;
+  }
+  .cellLabel {
+    display: block;
+    font-weight: 700;
+  }
+}
+
+.freshnessNote {
+  margin: 0 0 1rem;
+}
+.actions {
+  margin: 0 0 1rem;
+}

@@ -1,0 +1,114 @@
+/* OP-307 settings page. One column, the design tokens only (docs/design/DESIGN.md). */
+.main {
+  max-width: 40rem;
+  padding: 24px 0 48px;
+}
+.title {
+  margin-bottom: 8px;
+}
+.status {
+  font-weight: 700;
+}
+.intro {
+  margin-bottom: 16px;
+}
+.group {
+  display: grid;
+  gap: 20px;
+}
+.group:first-child {
+  margin-top: 0;
+}
+
+/* Switch: a checkbox with role="switch", drawn as a row like the stacked segments. */
+.switch {
+  position: relative;
+}
+.switchInput {
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+.switchLabel {
+  align-items: center;
+  background: var(--card);
+  border: 2px solid var(--muted);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 10px 12px;
+}
+.switchInput:focus-visible + .switchLabel {
+  box-shadow: 0 0 0 2px var(--card);
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.switchText {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.switchName {
+  display: block;
+  font-weight: 700;
+}
+.switchDescription {
+  color: var(--muted);
+  display: block;
+}
+.switchState {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-weight: 700;
+  gap: 8px;
+}
+.stateWord {
+  min-width: 2em;
+}
+/* Track 2 px ink on card (16.8:1 light, 13.7:1 dark). Off: hollow knob on the left.
+   On: filled ink track with a snow knob on the right (15.7:1 light, 15.5:1 dark). */
+.track {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 28px;
+  position: relative;
+  width: 48px;
+}
+.knob {
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  height: 16px;
+  left: 4px;
+  position: absolute;
+  top: 4px;
+  width: 16px;
+}
+.switchInput:checked + .switchLabel .track {
+  background: var(--ink);
+}
+.switchInput:checked + .switchLabel .knob {
+  background: var(--snow);
+  border-color: var(--snow);
+  left: auto;
+  right: 4px;
+}
+.limit {
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.reset {
+  margin-top: 28px;
+}
+.resetNote {
+  color: var(--muted);
+  margin: 8px 0 0;
+}
