@@ -272,9 +272,11 @@ def parse_station_rows(
     for row in rows:
         try:
             name = " ".join(str(row["lrt_stop_description"]).split())
-            points[name].append((float(row["latitude"]), float(row["longitude"])))
+            point = (float(row["latitude"]), float(row["longitude"]))
         except (KeyError, TypeError, ValueError):
             log.warning("SEARCH station row skipped: %r", row)
+            continue
+        points[name].append(point)  # only after the row parsed, never an empty entry
     stations = []
     for name in sorted(points):
         pts = points[name]

@@ -34,6 +34,7 @@ from cloud.app import (
     ingest_api,
     obstructions_api,
     routing_api,
+    search,
     sources,
     status,
     weather_service,
@@ -234,6 +235,8 @@ def create_app() -> FastAPI:
     app.include_router(routing_api.router)
     app.include_router(weather_service.router)
     app.include_router(ingest_api.router)
+    app.include_router(search.router)
+    app.state.search = search.load_index()  # OP-302: prebuilt, None if missing (503)
 
     @app.get("/health", tags=["ops"])
     def health() -> Health:
