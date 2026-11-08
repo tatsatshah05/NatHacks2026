@@ -1,0 +1,41 @@
+{
+  "_comment": "Mobility profiles for routing (PLAN.md section 8; AGENTS.md Contracts). Cost = length x multiplier and time = length / speed_m_s x multiplier. A multiplier of null removes the path for that profile. 'stairs' is the multiplier for highway=steps edges. Change only after the team agrees.",
+  "profiles": {
+    "wheelchair": {
+      "label": "Wheelchair",
+      "speed_m_s": 1.0,
+      "effects": {"blocked": null, "snow": null, "ice_risk": 3.0, "caution": 1.0},
+      "stairs": null
+    },
+    "walker_cane": {
+      "label": "Walker or cane",
+      "speed_m_s": 0.9,
+      "effects": {"blocked": null, "snow": 3.0, "ice_risk": null, "caution": 1.0},
+      "stairs": null
+    },
+    "low_vision": {
+      "label": "Low vision",
+      "speed_m_s": 1.0,
+      "effects": {"blocked": null, "snow": 2.0, "ice_risk": 3.0, "caution": 1.0},
+      "stairs": 1.0
+    },
+    "standard": {
+      "label": "Standard",
+      "speed_m_s": 1.3,
+      "effects": {"blocked": null, "snow": 1.5, "ice_risk": 1.5, "caution": 1.0},
+      "stairs": 1.0
+    }
+  },
+  "alternates": {
+    "_comment": "Up to max_routes routes. An alternate is kept only if it shares less than max_shared_fraction of its length with routes already kept. Alternates come from re-running the search with the previous routes' paths penalised by 'penalty', up to 'attempts' times.",
+    "max_routes": 3,
+    "max_shared_fraction": 0.7,
+    "penalty": 1.6,
+    "attempts": 4
+  },
+  "snap": {
+    "_comment": "From/to points snap to the nearest network node. Beyond warn_m the route carries a warning; beyond max_m the point is rejected.",
+    "warn_m": 150,
+    "max_m": 1000
+  }
+}

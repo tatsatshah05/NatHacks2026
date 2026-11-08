@@ -30,6 +30,8 @@ Update this section whenever the status changes.
 
 - **Scheduler and status (OP-103):** `cloud/app/scheduler.py` runs every source in `config/sources.json` on its cadence (10 s timeout, 3 retries, stale after 3 failures, a failed source never clears data) and `GET /api/status` reports freshness. `SCHEDULER=off` disables fetching (tests). In replay mode the adapters read the `REPLAY_SNAPSHOT` folder through a fake HTTP transport, so nothing touches the network.
 
+- **Routing (OP-207):** `cloud/app/routing.py` runs Dijkstra on the prebuilt network with per-profile weights from `config/profiles.json` (a shared contract), returns up to 3 distinct routes with ETAs, text steps, hazards avoided and a reason, and serves `GET /api/route`. Hazards enter as a `HazardMap` (edge index -> `EdgeHazard`) that the matcher (OP-206) provides through `app.state.hazard_provider`. `cloud/app/maps_links.py` (OP-209) builds the Google Maps link with up to 3 waypoints where a route leaves the plain shortest route, and the Apple Maps link (start to end only, with a note).
+
 ## Where to Find Context
 
 | You need | Read |
@@ -172,6 +174,7 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 - **Health:** `GET /health` returns `{"status": "ok", "version": "<git commit>", "mode": "live"}`. `version` comes from `RENDER_GIT_COMMIT` (`dev` locally), and the deploy job waits for it. `mode` is `DATA_MODE` (`live` or `replay`); the web app shows the Replay badge when it is `replay`.
 - **Read:** `GET /health`, `/api/status`, `/api/obstructions?bbox=`, `/api/route?from=&to=&profile=&mode=walk|walk_lrt`, `/api/search?q=`, `/api/weather`, `/api/cameras`, `/api/priority`.
 - **Write:** `POST /api/reports`, `/api/push/subscribe`, `/api/saved-routes`, `/api/ingest/camera` (`X-Worker-Key`), `/api/admin/override` (`X-Admin-Key`, testing only).
+- **Camera readings (OP-213, agreed November 8):** `POST /api/ingest/camera` takes one reading per camera view in the shape agreed on issue #47: `source` `camera_model`, `source_ref` `511:<camera_id>:<view_id>`, `camera_id`, `view_id`, `latitude`, `longitude`, `label` (`dry|wet|snow_partial|snow_covered|ice|unknown`), `score`, `reason`, `observed_at`, `expires_at`, `model_version`, `mode`, `attribution`. One row per view in `camera_reading` (`cloud/app/camera_readings.py`); an older reading never replaces a newer one; `source_ref` must match the ids; `expires_at` is at most 2 h after `observed_at`; `mode` must equal the API's `DATA_MODE` (else 409). `GET /api/cameras` lists the latest unexpired readings as typed GeoJSON. Readings are not obstructions; OP-205 turns them into `ice_risk` where the rule applies.
 - **Live:** `WS /ws` with events `obstruction_changed`, `route_changed` and `source_status`.
 
 ## Data Source Rules
