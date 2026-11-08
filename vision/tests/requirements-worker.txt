@@ -1,0 +1,2 @@
+# Generate a tiny in-memory ONNX graph for the OP-204 runtime smoke test.
+onnx>=1.18,<2

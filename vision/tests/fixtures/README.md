@@ -8,3 +8,8 @@
   ```
 
 Tests never call the network.
+
+- `worker_replay.json` (OP-204) is explicitly synthetic classifier output, not
+  a recording or evidence of model accuracy. `python -m vision.worker` replays
+  it without HTTP, image storage, ONNX loading or API posting. Tests generate
+  their tiny model and image pixels in memory instead of storing image fixtures.

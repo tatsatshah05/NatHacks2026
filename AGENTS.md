@@ -19,6 +19,14 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
+- **OP-204 on this branch:** `vision/worker.py` and `vision/inference.py` prepare
+  scheduled CPU inference, shared OP-112 rate limiting, in-memory frames,
+  two-observation stability and a proposed metadata-only ingest client. The
+  ONNX export (OP-202), verified direct image response and lead agreement on the
+  absent camera-ingest API remain pending. See [docs/OP-204.md](docs/OP-204.md).
+  Shared schemas, API routes and configuration are unchanged; no worker deploy
+  is activated.
+
 - **November 7, 2026:** Phase 1 is in progress. OP-104's walking network is merged through PR #97. OP-101 (contracts), OP-102 (skeleton) and OP-103 (scheduler) remain integration dependencies on this branch.
 - **OP-107 on this branch:** the construction adapter and recorded preview isolate malformed/amended rows and use only a short line near the official permit point. Broad corridors fall back to the point. Shared API/store/scheduler integration remains pending; see [docs/OP-107.md](docs/OP-107.md). OP-103 owns hourly cadence, retries and cooldowns; every adapter call performs one fetch, with no internal sleeps or poll gate.
 - **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
@@ -211,7 +219,7 @@ These live in the root Makefile and are available after OP-102.
 | `make format` | `ruff check --fix`, then `ruff format` |
 | `make build` | Production build of the web app (`npm run build`) |
 
-`make record` and `make worker` print "not built yet" and exit with an error until OP-305 and OP-204 add their scripts. While `web/` is missing, the web steps of `make setup`, `make test` and `make lint` are skipped, `make dev` starts only the API, and `make web`, `make build` and `make types` stop with an error. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux.
+`make record` prints "not built yet" and exits with an error until OP-305 adds its script. `make worker` now runs a network-free, explicitly synthetic OP-204 replay; see below for live prerequisites. While `web/` is missing, the web steps of `make setup`, `make test` and `make lint` are skipped, `make dev` starts only the API, and `make web`, `make build` and `make types` stop with an error. The Makefile works on Windows (GNU make, for example `winget install ezwinports.make`), macOS and Linux.
 
 `make dev` and `make web` run `scripts/dev.py`. It removes API keys from the environment and sets `DATA_MODE=replay` with `REPLAY_SNAPSHOT=cloud/tests/fixtures`, so adapters must read their fixtures in replay mode. If one server stops (for example because its port is in use), the other is stopped too and `make dev` fails with that server's exit code.
 
@@ -226,6 +234,22 @@ Use `--live` instead of `--fixtures` for one official City API read, with option
 `SOCRATA_APP_TOKEN` from the shell (`.env.example` contains its blank template).
 `--at` is replay-only and requires a timezone; `--local-timezone` defaults to
 `America/Edmonton`. This preview prints output and does not write to the store.
+
+OP-204 commands (defaults perform no network calls):
+
+```bash
+python -m vision.worker
+python -m pytest vision/tests/test_worker.py vision/tests/test_worker_inference.py -q
+```
+
+After OP-202's model export and a permitted direct 511 image response are ready,
+use `python -m vision.worker --live --model-labels /path/to/labels.json --model-sha256 EXPECTED_SHA256 --min-score VALIDATED_SCORE`.
+It uses existing `ALBERTA_511_KEY` and `MODEL_URL`, with `--interval-s` defaulting
+to 300 seconds and an optional `--boundary` GeoJSON. `--once` runs one pass.
+`DATA_MODE=replay` prohibits live fetching. Posting additionally requires
+`--publish`, `CLOUD_URL` and `WORKER_KEY`, after the proposed ingest payload and
+endpoint are agreed with Tatsat. Replay data is never posted. See
+[docs/OP-204.md](docs/OP-204.md) for OP-202's labels.json format, expiry and remaining work.
 
 ## Environment Variables
 

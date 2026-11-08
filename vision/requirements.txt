@@ -9,3 +9,5 @@ numpy>=2,<3
 # Pillow 13.0.0 is the first release without open high-severity advisories;
 # CI's dependency review rejects any range that admits an older release.
 pillow>=13,<14
+# CPU inference for the OP-204 worker; training dependencies belong to OP-202.
+onnxruntime>=1.23,<2
