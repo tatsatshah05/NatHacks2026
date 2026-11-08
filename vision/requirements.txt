@@ -6,4 +6,6 @@ pydantic>=2.9,<3
 # window support; a labelling laptop replaces it with opencv-python (see vision/LABELS.md).
 opencv-python-headless>=4.9,<5
 numpy>=2,<3
-pillow>=10,<12
+# Pillow 13.0.0 is the first release without open high-severity advisories;
+# CI's dependency review rejects any range that admits an older release.
+pillow>=13,<14
