@@ -527,7 +527,17 @@ def check_onnx(
             "runs": latency_runs,
             "threads": 1,
             "target_ms": 200,
-            "measured_on": f"{platform.system()} {platform.machine()} {platform.processor()}".strip(),
+            "measured_on": " ".join(
+                dict.fromkeys(
+                    p
+                    for p in (
+                        platform.system(),
+                        platform.machine(),
+                        platform.processor(),
+                    )
+                    if p
+                )
+            ),
         },
         "onnx_size_mb": round(path.stat().st_size / 1e6, 2),
     }
