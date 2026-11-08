@@ -5,7 +5,8 @@ Road-condition model and camera worker (PLAN.md section 7).
 - `cameras.py`: 511 Alberta camera list adapter (OP-112).
 - `LABELS.md` and `tools/label.py`: the label guide and the keyboard labelling tool (OP-115). Run `python -m vision.tools.label --images vision/data/raw --out vision/data/labels.csv --labeller <name>`; the guide explains the classes, the keys and the one-time OpenCV GUI install.
 - `train.py`: trains the road-condition model and exports it to ONNX (OP-202). See [Training](#training) below.
-- Planned: `MODEL_CARD.md` (OP-203), `worker.py` (OP-204).
+- `evaluate.py` and `MODEL_CARD.md`: scores a trained run on its unseen test cameras and regenerates the model card (OP-203). See [Evaluation](#evaluation) below.
+- Planned: `worker.py` (OP-204).
 
 Add runtime dependencies to `vision/requirements.txt`; `make setup` installs them. `vision/data/` is git-ignored: images, label CSVs and training runs stay local.
 
@@ -55,3 +56,17 @@ gh release create vision-model-v1 vision/data/runs/v1/model.onnx vision/data/run
 ```
 
 The worker refuses a model whose SHA-256 differs from the one it is given, and reports it as `model_version`. Copy the value from `metrics.json` (it is also in `labels.json` and the `DONE` log line); never retype it.
+
+## Evaluation
+
+`evaluate.py` scores a training run on its test cameras only (from that run's `split.json`) and rewrites `vision/MODEL_CARD.md` from the measured results. It needs onnxruntime, Pillow and numpy, not PyTorch.
+
+```
+python -m vision.evaluate --run vision/data/runs/v1 --images vision/data/raw --labels vision/data/labels_*.csv
+```
+
+- The test set is rebuilt from the label CSVs with the same rules as training (disagreements and camera `unknown` dropped) and is never re-split. The script refuses a run whose test cameras also appear in training.
+- It refuses a `model.onnx` that does not hash to the `sha256` in that run's `labels.json` (or to `model_sha256` in `metrics.json`), and writes the SHA-256 to `evaluation.json` and the card's Run line, so the card describes exactly the release asset the worker loads.
+- It reports accuracy, recall and precision per class, the confusion matrix, and labeller agreement (percent and Cohen's kappa). Agreement counts an image only when two rows with different `labeller` values label it, so passing one CSV twice measures nothing. The card names the labellers as recorded and calls them labelling passes, never people, because the labels may be AI-assisted. Results go to `<run>/evaluation.json` and the card; commit the card, not the run.
+- What the card says about training comes from the run: RSCD is credited only when `split.json` shows RSCD images in training, and "fine-tuned from ImageNet weights" appears only when `metrics.json` records `pretrained: true`. A value that cannot be computed, such as the precision of a class the model never predicts, reads "n/a".
+- Images are prepared exactly as `labels.json` describes: stretch to `size_px` with bilinear resampling, RGB, divide by 255, subtract the mean, divide by the std. The worker (OP-204) must do the same; `test_preprocessing_matches_train_py_exactly` guards it.
