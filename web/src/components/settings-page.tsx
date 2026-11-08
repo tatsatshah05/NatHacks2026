@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, useSyncExternalStore } from "react";
-import { canSpeak } from "@/lib/announce";
+import { canSpeak, stopSpeaking } from "@/lib/announce";
 import {
   DEFAULT_SETTINGS,
   type MotionChoice,
@@ -196,7 +196,10 @@ export default function SettingsPage() {
               description="Reads each change aloud with this device's voice."
               limit={speechSupported ? null : "This browser cannot speak, so changes are shown and read by screen readers only."}
               checked={settings.speak}
-              onChange={(on) => change({ speak: on }, `Speaking route changes is now ${on ? "on" : "off"}.`)}
+              onChange={(on) => {
+                if (!on) stopSpeaking(); // stop anything already being said
+                change({ speak: on }, `Speaking route changes is now ${on ? "on" : "off"}.`);
+              }}
             />
             <SettingSwitch
               label="Vibrate on route changes"
