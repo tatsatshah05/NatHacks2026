@@ -30,7 +30,9 @@ How it is wired (``main.py``)
     connected, the hub asks the hazard provider for the map every ``TICK_S`` seconds,
     so rebuilds happen even when nobody requests a route. Re-routing runs in a
     worker thread, one re-route per subscription per rebuild, and never on the
-    event loop or inside a request.
+    event loop or inside a request. At shutdown ``stop()`` cancels the timer and
+    pending broadcasts and waits for the hub's worker threads, before the lifespan
+    closes the database.
 
 Safety
     Nothing here can affect ``/api/route``: the hub only reads the providers, every
@@ -58,6 +60,7 @@ from .matching import REFRESH_S, HazardProvider, MatchResult
 from .routing import EdgeHazard, HazardMap, Router, RoutingError
 from .scheduler import SourceStatus
 from .schemas import Effect
+from .threads import WorkerThreads
 
 log = logging.getLogger("openpath.live")
 
@@ -68,6 +71,8 @@ TICK_S = (
     REFRESH_S  # while clients are connected, the hazard map is refreshed this often
 )
 ETA_GROWTH = 0.2  # the same paths, but at least this much slower, counts as a change
+STOP_TIMEOUT_S = 5.0  # how long stop() waits for a re-route or hazard read in progress
+THREADS = 4  # worker threads for hazard reads and re-routes (re-routes take turns)
 
 
 def utcnow() -> datetime:
@@ -478,6 +483,10 @@ class LiveHub:
         self._tick: asyncio.Task[None] | None = None
         self._active: dict[str, ObstructionBrief] | None = None  # the last rebuild
         self._route_lock = threading.Lock()  # one re-route at a time
+        # Hazard reads and re-routes run here, not in asyncio.to_thread, so stop()
+        # can wait for one that has started (it may be reading the database).
+        self._threads = WorkerThreads("live", max_workers=THREADS)
+        self._closed = False  # set by stop(): events and re-routes are dropped
         self.rebuilds = 0  # rebuilds seen, for tests and logs
 
     # -- connections -----------------------------------------------------------
@@ -489,7 +498,11 @@ class LiveHub:
         self._next_id += 1
         self.connections[conn.id] = conn
         log.info("LIVE connect id=%d clients=%d", conn.id, len(self.connections))
-        if self.provider is not None and (self._tick is None or self._tick.done()):
+        if (
+            self.provider is not None
+            and not self._closed
+            and (self._tick is None or self._tick.done())
+        ):
             self._tick = self._spawn(self._tick_loop())
         return conn
 
@@ -538,6 +551,29 @@ class LiveHub:
         ]:
             await asyncio.gather(*pending, return_exceptions=True)
 
+    async def stop(self, timeout_s: float = STOP_TIMEOUT_S) -> bool:
+        """Shutdown: stop the refresh timer, broadcasts and re-routes, then wait for
+        the hazard read or re-route already running in a worker thread.
+
+        Afterwards events are dropped and subscribing answers with an error, so a
+        late callback cannot start work on a database that is about to close. Open
+        sockets are left to the server. Returns False, and logs, if a worker thread
+        is still busy after ``timeout_s``.
+        """
+        self._closed = True
+        tasks = [task for task in self._tasks if not task.done()]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        idle = await self._threads.wait(timeout_s)
+        log.info("LIVE stopped clients=%d", len(self.connections))
+        return idle
+
+    async def _in_thread(self, fn: Callable[..., Any], /, *args: Any) -> Any:
+        if self._closed:
+            raise RuntimeError("Live updates are shutting down.")
+        return await self._threads.run(fn, *args)
+
     # -- scheduling ------------------------------------------------------------
 
     def _spawn(self, coro: Coroutine[Any, Any, Any]) -> asyncio.Task[Any]:
@@ -549,6 +585,9 @@ class LiveHub:
 
     def _schedule(self, coro: Coroutine[Any, Any, Any]) -> None:
         """Run ``coro`` on the hub's loop from any thread; drop it if there is none."""
+        if self._closed:  # shutting down
+            coro.close()
+            return
         loop = self._loop
         if loop is None:
             try:
@@ -575,7 +614,7 @@ class LiveHub:
             try:
                 await asyncio.sleep(self.tick_s)
                 if self.connections:
-                    await asyncio.to_thread(self.provider, self.clock())
+                    await self._in_thread(self.provider, self.clock())
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -643,7 +682,7 @@ class LiveHub:
         if not subscribed or self._best is None:
             return
         try:
-            events = await asyncio.to_thread(
+            events = await self._in_thread(
                 self._recheck_all, subscribed, added, removed
             )
         except Exception:
@@ -747,7 +786,7 @@ class LiveHub:
         """Replace the connection's route; the reply to send back."""
         try:
             key = spec.key()
-            snapshot = await asyncio.to_thread(self.baseline, key)
+            snapshot = await self._in_thread(self.baseline, key)
         except (RoutingError, RuntimeError, ValueError) as error:
             return ErrorEvent(message=str(error))
         conn.subscription = Subscription(key, snapshot)

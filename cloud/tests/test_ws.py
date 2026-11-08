@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import threading
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -356,6 +357,43 @@ def test_without_a_network_subscribe_is_an_error_and_status_still_flows() -> Non
         assert reply.type == "error" and "not available" in reply.message
         assert await hub.broadcast(HeartbeatEvent(at=NOW)) == 1
         assert hub._tick is None  # nothing to refresh without a provider
+
+    run(scenario())
+
+
+def test_stop_waits_for_a_hazard_read_in_progress_and_drops_later_work(
+    router: Router,
+) -> None:
+    """Shutdown: the hub's worker threads finish before the database closes."""
+
+    async def scenario() -> None:
+        reading, gate = threading.Event(), threading.Event()
+        reads = [0]
+
+        def provider(now: datetime) -> dict[int, list[EdgeHazard]]:
+            reads[0] += 1
+            reading.set()
+            assert gate.wait(10), "the test never opened the gate"
+            return {}
+
+        hub = LiveHub(router=router, provider=provider, clock=lambda: NOW, tick_s=0.01)
+        sock = FakeSocket()
+        conn = hub.add(sock)  # starts the refresh timer
+        assert await asyncio.to_thread(reading.wait, 10)  # the timer is reading
+        stopping = asyncio.create_task(hub.stop())
+        await asyncio.sleep(0.2)
+        assert not stopping.done()  # waiting for the read in its worker thread
+        gate.set()
+        assert await asyncio.wait_for(stopping, 10) is True
+        assert reads[0] == 1
+        # After stop(): events are dropped and nothing new starts.
+        hub.emit(HeartbeatEvent(at=NOW))
+        hub.on_rebuild(rebuild_result(hazard(0)))
+        await hub.drain()
+        assert sock.sent == []
+        reply = await hub.handle(conn, subscribe_text(1, 3))
+        assert reply.type == "error" and "shutting down" in reply.message
+        assert reads[0] == 1
 
     run(scenario())
 

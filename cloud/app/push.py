@@ -82,6 +82,7 @@ WATCH_INTERVAL_S = 15.0  # how often the watcher looks at the hazard map
 WARMUP_S = 120.0
 PUSH_TTL_S = 15 * 60  # how long a push service keeps an undelivered message
 PUSH_TIMEOUT_S = 10.0
+STOP_TIMEOUT_S = 5.0  # how long stop() waits for a tick in progress
 
 
 def utcnow() -> datetime:
@@ -520,11 +521,23 @@ class RouteWatcher:
         )
         self._thread.start()
 
-    def stop(self) -> None:
+    def stop(self, timeout_s: float = STOP_TIMEOUT_S) -> bool:
+        """Stop the thread and wait (up to ``timeout_s``) for a tick in progress.
+
+        The lifespan calls this before it closes the database, because a tick reads
+        saved routes and hazards. Returns False, and logs, if the thread is still
+        running at the deadline.
+        """
         self._stop.set()
-        if self._thread is not None:
-            self._thread.join(timeout=5)
-            self._thread = None
+        thread = self._thread
+        if thread is None:
+            return True
+        thread.join(timeout=timeout_s)
+        if thread.is_alive():
+            log.warning("WATCH thread still running after %g s", timeout_s)
+            return False
+        self._thread = None
+        return True
 
     def _run(self) -> None:
         while not self._stop.is_set():

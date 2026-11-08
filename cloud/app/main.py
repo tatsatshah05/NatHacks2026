@@ -21,10 +21,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
@@ -154,6 +155,49 @@ def camera_ice_provider(
         return base
 
 
+async def stop_store_users(app: FastAPI, scheduler: Scheduler | None) -> bool:
+    """Stop everything that uses the database, in order. True if all of it stopped.
+
+    The engine may be disposed only after this returns True. In-memory SQLite (tests,
+    ``db.py``) has one shared connection, and closing it while a worker thread is
+    still executing on it crashes the process (a segmentation fault in CI). The
+    order follows who calls whom:
+
+    1. the scheduler, which writes the store (and whose runs feed the live hub);
+    2. the push watcher (OP-304), whose ticks read saved routes and hazards;
+    3. the live hub (OP-303), whose timer and re-routes read hazards;
+    4. the hazard providers (OP-206 matcher, OP-205 camera ice), whose rebuild
+       thread and camera reads use the database.
+
+    Every step is bounded and wrapped, so one failure never skips the others.
+    """
+    steps: list[tuple[str, Callable[[], Awaitable[bool]]]] = []
+    if scheduler is not None:
+        steps.append(("scheduler", scheduler.stop))
+    push_services = getattr(app.state, "push", None)
+    watcher = push_services.watcher if push_services is not None else None
+    if watcher is not None:
+        steps.append(("push watcher", lambda: asyncio.to_thread(watcher.stop)))
+    hub = getattr(app.state, "live", None)
+    if hub is not None:
+        steps.append(("live hub", hub.stop))
+    provider = getattr(app.state, "hazard_provider", None)
+    provider_stop = getattr(provider, "stop", None)
+    if callable(provider_stop):
+        steps.append(("hazard provider", lambda: asyncio.to_thread(provider_stop)))
+    all_stopped = True
+    for name, stop in steps:
+        try:
+            stopped = await stop()
+        except Exception:  # one failure must not skip the other stops
+            log.exception("SHUTDOWN %s failed to stop", name)
+            stopped = False
+        if not stopped:
+            all_stopped = False
+            log.warning("SHUTDOWN %s did not stop cleanly", name)
+    return all_stopped
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Open the store, build the data sources and start the scheduler; undo it all at shutdown."""
@@ -235,11 +279,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             try:
                 yield
             finally:
-                if app.state.push.watcher is not None:
-                    app.state.push.watcher.stop()
-                if scheduler is not None:
-                    await scheduler.stop()
-                store.engine.dispose()
+                # Every thread that uses the store stops before the engine closes.
+                if await stop_store_users(app, scheduler):
+                    store.engine.dispose()
+                else:
+                    # Closing the connection under a running call is what crashed;
+                    # leave it to process exit instead.
+                    log.warning(
+                        "SHUTDOWN a database call is still running; "
+                        "not disposing the engine"
+                    )
 
 
 def create_app() -> FastAPI:
