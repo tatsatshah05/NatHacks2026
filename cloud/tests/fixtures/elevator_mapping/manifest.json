@@ -1,0 +1,7 @@
+﻿{
+    "url":  "https://data.edmonton.ca/resource/javh-pjj2.json?$limit=1000\u0026$order=device_id",
+    "captured_at":  "2026-11-07T22:10:54.2151057Z",
+    "device_count":  73,
+    "elevator_count":  32,
+    "attribution":  "City of Edmonton Open Data"
+}

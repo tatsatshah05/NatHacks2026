@@ -1,0 +1,722 @@
+[
+ {
+  "disruption_id": "1287",
+  "date_issued": "2026-10-30T00:00:00.000",
+  "start_date": "2026-11-09T00:00:00.000",
+  "finish_date": "2026-11-30T00:00:00.000",
+  "status": "Current",
+  "on_street": "Ellerslie Road SW",
+  "from_street": "127 Street SW",
+  "to_street": "Heritage Valley Trail SW",
+  "impact": "Travel Delays",
+  "duration": "22",
+  "details": "Starts November 9th. Ellerslie Rd will be reduced to a single per direction at Heritage valley trail. Expect travel delays.",
+  "description": "UTILITY CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Southwest",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.54775433180623,
+    53.42490050646766
+   ]
+  }
+ },
+ {
+  "disruption_id": "1290",
+  "date_issued": "2026-11-02T00:00:00.000",
+  "start_date": "2026-10-31T00:00:00.000",
+  "finish_date": "2026-11-07T00:00:00.000",
+  "status": "Current",
+  "on_street": "23 Avenue NW",
+  "from_street": "Leger Gate NW",
+  "to_street": "Leger Road NW",
+  "impact": "Travel Delays",
+  "duration": "8",
+  "details": "23 Avenue Westbound from Leger Gate to Leger Road will be reduced to a single lane due to an emergency repair. Expect travel delays.",
+  "description": "UTILITY EMERGENCY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Southwest",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.5821194538196,
+    53.45558008559243
+   ]
+  }
+ },
+ {
+  "disruption_id": "1290",
+  "date_issued": "2026-11-02T00:00:00.000",
+  "start_date": "2026-10-31T00:00:00.000",
+  "finish_date": "2026-11-07T00:00:00.000",
+  "status": "Current",
+  "on_street": "23 Avenue NW",
+  "from_street": "Leger Gate NW",
+  "to_street": "Leger Road NW",
+  "impact": "Travel Delays",
+  "duration": "8",
+  "details": "23 Avenue Westbound from Leger Gate to Leger Road will be reduced to a single lane due to an emergency repair. Expect travel delays.",
+  "description": "UTILITY EMERGENCY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Southwest",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.57355010131128,
+    53.454090302049494
+   ]
+  }
+ },
+ {
+  "disruption_id": "1291",
+  "date_issued": "2026-11-02T00:00:00.000",
+  "start_date": "2026-11-04T00:00:00.000",
+  "finish_date": "2026-11-07T00:00:00.000",
+  "status": "Current",
+  "on_street": "105 Avenue NW",
+  "from_street": "108 Street NW",
+  "to_street": "109 Street NW",
+  "impact": "Total Closure",
+  "duration": "4",
+  "details": "105 Street will be total closed during off peak hours. Use 106 Ave for detour.",
+  "description": "UTILITY CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road and Sidewalk",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.50659483820826,
+    53.54808090077137
+   ]
+  }
+ },
+ {
+  "disruption_id": "1294",
+  "date_issued": "2026-11-03T00:00:00.000",
+  "start_date": "2026-11-04T00:00:00.000",
+  "finish_date": "2026-11-18T00:00:00.000",
+  "status": "Current",
+  "on_street": "17 Street NW",
+  "from_street": "76 Avenue NW",
+  "to_street": "73 Avenue NW",
+  "impact": "Travel Delays",
+  "duration": "15",
+  "details": "Starting Nov. 4th there will be a temporary traffic signal installed on 17 St 200m south of 76 Ave. Use other routes.",
+  "description": "UTILITY CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Southeast",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.36931138283744,
+    53.51217323372226
+   ]
+  }
+ },
+ {
+  "disruption_id": "1294",
+  "date_issued": "2026-11-03T00:00:00.000",
+  "start_date": "2026-11-04T00:00:00.000",
+  "finish_date": "2026-11-18T00:00:00.000",
+  "status": "Current",
+  "on_street": "17 Street NW",
+  "from_street": "76 Avenue NW",
+  "to_street": "73 Avenue NW",
+  "impact": "Travel Delays",
+  "duration": "15",
+  "details": "Starting Nov. 4th there will be a temporary traffic signal installed on 17 St 200m south of 76 Ave. Use other routes.",
+  "description": "UTILITY CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Southeast",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.36925928737863,
+    53.50851505524935
+   ]
+  }
+ },
+ {
+  "disruption_id": "1295",
+  "date_issued": "2026-11-03T00:00:00.000",
+  "start_date": "2026-11-06T00:00:00.000",
+  "finish_date": "2026-11-09T00:00:00.000",
+  "status": "Current",
+  "on_street": "50 Street NW",
+  "from_street": "90A Avenue NW",
+  "to_street": "Sherwood Park Freeway NW",
+  "impact": "Travel Delays",
+  "duration": "4",
+  "details": "The southbound lanes will be closed on 50 St from 90a Ave - Sherwood Park FWY. Two-way traffic maintained on the northbound lanes(Fri 7pm - Mon 6am). Use other routes.",
+  "description": "BRIDGE CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Southeast",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.41859626319437,
+    53.51432518661688
+   ]
+  }
+ },
+ {
+  "disruption_id": "1295",
+  "date_issued": "2026-11-03T00:00:00.000",
+  "start_date": "2026-11-06T00:00:00.000",
+  "finish_date": "2026-11-09T00:00:00.000",
+  "status": "Current",
+  "on_street": "50 Street NW",
+  "from_street": "90A Avenue NW",
+  "to_street": "Sherwood Park Freeway NW",
+  "impact": "Travel Delays",
+  "duration": "4",
+  "details": "The southbound lanes will be closed on 50 St from 90a Ave - Sherwood Park FWY. Two-way traffic maintained on the northbound lanes(Fri 7pm - Mon 6am). Use other routes.",
+  "description": "BRIDGE CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Southeast",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.41858367842929,
+    53.52288393878988
+   ]
+  }
+ },
+ {
+  "disruption_id": "1296",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-06T00:00:00.000",
+  "finish_date": "2026-11-13T00:00:00.000",
+  "status": "Current",
+  "on_street": "Sherwood Park Freeway NW",
+  "from_street": "50 Street NW",
+  "to_street": "71 Street NW",
+  "impact": "Travel Delays",
+  "duration": "8",
+  "details": "Westbound Sherwood Park Freeway will be reduced to a single lane from 50 St to 71 St. Use other routes.",
+  "description": "UTILITY CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Southeast",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.41859626319437,
+    53.51432518661688
+   ]
+  }
+ },
+ {
+  "disruption_id": "1296",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-06T00:00:00.000",
+  "finish_date": "2026-11-13T00:00:00.000",
+  "status": "Current",
+  "on_street": "Sherwood Park Freeway NW",
+  "from_street": "50 Street NW",
+  "to_street": "71 Street NW",
+  "impact": "Travel Delays",
+  "duration": "8",
+  "details": "Westbound Sherwood Park Freeway will be reduced to a single lane from 50 St to 71 St. Use other routes.",
+  "description": "UTILITY CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Southeast",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.43650104263918,
+    53.51752164181781
+   ]
+  }
+ },
+ {
+  "disruption_id": "1297",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-23T00:00:00.000",
+  "finish_date": "2026-11-29T00:00:00.000",
+  "status": "Current",
+  "on_street": "Jasper Avenue NW",
+  "from_street": "83 Street NW",
+  "to_street": "87 Street NW",
+  "impact": "Major Delays",
+  "duration": "7",
+  "details": "Jasper Ave westbound will be reduced to a single lane full time.",
+  "description": "UTILITY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road and Sidewalk",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.47266176834522,
+    53.55377352901674
+   ]
+  }
+ },
+ {
+  "disruption_id": "1297",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-23T00:00:00.000",
+  "finish_date": "2026-11-29T00:00:00.000",
+  "status": "Current",
+  "on_street": "Jasper Avenue NW",
+  "from_street": "83 Street NW",
+  "to_street": "87 Street NW",
+  "impact": "Major Delays",
+  "duration": "7",
+  "details": "Jasper Ave westbound will be reduced to a single lane full time.",
+  "description": "UTILITY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road and Sidewalk",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.46855232201581,
+    53.556304152460946
+   ]
+  }
+ },
+ {
+  "disruption_id": "1298",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-04T00:00:00.000",
+  "finish_date": "2026-11-09T00:00:00.000",
+  "status": "Current",
+  "on_street": "Saskatchewan Drive",
+  "from_street": "Queen Elizabeth Park Road",
+  "to_street": "Gateway Boulevard",
+  "impact": "Directional Closure",
+  "duration": "6",
+  "details": "Saskatchewan Dr westbound closure at Queen Elizabeth Park Rd. Eastbound leftmost turn lane will also be closed.",
+  "description": "UTILITY EMERGENCY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.4935585708168,
+    53.52418933310096
+   ]
+  }
+ },
+ {
+  "disruption_id": "1299",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-09T00:00:00.000",
+  "finish_date": "2026-11-27T00:00:00.000",
+  "status": "Current",
+  "on_street": "River Valley Road",
+  "from_street": "Groat Road",
+  "to_street": "Emily Murphy Parkway",
+  "impact": "Travel Delays",
+  "duration": "19",
+  "details": "Beginning Monday November 9, EPCOR Water Services utility work will reduce the vehicle travel lanes eastbound along River Valley Road at the entrance to Victoria Park Golf Course. Left turns maintained from single vehicle lane eastbound.  Construction Zone Max 30.",
+  "description": "UTILITY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.53686440013828,
+    53.53798523953657
+   ]
+  }
+ },
+ {
+  "disruption_id": "1299",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-09T00:00:00.000",
+  "finish_date": "2026-11-27T00:00:00.000",
+  "status": "Current",
+  "on_street": "River Valley Road",
+  "from_street": "Groat Road",
+  "to_street": "Emily Murphy Parkway",
+  "impact": "Travel Delays",
+  "duration": "19",
+  "details": "Beginning Monday November 9, EPCOR Water Services utility work will reduce the vehicle travel lanes eastbound along River Valley Road at the entrance to Victoria Park Golf Course. Left turns maintained from single vehicle lane eastbound.  Construction Zone Max 30.",
+  "description": "UTILITY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.53225621624861,
+    53.53560870425185
+   ]
+  }
+ },
+ {
+  "disruption_id": "1300",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-07T00:00:00.000",
+  "finish_date": "2026-11-07T00:00:00.000",
+  "status": "Current",
+  "on_street": "Stadium Road NW",
+  "from_street": "92 Street NW",
+  "to_street": "112 Avenue NW",
+  "impact": "Total Closure",
+  "duration": "1",
+  "details": "Stadium Road and Muttart Xing will be total closed for Edmonton Elks Game. 112 Avenue eastbound will be reduced to a single lane from 90 Street to Stadium Road. Starting at 3:30pm until 11:59pm",
+  "description": "SPECIAL EVENT",
+  "activity_type": "Special Event",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.47326158870477,
+    53.56102089512186
+   ]
+  }
+ },
+ {
+  "disruption_id": "1300",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-07T00:00:00.000",
+  "finish_date": "2026-11-07T00:00:00.000",
+  "status": "Current",
+  "on_street": "Stadium Road NW",
+  "from_street": "92 Street NW",
+  "to_street": "112 Avenue NW",
+  "impact": "Total Closure",
+  "duration": "1",
+  "details": "Stadium Road and Muttart Xing will be total closed for Edmonton Elks Game. 112 Avenue eastbound will be reduced to a single lane from 90 Street to Stadium Road. Starting at 3:30pm until 11:59pm",
+  "description": "SPECIAL EVENT",
+  "activity_type": "Special Event",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.47925802356895,
+    53.55473524169338
+   ]
+  }
+ },
+ {
+  "disruption_id": "1301",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-06T00:00:00.000",
+  "finish_date": "2026-11-27T00:00:00.000",
+  "status": "Current",
+  "on_street": "River Valley Road",
+  "from_street": "Fort Way Drive",
+  "to_street": "105 Street",
+  "impact": "Increased Travel Time",
+  "duration": "22",
+  "details": "Beginning at 9 a.m. on Friday November 6, River Valley Road is reduced to one lane eastbound from 140m west of 105 Street to 105 Street.  Left turn bay and centre lane maintained.",
+  "description": "UTILITY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.50107997650335,
+    53.53057554626964
+   ]
+  }
+ },
+ {
+  "disruption_id": "1302",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-06T00:00:00.000",
+  "finish_date": "2026-11-27T00:00:00.000",
+  "status": "Current",
+  "on_street": "105 Street",
+  "from_street": "Walterdale Bridge",
+  "to_street": "105 Street",
+  "impact": "Increased Travel Time",
+  "duration": "22",
+  "details": "Beginning at 9 a.m. on Friday November 6, 105 Street is reduced to three lanes northbound from Walterdale Bridge to the south side of River Valley Road.  Left curb lane closed.",
+  "description": "UTILITY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.50070923817667,
+    53.521840325939635
+   ]
+  }
+ },
+ {
+  "disruption_id": "1302",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-06T00:00:00.000",
+  "finish_date": "2026-11-27T00:00:00.000",
+  "status": "Current",
+  "on_street": "105 Street",
+  "from_street": "Walterdale Bridge",
+  "to_street": "105 Street",
+  "impact": "Increased Travel Time",
+  "duration": "22",
+  "details": "Beginning at 9 a.m. on Friday November 6, 105 Street is reduced to three lanes northbound from Walterdale Bridge to the south side of River Valley Road.  Left curb lane closed.",
+  "description": "UTILITY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.50111652403754,
+    53.52947401877111
+   ]
+  }
+ },
+ {
+  "disruption_id": "1303",
+  "date_issued": "2026-11-04T00:00:00.000",
+  "start_date": "2026-11-04T00:00:00.000",
+  "finish_date": "2026-11-07T00:00:00.000",
+  "status": "Current",
+  "on_street": "Fort Road",
+  "from_street": "Wayne Gretzky Drive",
+  "to_street": "75 Street NW",
+  "impact": "Travel Delays",
+  "duration": "4",
+  "details": "Southbound Fort Rd right lane and west sidewalk closed. Keep left to bypass the lane closure. Pedestrian access maintained on the east side.",
+  "description": "CONCRETE REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Northeast",
+  "infrastructure": "Road and Sidewalk",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.45422682994567,
+    53.579527252718215
+   ]
+  }
+ },
+ {
+  "disruption_id": "1304",
+  "date_issued": "2026-11-05T00:00:00.000",
+  "start_date": "2026-11-08T00:00:00.000",
+  "finish_date": "2026-11-13T00:00:00.000",
+  "status": "Current",
+  "on_street": "99 Avenue",
+  "from_street": "109 Street",
+  "to_street": "110 Street",
+  "impact": "Directional Closure",
+  "duration": "6",
+  "details": "Nightly, beginning at 10 p.m. to 6 a.m., 99 Avenue westbound is closed to traffic at 109 Street and 110 Street.  Local Access Maintained.",
+  "description": "UTILITY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.50843103484067,
+    53.53725641814963
+   ]
+  }
+ },
+ {
+  "disruption_id": "1305",
+  "date_issued": "2026-11-06T00:00:00.000",
+  "start_date": "2026-11-11T00:00:00.000",
+  "finish_date": "2026-11-13T00:00:00.000",
+  "status": "Current",
+  "on_street": "103 Avenue",
+  "from_street": "142 Street",
+  "to_street": "143 Street",
+  "impact": "Total Closure",
+  "duration": "3",
+  "details": "Total closure on 103 Avenue from 142 Street to the Alley West of 142 Street.",
+  "description": "UTILITY REPAIR",
+  "activity_type": "Construction",
+  "traffic_district": "Northwest",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.56574305603966,
+    53.54416139080085
+   ]
+  }
+ },
+ {
+  "disruption_id": "1306",
+  "date_issued": "2026-11-06T00:00:00.000",
+  "start_date": "2026-11-11T00:00:00.000",
+  "finish_date": "2026-11-11T00:00:00.000",
+  "status": "Current",
+  "on_street": "109 Street",
+  "from_street": "97 Avenue",
+  "to_street": "High Level Bridge",
+  "impact": "Increased Travel Time",
+  "duration": "1",
+  "details": "The east approach to the high level bridge from 97 Av & 109 St will be closed from 10:45 am - 11:30 am to accommodate the Alberta Legislature Artillery Salute. The east walk on the high level bridge will also be closed.",
+  "description": "SPECIAL EVENT",
+  "activity_type": "Special Event",
+  "traffic_district": "Central",
+  "infrastructure": "Road and Sidewalk",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.50853003569836,
+    53.53418047719651
+   ]
+  }
+ },
+ {
+  "disruption_id": "1306",
+  "date_issued": "2026-11-06T00:00:00.000",
+  "start_date": "2026-11-11T00:00:00.000",
+  "finish_date": "2026-11-11T00:00:00.000",
+  "status": "Current",
+  "on_street": "109 Street",
+  "from_street": "97 Avenue",
+  "to_street": "High Level Bridge",
+  "impact": "Increased Travel Time",
+  "duration": "1",
+  "details": "The east approach to the high level bridge from 97 Av & 109 St will be closed from 10:45 am - 11:30 am to accommodate the Alberta Legislature Artillery Salute. The east walk on the high level bridge will also be closed.",
+  "description": "SPECIAL EVENT",
+  "activity_type": "Special Event",
+  "traffic_district": "Central",
+  "infrastructure": "Road and Sidewalk",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.51135351601255,
+    53.529590082619464
+   ]
+  }
+ },
+ {
+  "disruption_id": "1307",
+  "date_issued": "2026-11-06T00:00:00.000",
+  "start_date": "2026-11-15T00:00:00.000",
+  "finish_date": "2026-11-16T00:00:00.000",
+  "status": "Current",
+  "on_street": "109 Street",
+  "from_street": "88 Avenue",
+  "to_street": "97 Avenue",
+  "impact": "Total Closure",
+  "duration": "2",
+  "details": "Beginning at 10 p.m. on Sunday November 15 until 6 a.m. Monday November 16, the High Level Bridge is closed to vehicle traffic for road maintenance work south of the bridge structure.",
+  "description": "ROAD MAINTENANCE",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.50853003569836,
+    53.53418047719651
+   ]
+  }
+ },
+ {
+  "disruption_id": "1307",
+  "date_issued": "2026-11-06T00:00:00.000",
+  "start_date": "2026-11-15T00:00:00.000",
+  "finish_date": "2026-11-16T00:00:00.000",
+  "status": "Current",
+  "on_street": "109 Street",
+  "from_street": "88 Avenue",
+  "to_street": "97 Avenue",
+  "impact": "Total Closure",
+  "duration": "2",
+  "details": "Beginning at 10 p.m. on Sunday November 15 until 6 a.m. Monday November 16, the High Level Bridge is closed to vehicle traffic for road maintenance work south of the bridge structure.",
+  "description": "ROAD MAINTENANCE",
+  "activity_type": "Construction",
+  "traffic_district": "Central",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.51206944227012,
+    53.52385132619415
+   ]
+  }
+ },
+ {
+  "disruption_id": "1308",
+  "date_issued": "2026-11-06T00:00:00.000",
+  "start_date": "2026-11-08T00:00:00.000",
+  "finish_date": "2026-11-09T00:00:00.000",
+  "status": "Current",
+  "on_street": "50 Street NW",
+  "from_street": "90 Avenue NW",
+  "to_street": "Morris Road NW",
+  "impact": "Total Closure",
+  "duration": "2",
+  "details": "Total Closure of 50 Street from 90 Ave to Morris road to complete an overhead sign installation. Closure will be in place for approximately 5 - 10 minutes between the hours of 11pm - 4am. Use other routes.",
+  "description": "BRIDGE CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Southeast",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.41682673415875,
+    53.517930768573365
+   ]
+  }
+ },
+ {
+  "disruption_id": "1308",
+  "date_issued": "2026-11-06T00:00:00.000",
+  "start_date": "2026-11-08T00:00:00.000",
+  "finish_date": "2026-11-09T00:00:00.000",
+  "status": "Current",
+  "on_street": "50 Street NW",
+  "from_street": "90 Avenue NW",
+  "to_street": "Morris Road NW",
+  "impact": "Total Closure",
+  "duration": "2",
+  "details": "Total Closure of 50 Street from 90 Ave to Morris road to complete an overhead sign installation. Closure will be in place for approximately 5 - 10 minutes between the hours of 11pm - 4am. Use other routes.",
+  "description": "BRIDGE CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Southeast",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.4188228666138,
+    53.521610266082796
+   ]
+  }
+ },
+ {
+  "disruption_id": "1309",
+  "date_issued": "2026-11-07T00:00:00.000",
+  "start_date": "2026-11-09T00:00:00.000",
+  "finish_date": "2026-11-25T00:00:00.000",
+  "status": "Current",
+  "on_street": "124 Avenue NW",
+  "from_street": "66 Street NW",
+  "to_street": "67 Street NW",
+  "impact": "Total Closure",
+  "duration": "17",
+  "details": "124 Ave closed from 66 St to West of 67 St. 67 St and 124 Ave intersection open to Northbound and Southbound traffic.",
+  "description": "UTILITY CONSTRUCTION",
+  "activity_type": "Construction",
+  "traffic_district": "Northeast",
+  "infrastructure": "Road",
+  "point": {
+   "type": "Point",
+   "coordinates": [
+    -113.44297307750979,
+    53.57990308466742
+   ]
+  }
+ }
+]

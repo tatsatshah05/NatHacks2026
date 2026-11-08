@@ -1,0 +1,613 @@
+{
+  "story": "OP-106",
+  "generated_at": "2026-11-07T23:35:56.065555+00:00",
+  "network_sha256": "ce971655f8343b946c36a716074b492c068ffce82841396b5bb48827abe1d682",
+  "network_manifest": {
+    "format_version": 1,
+    "source": "OpenStreetMap via OSMnx, place='Edmonton, Alberta, Canada'",
+    "built_at": "2026-11-07T22:07:28.422910+00:00",
+    "node_count": 134948,
+    "edge_count": 194643,
+    "point_count": 791793,
+    "bbox": [
+      -113.7137977,
+      53.3373453,
+      -113.2869879,
+      53.7160849
+    ],
+    "steps_edges": 418,
+    "elevator_edges": 4,
+    "elevator_nodes": 9,
+    "crossing_edges": 22469,
+    "sidewalk_edges": 42226,
+    "skipped_self_loops": 733,
+    "skipped_zero_length": 0
+  },
+  "search_radius_m": 200,
+  "search_radius_note": "Review aid only; proximity is not evidence of a device-level match.",
+  "way_distance_note": "Way distances use endpoint midpoints and are approximate review aids.",
+  "attribution": [
+    "City of Edmonton Open Data",
+    "\u00a9 OpenStreetMap contributors, ODbL"
+  ],
+  "entries": [
+    {
+      "device_id": "1",
+      "station": "Churchill",
+      "location": "Chancery",
+      "station_stop_ids": [
+        "18761",
+        "18762"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 5414892706,
+        "distance_m": 8.3,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "4",
+      "station": "Churchill",
+      "location": "Winspear",
+      "station_stop_ids": [
+        "18761",
+        "18762"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 5414892706,
+        "distance_m": 8.3,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "29",
+      "station": "Clareview",
+      "location": "Platform",
+      "station_stop_ids": [
+        "79771",
+        "79772"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 1784369218,
+        "distance_m": 4.4,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "30",
+      "station": "Belvedere",
+      "location": "Platform",
+      "station_stop_ids": [
+        "78301",
+        "78302"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12206371467,
+        "distance_m": 24.5,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "31",
+      "station": "Belvedere",
+      "location": "West Entrance",
+      "station_stop_ids": [
+        "78301",
+        "78302"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12206371467,
+        "distance_m": 24.5,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "32",
+      "station": "Belvedere",
+      "location": "East Entrance",
+      "station_stop_ids": [
+        "78301",
+        "78302"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12206371467,
+        "distance_m": 24.5,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "84",
+      "station": "Government Centre",
+      "location": "South Entrance",
+      "station_stop_ids": [
+        "19251",
+        "19252"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 10170385746,
+        "distance_m": 16.2,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "85",
+      "station": "Government Centre",
+      "location": "South Platform",
+      "station_stop_ids": [
+        "19251",
+        "19252"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 10170385746,
+        "distance_m": 16.2,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "86",
+      "station": "Government Centre",
+      "location": "North Platform",
+      "station_stop_ids": [
+        "19251",
+        "19252"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 10170385746,
+        "distance_m": 16.2,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "87",
+      "station": "Government Centre",
+      "location": "North Entrance",
+      "station_stop_ids": [
+        "19251",
+        "19252"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 10170385746,
+        "distance_m": 16.2,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "88",
+      "station": "Corona",
+      "location": "South Entrance",
+      "station_stop_ids": [
+        "19261",
+        "19262"
+      ],
+      "elevator_candidates": [
+        {
+          "type": "way",
+          "id": 1168890851,
+          "distance_m": 22.2,
+          "url": "https://www.openstreetmap.org/way/1168890851",
+          "anchor_node_id": 13296108642,
+          "anchor_note": "Nearest endpoint of the flagged vertical link; independent review required."
+        },
+        {
+          "type": "way",
+          "id": 1168890847,
+          "distance_m": 52.5,
+          "url": "https://www.openstreetmap.org/way/1168890847",
+          "anchor_node_id": 13296108602,
+          "anchor_note": "Nearest endpoint of the flagged vertical link; independent review required."
+        }
+      ],
+      "station_point_proxy": {
+        "node_id": 13296108638,
+        "distance_m": 3.6,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "89",
+      "station": "Corona",
+      "location": "Platform",
+      "station_stop_ids": [
+        "19261",
+        "19262"
+      ],
+      "elevator_candidates": [
+        {
+          "type": "way",
+          "id": 1168890851,
+          "distance_m": 22.2,
+          "url": "https://www.openstreetmap.org/way/1168890851",
+          "anchor_node_id": 13296108642,
+          "anchor_note": "Nearest endpoint of the flagged vertical link; independent review required."
+        },
+        {
+          "type": "way",
+          "id": 1168890847,
+          "distance_m": 52.5,
+          "url": "https://www.openstreetmap.org/way/1168890847",
+          "anchor_node_id": 13296108602,
+          "anchor_note": "Nearest endpoint of the flagged vertical link; independent review required."
+        }
+      ],
+      "station_point_proxy": {
+        "node_id": 13296108638,
+        "distance_m": 3.6,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "90",
+      "station": "Bay/Enterprise Square",
+      "location": "Platform",
+      "station_stop_ids": [
+        "19851",
+        "19852"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12428172343,
+        "distance_m": 7.1,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "91",
+      "station": "Bay/Enterprise Square",
+      "location": "North Entrance",
+      "station_stop_ids": [
+        "19851",
+        "19852"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12428172343,
+        "distance_m": 7.1,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "92",
+      "station": "Central",
+      "location": "Platform",
+      "station_stop_ids": [
+        "19351",
+        "19352"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12428336409,
+        "distance_m": 10.9,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "93",
+      "station": "Central",
+      "location": "North Entrance",
+      "station_stop_ids": [
+        "19351",
+        "19352"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12428336409,
+        "distance_m": 10.9,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "94",
+      "station": "Churchill",
+      "location": "Platform",
+      "station_stop_ids": [
+        "18761",
+        "18762"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 5414892706,
+        "distance_m": 8.3,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "96",
+      "station": "Coliseum",
+      "location": "West Entrance",
+      "station_stop_ids": [
+        "18891",
+        "18892"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12206022669,
+        "distance_m": 2.7,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "97",
+      "station": "Coliseum",
+      "location": "East Entrance",
+      "station_stop_ids": [
+        "18891",
+        "18892"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12206022669,
+        "distance_m": 2.7,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "98",
+      "station": "Coliseum",
+      "location": "Platform",
+      "station_stop_ids": [
+        "18891",
+        "18892"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12206022669,
+        "distance_m": 2.7,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "100",
+      "station": "Health Sciences/Jubilee",
+      "location": "Platform",
+      "station_stop_ids": [
+        "20141",
+        "20142"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 7744702874,
+        "distance_m": 19.3,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "111",
+      "station": "University",
+      "location": "East Platform",
+      "station_stop_ids": [
+        "23161",
+        "23162"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 2325774188,
+        "distance_m": 3.7,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "112",
+      "station": "University",
+      "location": "West Platform",
+      "station_stop_ids": [
+        "23161",
+        "23162"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 2325774188,
+        "distance_m": 3.7,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "113",
+      "station": "University",
+      "location": "East Entrance",
+      "station_stop_ids": [
+        "23161",
+        "23162"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 2325774188,
+        "distance_m": 3.7,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "114",
+      "station": "Southgate",
+      "location": "Platform",
+      "station_stop_ids": [
+        "21131",
+        "21132"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 1813432440,
+        "distance_m": 24.8,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "115",
+      "station": "Southgate",
+      "location": "East Entrance",
+      "station_stop_ids": [
+        "21131",
+        "21132"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 1813432440,
+        "distance_m": 24.8,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "116",
+      "station": "Southgate",
+      "location": "West Entrance",
+      "station_stop_ids": [
+        "21131",
+        "21132"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 1813432440,
+        "distance_m": 24.8,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "117",
+      "station": "Century Park",
+      "location": "Platform",
+      "station_stop_ids": [
+        "49821"
+      ],
+      "elevator_candidates": [
+        {
+          "type": "node",
+          "id": 662687994,
+          "distance_m": 10.9,
+          "url": "https://www.openstreetmap.org/node/662687994",
+          "anchor_node_id": 662687994,
+          "anchor_note": "Review the vertical edge pair; this node alone must not close its junction."
+        },
+        {
+          "type": "node",
+          "id": 5206760179,
+          "distance_m": 46.1,
+          "url": "https://www.openstreetmap.org/node/5206760179",
+          "anchor_node_id": 5206760179,
+          "anchor_note": "Review the vertical edge pair; this node alone must not close its junction."
+        }
+      ],
+      "station_point_proxy": {
+        "node_id": 662687994,
+        "distance_m": 10.9,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "118",
+      "station": "Century Park",
+      "location": "East Entrance",
+      "station_stop_ids": [
+        "49821"
+      ],
+      "elevator_candidates": [
+        {
+          "type": "node",
+          "id": 662687994,
+          "distance_m": 10.9,
+          "url": "https://www.openstreetmap.org/node/662687994",
+          "anchor_node_id": 662687994,
+          "anchor_note": "Review the vertical edge pair; this node alone must not close its junction."
+        },
+        {
+          "type": "node",
+          "id": 5206760179,
+          "distance_m": 46.1,
+          "url": "https://www.openstreetmap.org/node/5206760179",
+          "anchor_node_id": 5206760179,
+          "anchor_note": "Review the vertical edge pair; this node alone must not close its junction."
+        }
+      ],
+      "station_point_proxy": {
+        "node_id": 662687994,
+        "distance_m": 10.9,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "130",
+      "station": "MacEwan",
+      "location": "Platform",
+      "station_stop_ids": [
+        "11171",
+        "11172"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12206285778,
+        "distance_m": 4.1,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "602",
+      "station": "Churchill",
+      "location": "Churchill Connector",
+      "station_stop_ids": [
+        "18761",
+        "18762"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 5414892706,
+        "distance_m": 8.3,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    },
+    {
+      "device_id": "610",
+      "station": "Davies",
+      "location": "Davies Station",
+      "station_stop_ids": [
+        "2687",
+        "2877"
+      ],
+      "elevator_candidates": [],
+      "station_point_proxy": {
+        "node_id": 12434884438,
+        "distance_m": 20.6,
+        "note": "Nearest node to a station point; entrance/platform identity is not verified."
+      },
+      "review_status": "unreviewed; no active match"
+    }
+  ]
+}
