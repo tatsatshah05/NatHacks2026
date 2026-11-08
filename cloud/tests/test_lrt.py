@@ -13,6 +13,7 @@ import csv
 import importlib.util
 import io
 import json
+import re
 import zipfile
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
@@ -25,7 +26,13 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from cloud.app import lrt, routing_api
-from cloud.app.lrt import LrtPlanner, LrtSchedule, match_outages, station_access
+from cloud.app.lrt import (
+    LrtPlanner,
+    LrtSchedule,
+    match_outages,
+    outage_place,
+    station_access,
+)
 from cloud.app.lrt_gtfs import GtfsError, read_lrt, station_key
 from cloud.app.matching import HazardProvider
 from cloud.app.network import (
@@ -48,6 +55,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # all year), so tests read it from the zone instead of assuming an offset.
 NOW = datetime(2026, 11, 7, 20, 10, tzinfo=UTC)
 LOCAL_HOUR = NOW.astimezone(lrt.EDMONTON).hour
+STORY_ID = re.compile(r"\bOP-\d")  # a story id such as OP-106
 
 # ---------------------------------------------------------------- GTFS fixture
 
@@ -588,6 +596,10 @@ def test_trip_with_one_transfer_and_estimated_waits(router) -> None:
     assert trip.route.eta_min == pytest.approx(trip.total_s / 60, abs=0.05)
     assert trip.route.eta_min < 99  # walking the 6 km takes about 99 min
     assert any("estimate" in w for w in trip.warnings)
+    # Users see plain language, never a story id.
+    assert lrt.UNMAPPED_ENTRY_WARNING in trip.warnings
+    assert "not yet matched to the map, so the walk ends" in lrt.UNMAPPED_ENTRY_WARNING
+    assert not any(STORY_ID.search(w) for w in [*trip.warnings, *result.warnings])
     texts = [s.text for s in trip.route.steps]
     assert any(t.startswith("Ride the Red Line toward X from S1 to X") for t in texts)
     assert any("Change trains at X Station" in t for t in texts)
@@ -639,6 +651,42 @@ def test_an_unlisted_elevator_outage_closes_its_station_by_name(router) -> None:
     result = plan(router, planner, "wheelchair", records)
     assert result.trip is None
     assert any("cannot tell which one" in w for w in result.warnings)
+
+
+def test_an_unlisted_outage_reason_names_only_the_station_and_location(
+    router,
+) -> None:
+    """OP-313 details run to several sentences; the reason quotes only the first."""
+    planner = planner_for(router)
+    detail = (
+        "S3, Somewhere new. No other elevator at Somewhere new is in service. "
+        "In service at S3: elevators at North and South; 2 escalators."
+    )
+    records = [outage("999", detail)]
+    (unknown,) = match_outages(planner.schedule, records)
+    assert unknown.station_id == "S3"  # still matched by the name before the comma
+    result = plan(router, planner, "wheelchair", records)
+    assert result.trip is None
+    (reason,) = [w for w in result.warnings if "cannot tell which one" in w]
+    assert "(S3, Somewhere new) and OpenPath cannot tell which one" in reason
+    assert "In service at" not in reason and "No other elevator" not in reason
+
+
+@pytest.mark.parametrize(
+    ("detail", "place"),
+    [
+        ("Central, West Platform", "Central, West Platform"),
+        ("Central, West Platform.", "Central, West Platform"),
+        (
+            "Central, West Platform. In service at Central: ...",
+            "Central, West Platform",
+        ),
+        ("", "location unknown"),
+        (None, "location unknown"),
+    ],
+)
+def test_outage_place_is_the_detail_lead(detail: str | None, place: str) -> None:
+    assert outage_place(detail) == place
 
 
 def test_at_grade_stations_need_no_elevator(router) -> None:
@@ -1055,6 +1103,7 @@ def test_churchill_to_southgate_by_wheelchair_on_the_real_network(app_env) -> No
         params = {"from": CHURCHILL, "to": SOUTHGATE, "mode": "walk_lrt"}
         body = client.get("/api/route", params={**params, "profile": "wheelchair"})
         assert body.status_code == 200, body.text
+        assert not STORY_ID.search(body.text)  # no "OP-<id>" in anything users see
         routes = body.json()["routes"]
         trip = routes[0]
         assert trip["mode"] == "walk_lrt", body.json()["warnings"]

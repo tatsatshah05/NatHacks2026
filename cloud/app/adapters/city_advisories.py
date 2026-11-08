@@ -21,6 +21,8 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+from cloud.app.adapters._text import clip_detail
+
 # The IANA zone name; a named constant so secret scanners do not mistake the ZoneInfo key= argument for a credential.
 EDMONTON_ZONE_NAME = "America/Edmonton"
 
@@ -422,9 +424,14 @@ class TrailClosuresAdapter(CityAdapter):
                 raise ValueError("Unknown trail closure type")
             caution = closure == "caution"
             location = row.get("location_name") or "River Valley trail"
-            detail = text(row, "details")
-            if raw_end is not None and raw_end != "":
-                detail += f" Reported end: {raw_end}."
+            reported_end = (
+                f" Reported end: {raw_end}."
+                if raw_end is not None and raw_end != ""
+                else ""
+            )
+            # A long City notice is shortened, never dropped: the closure still
+            # reaches the map and routing, and the item's url links the full text.
+            detail = clip_detail(text(row, "details"), keep=reported_end)
             items.append(
                 self.item(
                     text(row, "id_number"),

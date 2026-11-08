@@ -41,6 +41,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+from cloud.app.adapters._text import clip_detail
 from cloud.app.schemas import Category, Confidence, Effect, Kind, Obstruction
 
 SOURCE = "city_traffic_disruptions"
@@ -60,8 +61,6 @@ CLOSURE_IMPACTS = {
     "Traffic Incident Closure": "Road closed",
     "Directional Closure": "Road partly closed",
 }
-# The contract caps detail at 500 characters.
-MAX_DETAIL = 500
 
 LOGGER = logging.getLogger(__name__)
 
@@ -176,13 +175,16 @@ def _detail(row: Row) -> str:
     if details:
         parts.append(details if details.endswith((".", "!", "?")) else details + ".")
     infrastructure = _text(row, "infrastructure").lower()
-    parts.append(
+    sidewalk = (
         "Sidewalk affected."
         if "sidewalk" in infrastructure
         else "Sidewalks may be affected."
     )
     text = " ".join(part for part in parts if part)
-    return text if len(text) <= MAX_DETAIL else text[: MAX_DETAIL - 3].rstrip() + "..."
+    if not text:
+        return sidewalk
+    # Long City text is shortened at a word, never dropped; the sidewalk note stays.
+    return clip_detail(text, keep=f" {sidewalk}")
 
 
 def normalize(

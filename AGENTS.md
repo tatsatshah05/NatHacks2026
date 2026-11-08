@@ -46,7 +46,7 @@ Update this section whenever the status changes.
 - **Deploys:** the one-time Render, Vercel and GitHub setup is in [docs/DEPLOY.md](docs/DEPLOY.md).
 - **CI/CD is live, and every branch below is protected.** Every pull request needs the `CI passed` check and an approval from Tatsat, Ipsa or Kashish. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Phase branches:** Phase 1 work goes into the `phase_1` branch, which is the default branch. When the phase passes its checkpoint, `phase_1` is released into `main`, and `phase_2` starts from `main`.
-- **Vision training (OP-202):** `vision/train.py` trains and exports the road-condition model on a laptop or Colab (never Render or CI); no real model exists yet, pending OP-201 labels and decision D-3. `vision/model_contract.py` defines `labels.json`, the hand-off to the worker (OP-204).
+- **Vision training (OP-202):** `vision/train.py` trains and exports the road-condition model on a laptop or Colab (never Render or CI). Two real models exist, trained on November 8 on Tatsat's laptop from privately kept 511 frames: the night-only `v1-night` and the day-and-night model that replaced it in the live worker. Their measured results and limits are in `vision/MODEL_CARD.md`; the weights are never committed. Decision D-3 (PLAN.md section 16) allows licensed outside datasets for training only. `vision/model_contract.py` defines `labels.json`, the hand-off to the worker (OP-204).
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
 - **Scheduler and status (OP-103):** `cloud/app/scheduler.py` runs every source in `config/sources.json` on its cadence (10 s timeout, 3 retries, stale after 3 failures, a failed source never clears data) and `GET /api/status` reports freshness. `SCHEDULER=off` disables fetching (tests). In replay mode the adapters read the `REPLAY_SNAPSHOT` folder through a fake HTTP transport, so nothing touches the network.
@@ -216,6 +216,7 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 - **Access:** official access only. Use the City open data API (`data.edmonton.ca/resource/<id>.json`, with `SOCRATA_APP_TOKEN`), the 511 Alberta API with our key (10 calls per 60 s), Environment Canada MSC GeoMet, and Open-Meteo. Never scrape websites or call private endpoints. Use City camera streams only after the City gives written permission.
 - **Inventory:** dataset IDs, cadences and licences live in PLAN.md section 6 and `docs/DATA_SOURCES.md`. Live LRT status comes from the outage feed (`snws-u3zx`), never the master list, which lags.
 - **Fixtures:** every adapter has recorded fixtures, and tests never call the network.
+- **Long text:** `detail` is at most 500 characters, and the scheduler skips an item that breaks the contract. An adapter that copies free City text into `detail` shortens it with `clip_detail` (`cloud/app/adapters/_text.py`: cut at a word, marked with "...", keeping a short ending such as an end date whole) and never drops the item for a long detail; the item's `url` links the full text. Items are skipped only for invalid data, such as a bad geometry or a missing id.
 - **Attribution:** attribute every source on `/sources` and on every item, as each licence requires.
 - **Request time:** never run OSMnx on Render, and never call an external geocoder at request time. The network and the address index are prebuilt.
 - **Walking network:** `cloud/app/network.py` loads `cloud/data/network.npz` (compact NumPy arrays: nodes, undirected edges with flags for stairs, elevators, crossings and sidewalks, and edge polylines). Routing works on node and edge indices, never on OSM ids. Weight 0 in `length_matrix()` means the edge is removed.
@@ -299,6 +300,12 @@ pass cannot confirm a reading, so it normally makes zero attempts. A shared
 one-minute cooldown follows a 511 HTTP 429; live startup uses OP-112's on-disk
 metadata cache. Replay data is never posted. See [docs/OP-204.md](docs/OP-204.md)
 for the labels.json format, expiry and remaining work.
+
+A second model can add snow and ice readings beside the main model (lead decision,
+November 8; `vision/snow_assist.py`): `--snow-model-file`, `--snow-model-labels` and
+`--snow-model-sha256` go together, share `--min-score`, and the snow model's answer is
+used only when it is `snow_partial`, `snow_covered` or `ice`. With `--ai-check`, Claude
+must agree with the final label. `vision/MODEL_CARD.md` measures both models.
 
 OP-205 checks: `python -m pytest cloud/tests/test_camera_ice.py cloud/tests/test_camera_ice_routing.py cloud/tests/test_camera_ice_review.py cloud/tests/test_camera_ice_app.py -q`.
 
