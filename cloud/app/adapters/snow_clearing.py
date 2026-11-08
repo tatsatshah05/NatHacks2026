@@ -11,8 +11,9 @@ from __future__ import annotations
 
 import copy
 import time
-from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
@@ -39,7 +40,7 @@ def as_utc(value: datetime) -> datetime:
     """Compare elapsed hours in UTC and reject ambiguous timezone-free times."""
     if not isinstance(value, datetime) or value.tzinfo is None:
         raise ValueError("Use a timezone-aware datetime")
-    return value.astimezone(timezone.utc)
+    return value.astimezone(UTC)
 
 
 def required_text(row: Row, field: str) -> str:
@@ -71,9 +72,9 @@ class SnowClearingAdapter:
         self,
         client: httpx.Client,
         *,
-        app_token: Optional[str] = None,
-        verified_service_time: Optional[Callable[[Row], Optional[datetime]]] = None,
-        resolve_crossings: Optional[Callable[[Row], Sequence[Crossing]]] = None,
+        app_token: str | None = None,
+        verified_service_time: Callable[[Row], datetime | None] | None = None,
+        resolve_crossings: Callable[[Row], Sequence[Crossing]] | None = None,
         item_factory: Callable[..., Any] = build_obstruction,
         page_size: int = 1000,
         max_pages: int = 100,
@@ -91,9 +92,9 @@ class SnowClearingAdapter:
         self.max_pages = max_pages
         self.retries = retries
         self.sleep = sleep
-        self.last_good: Optional[list[Obstruction]] = None
-        self.last_success: Optional[datetime] = None
-        self.last_error: Optional[str] = None
+        self.last_good: list[Obstruction] | None = None
+        self.last_success: datetime | None = None
+        self.last_error: str | None = None
 
     def _page(self, offset: int) -> list[Row]:
         """Read one stable-ordered page, retrying network/JSON failures."""

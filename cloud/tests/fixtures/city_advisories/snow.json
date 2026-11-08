@@ -1,0 +1,393 @@
+[
+  {
+    "row_id": "58541125805140",
+    "date_created": "2026-11-04T11:54:58.000",
+    "year": "2026",
+    "month_number": "11",
+    "month": "November",
+    "request_status": "Open",
+    "status_detail": "Investigation Ongoing",
+    "service_category": "Bylaw Complaints",
+    "service_description": "Snow on Walk Complaint",
+    "interaction_channel": "Phone Call",
+    "service_area": "Community Standards - Muni. Enforcement",
+    "referral_type": "Referral",
+    "neighbourhood_id": "4730",
+    "neighbourhood": "SUDER GREENS",
+    "ward": "Nakota Isga",
+    "service_category_service_area": "Bylaw Complaints  (Community Standards - Muni. Enforcement)",
+    "service_area_service_category": "(Community Standards - Muni. Enforcement)  Bylaw Complaints",
+    "service_area_service_description": "(Community Standards - Muni. Enforcement)  Snow on Walk Complaint",
+    "nbhd_latitude": "53.5245864905621",
+    "nbhd_longitude": "-113.677077754787",
+    "nbhd_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.677077754787,
+        53.5245864905621
+      ]
+    },
+    "ward_latitude": "53.5570426637298",
+    "ward_longitude": "-113.632298226689",
+    "ward_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.632298226689,
+        53.5570426637298
+      ]
+    },
+    "count": "1"
+  },
+  {
+    "row_id": "57161926029339",
+    "date_created": "2025-04-06T19:16:57.000",
+    "year": "2025",
+    "month_number": "4",
+    "month": "April",
+    "request_status": "Open",
+    "service_category": "Bylaw Complaints",
+    "service_description": "Snow on Walk Complaint",
+    "interaction_channel": "Mobile App",
+    "service_area": "Community Standards - Muni. Enforcement",
+    "referral_type": "Referral",
+    "neighbourhood_id": "5190",
+    "neighbourhood": "FALCONER HEIGHTS",
+    "ward": "pih\u00easiwin",
+    "service_category_service_area": "Bylaw Complaints  (Community Standards - Muni. Enforcement)",
+    "service_area_service_category": "(Community Standards - Muni. Enforcement)  Bylaw Complaints",
+    "service_area_service_description": "(Community Standards - Muni. Enforcement)  Snow on Walk Complaint",
+    "nbhd_latitude": "53.46672055024967",
+    "nbhd_longitude": "-113.58852370186142",
+    "nbhd_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.58852370186142,
+        53.46672055024967
+      ]
+    },
+    "ward_latitude": "53.39643268647586",
+    "ward_longitude": "-113.62156455468075",
+    "ward_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.62156455468075,
+        53.39643268647586
+      ]
+    },
+    "count": "1"
+  },
+  {
+    "row_id": "22001926029325",
+    "date_created": "2025-04-06T19:00:22.000",
+    "year": "2025",
+    "month_number": "4",
+    "month": "April",
+    "request_status": "Open",
+    "service_category": "Bylaw Complaints",
+    "service_description": "Snow on Walk Complaint",
+    "interaction_channel": "Mobile App",
+    "service_area": "Community Standards - Muni. Enforcement",
+    "referral_type": "Referral",
+    "neighbourhood_id": "5642",
+    "neighbourhood": "SOUTH TERWILLEGAR",
+    "ward": "pih\u00easiwin",
+    "service_category_service_area": "Bylaw Complaints  (Community Standards - Muni. Enforcement)",
+    "service_area_service_category": "(Community Standards - Muni. Enforcement)  Bylaw Complaints",
+    "service_area_service_description": "(Community Standards - Muni. Enforcement)  Snow on Walk Complaint",
+    "nbhd_latitude": "53.44024696928342",
+    "nbhd_longitude": "-113.57902407054075",
+    "nbhd_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.57902407054075,
+        53.44024696928342
+      ]
+    },
+    "ward_latitude": "53.39643268647586",
+    "ward_longitude": "-113.62156455468075",
+    "ward_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.62156455468075,
+        53.39643268647586
+      ]
+    },
+    "count": "1"
+  },
+  {
+    "row_id": "40282124027121",
+    "date_created": "2025-04-04T21:28:40.000",
+    "year": "2025",
+    "month_number": "4",
+    "month": "April",
+    "request_status": "Open",
+    "service_category": "Bylaw Complaints",
+    "service_description": "Snow on Walk Complaint",
+    "interaction_channel": "Phone Call",
+    "service_area": "Community Standards - Muni. Enforcement",
+    "referral_type": "Referral",
+    "neighbourhood_id": "5574",
+    "neighbourhood": "KESWICK",
+    "ward": "pih\u00easiwin",
+    "service_category_service_area": "Bylaw Complaints  (Community Standards - Muni. Enforcement)",
+    "service_area_service_category": "(Community Standards - Muni. Enforcement)  Bylaw Complaints",
+    "service_area_service_description": "(Community Standards - Muni. Enforcement)  Snow on Walk Complaint",
+    "nbhd_latitude": "53.41758706862364",
+    "nbhd_longitude": "-113.63221244612657",
+    "nbhd_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.63221244612657,
+        53.41758706862364
+      ]
+    },
+    "ward_latitude": "53.39643268647586",
+    "ward_longitude": "-113.62156455468075",
+    "ward_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.62156455468075,
+        53.39643268647586
+      ]
+    },
+    "count": "1"
+  },
+  {
+    "row_id": "20051724026781",
+    "date_created": "2025-04-04T17:05:20.000",
+    "year": "2025",
+    "month_number": "4",
+    "month": "April",
+    "request_status": "Open",
+    "service_category": "Bylaw Complaints",
+    "service_description": "Snow on Walk Complaint",
+    "interaction_channel": "Mobile App",
+    "service_area": "Community Standards - Muni. Enforcement",
+    "referral_type": "Referral",
+    "neighbourhood_id": "6790",
+    "neighbourhood": "WILD ROSE",
+    "ward": "Sspomitapi",
+    "service_category_service_area": "Bylaw Complaints  (Community Standards - Muni. Enforcement)",
+    "service_area_service_category": "(Community Standards - Muni. Enforcement)  Bylaw Complaints",
+    "service_area_service_description": "(Community Standards - Muni. Enforcement)  Snow on Walk Complaint",
+    "nbhd_latitude": "53.47056409010199",
+    "nbhd_longitude": "-113.38116723880054",
+    "nbhd_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.38116723880054,
+        53.47056409010199
+      ]
+    },
+    "ward_latitude": "53.44185485260715",
+    "ward_longitude": "-113.38221908238347",
+    "ward_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.38221908238347,
+        53.44185485260715
+      ]
+    },
+    "count": "1"
+  },
+  {
+    "row_id": "59431126808054",
+    "date_closed": "2026-11-05T12:25:37.000",
+    "date_created": "2026-11-05T11:43:59.000",
+    "year": "2026",
+    "month_number": "11",
+    "month": "November",
+    "request_status": "Closed",
+    "status_detail": "Investigation Concluded",
+    "service_category": "Bylaw Complaints",
+    "service_description": "Snow on Walk Complaint",
+    "interaction_channel": "Phone Call",
+    "service_area": "Community Standards - Muni. Enforcement",
+    "referral_type": "Referral",
+    "neighbourhood_id": "4500",
+    "neighbourhood": "SHERWOOD",
+    "ward": "sipiwiyiniwak",
+    "service_category_service_area": "Bylaw Complaints  (Community Standards - Muni. Enforcement)",
+    "service_area_service_category": "(Community Standards - Muni. Enforcement)  Bylaw Complaints",
+    "service_area_service_description": "(Community Standards - Muni. Enforcement)  Snow on Walk Complaint",
+    "nbhd_latitude": "53.5291017669454",
+    "nbhd_longitude": "-113.584145049809",
+    "nbhd_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.584145049809,
+        53.5291017669454
+      ]
+    },
+    "ward_latitude": "53.4674142097981",
+    "ward_longitude": "-113.647287696907",
+    "ward_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.647287696907,
+        53.4674142097981
+      ]
+    },
+    "count": "1"
+  },
+  {
+    "row_id": "11401126808046",
+    "date_closed": "2026-11-05T13:05:50.000",
+    "date_created": "2026-11-05T11:40:11.000",
+    "year": "2026",
+    "month_number": "11",
+    "month": "November",
+    "request_status": "Closed",
+    "status_detail": "311 Redirecting to Other Business Area",
+    "service_category": "Bylaw Complaints",
+    "service_description": "Snow on Walk Complaint",
+    "interaction_channel": "Phone Call",
+    "service_area": "Community Standards - Muni. Enforcement",
+    "referral_type": "Referral",
+    "neighbourhood_id": "6460",
+    "neighbourhood": "MEYOKUMIN",
+    "ward": "Karhiio",
+    "service_category_service_area": "Bylaw Complaints  (Community Standards - Muni. Enforcement)",
+    "service_area_service_category": "(Community Standards - Muni. Enforcement)  Bylaw Complaints",
+    "service_area_service_description": "(Community Standards - Muni. Enforcement)  Snow on Walk Complaint",
+    "nbhd_latitude": "53.4501131308871",
+    "nbhd_longitude": "-113.427257526432",
+    "nbhd_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.427257526432,
+        53.4501131308871
+      ]
+    },
+    "ward_latitude": "53.4340282150534",
+    "ward_longitude": "-113.451238093664",
+    "ward_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.451238093664,
+        53.4340282150534
+      ]
+    },
+    "count": "1"
+  },
+  {
+    "row_id": "371126808014",
+    "date_closed": "2026-11-05T13:06:04.000",
+    "date_created": "2026-11-05T11:37:00.000",
+    "year": "2026",
+    "month_number": "11",
+    "month": "November",
+    "request_status": "Closed",
+    "status_detail": "311 Redirecting to Other Business Area",
+    "service_category": "Bylaw Complaints",
+    "service_description": "Snow on Walk Complaint",
+    "interaction_channel": "Phone Call",
+    "service_area": "Community Standards - Muni. Enforcement",
+    "referral_type": "Referral",
+    "neighbourhood_id": "6460",
+    "neighbourhood": "MEYOKUMIN",
+    "ward": "Karhiio",
+    "service_category_service_area": "Bylaw Complaints  (Community Standards - Muni. Enforcement)",
+    "service_area_service_category": "(Community Standards - Muni. Enforcement)  Bylaw Complaints",
+    "service_area_service_description": "(Community Standards - Muni. Enforcement)  Snow on Walk Complaint",
+    "nbhd_latitude": "53.4501131308871",
+    "nbhd_longitude": "-113.427257526432",
+    "nbhd_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.427257526432,
+        53.4501131308871
+      ]
+    },
+    "ward_latitude": "53.4340282150534",
+    "ward_longitude": "-113.451238093664",
+    "ward_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.451238093664,
+        53.4340282150534
+      ]
+    },
+    "count": "1"
+  },
+  {
+    "row_id": "34331126808005",
+    "date_closed": "2026-11-05T13:07:24.000",
+    "date_created": "2026-11-05T11:33:34.000",
+    "year": "2026",
+    "month_number": "11",
+    "month": "November",
+    "request_status": "Closed",
+    "status_detail": "311 Redirecting to Other Business Area",
+    "service_category": "Bylaw Complaints",
+    "service_description": "Snow on Walk Complaint",
+    "interaction_channel": "Phone Call",
+    "service_area": "Community Standards - Muni. Enforcement",
+    "referral_type": "Referral",
+    "neighbourhood_id": "6460",
+    "neighbourhood": "MEYOKUMIN",
+    "ward": "Karhiio",
+    "service_category_service_area": "Bylaw Complaints  (Community Standards - Muni. Enforcement)",
+    "service_area_service_category": "(Community Standards - Muni. Enforcement)  Bylaw Complaints",
+    "service_area_service_description": "(Community Standards - Muni. Enforcement)  Snow on Walk Complaint",
+    "nbhd_latitude": "53.4501131308871",
+    "nbhd_longitude": "-113.427257526432",
+    "nbhd_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.427257526432,
+        53.4501131308871
+      ]
+    },
+    "ward_latitude": "53.4340282150534",
+    "ward_longitude": "-113.451238093664",
+    "ward_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.451238093664,
+        53.4340282150534
+      ]
+    },
+    "count": "1"
+  },
+  {
+    "row_id": "42301126807982",
+    "date_closed": "2026-11-05T13:06:57.000",
+    "date_created": "2026-11-05T11:30:42.000",
+    "year": "2026",
+    "month_number": "11",
+    "month": "November",
+    "request_status": "Closed",
+    "status_detail": "311 Redirecting to Other Business Area",
+    "service_category": "Bylaw Complaints",
+    "service_description": "Snow on Walk Complaint",
+    "interaction_channel": "Phone Call",
+    "service_area": "Community Standards - Muni. Enforcement",
+    "referral_type": "Referral",
+    "neighbourhood_id": "6460",
+    "neighbourhood": "MEYOKUMIN",
+    "ward": "Karhiio",
+    "service_category_service_area": "Bylaw Complaints  (Community Standards - Muni. Enforcement)",
+    "service_area_service_category": "(Community Standards - Muni. Enforcement)  Bylaw Complaints",
+    "service_area_service_description": "(Community Standards - Muni. Enforcement)  Snow on Walk Complaint",
+    "nbhd_latitude": "53.4501131308871",
+    "nbhd_longitude": "-113.427257526432",
+    "nbhd_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.427257526432,
+        53.4501131308871
+      ]
+    },
+    "ward_latitude": "53.4340282150534",
+    "ward_longitude": "-113.451238093664",
+    "ward_location": {
+      "type": "Point",
+      "coordinates": [
+        -113.451238093664,
+        53.4340282150534
+      ]
+    },
+    "count": "1"
+  }
+]

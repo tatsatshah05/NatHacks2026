@@ -6,7 +6,7 @@ crossing evidence are explicitly synthetic test inputs, never live observations.
 
 import copy
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -20,7 +20,7 @@ from cloud.app.adapters.snow_clearing import (
 )
 
 FIXTURES = Path(__file__).parent / "fixtures/snow_clearing"
-NOW = datetime(2026, 11, 7, 22, tzinfo=timezone.utc)
+NOW = datetime(2026, 11, 7, 22, tzinfo=UTC)
 CROSSING = ("crossing-test", {"type": "Point", "coordinates": [-113.59, 53.43]})
 
 

@@ -10,7 +10,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -19,7 +19,7 @@ from cloud.app.adapters.snow_clearing import SnowClearingAdapter
 
 
 def preview(live: bool) -> dict:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with httpx.Client() as client:
         adapter = SnowClearingAdapter(client, app_token=os.getenv("SOCRATA_APP_TOKEN"))
         if live:

@@ -1,0 +1,2 @@
+# Only for scripts/build_graph.py, which runs on a laptop. Never installed on Render.
+osmnx>=2,<3
