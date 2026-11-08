@@ -223,6 +223,8 @@ These live in the root Makefile and are available after OP-102.
 
 OP-202 trains the road-condition model on a laptop or Colab, never on Render or in CI: `pip install -r vision/requirements.txt -r scripts/requirements-train.txt`, then `python -m vision.train --images vision/data/raw --labels vision/data/labels_*.csv --out vision/data/runs/v1` (see [vision/README.md](vision/README.md#training)). It writes `model.onnx`, `labels.json`, `split.json` and `metrics.json`; publish `model.onnx` and `labels.json` as a GitHub release asset and set `MODEL_URL`, never commit them. Its end-to-end tests skip where PyTorch is not installed.
 
+OP-203 evaluates a run on its unseen test cameras and regenerates `vision/MODEL_CARD.md`: `python -m vision.evaluate --run vision/data/runs/v1 --images vision/data/raw --labels vision/data/labels_*.csv` (needs onnxruntime, not PyTorch). Never edit the card's numbers by hand.
+
 OP-107 offers a recorded preview until the shared app is integrated:
 
 ```bash
