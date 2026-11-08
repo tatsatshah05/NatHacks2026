@@ -21,6 +21,7 @@ import { effectLabel, plural, sourceLabel } from "@/lib/report-format";
 import { freshnessSummary } from "../source-freshness";
 import Button from "../ui/button";
 import HazardMark, { HAZARD_SHAPES, SHAPE_TEXT, effectShape } from "../ui/hazard-mark";
+import LazyMount from "../ui/lazy-mount";
 import SiteFooter from "../ui/site-footer";
 import SiteHeader from "../ui/site-header";
 import StatusLine from "../ui/status-line";
@@ -255,7 +256,7 @@ export default function CityDashboard() {
           </div>
         </div>
 
-        <div className={styles.list}>
+        <div className={ranking || !loading ? styles.list : `${styles.list} loading-space`}>
           {ranking && !items.length && !problems.ranking && (
             <p className={styles.empty}>
               No barriers are reported right now. The list fills in as the City&apos;s sources report closures,
@@ -310,7 +311,9 @@ export default function CityDashboard() {
 
         <div className={styles.side} id="city-map" tabIndex={-1}>
           <h2 className="sr-only">Map</h2>
-          <CityMap items={filtered} cameras={cameras} selectedId={selectedId} onSelect={select} />
+          <LazyMount placeholder={<div className={`map-canvas ${styles.mapCanvas}`} aria-hidden="true" />}>
+            <CityMap items={filtered} cameras={cameras} selectedId={selectedId} onSelect={select} />
+          </LazyMount>
           {selectedItem && (
             <div className={styles.detail}>
               <h3>

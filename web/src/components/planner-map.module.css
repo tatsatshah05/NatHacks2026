@@ -1,12 +1,17 @@
-/* OP-301: the planner map. The basemap is light in both themes; the page around it
-   follows the theme. */
+/* OP-301: the planner map. The frame around the canvas carries the map's own palette
+   (.map-light or .map-dark, globals.css), so the markers and controls inside it follow
+   the basemap, while the key and notes outside it follow the page (OP-410). */
 
 .frame {
   min-width: 0;
 }
 
+.surface {
+  min-width: 0;
+}
+
 .canvas {
-  background: #f1efe9; /* the basemap's land colour, shown while tiles load */
+  background: var(--map-land, #f1efe9); /* the basemap's land colour, shown while tiles load */
   border: 1px solid var(--line);
   border-radius: 6px;
   height: 56vh;
@@ -30,7 +35,7 @@
   padding-left: 12px;
 }
 
-/* What the line weights mean, in words beside a swatch drawn on the map's own white. */
+/* What the line weights mean, in words beside a swatch drawn on the map's own land colour. */
 .key {
   display: flex;
   flex-wrap: wrap;
@@ -47,15 +52,14 @@
 }
 
 .swatch {
-  background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 3px;
   flex: 0 0 auto;
 }
 
-/* Start and end: a filled circle on the point, with its word beside it. The basemap
-   is light in both themes, so these use the light theme's ink (#0D1F2D) and white
-   (16.8:1), not the theme tokens, which would turn the dot white in dark mode. */
+/* Start and end: a filled circle on the point, with its word beside it. The tokens
+   resolve inside the map surface, so on the light basemap the dot is #0D1F2D on white
+   (16.8:1) in both page themes, and on the dark high-contrast style it is light on dark. */
 .place {
   height: 22px;
   position: relative;
@@ -63,20 +67,20 @@
 }
 
 .placeDot {
-  background: #0d1f2d;
-  border: 3px solid #ffffff;
+  background: var(--ink);
+  border: 3px solid var(--card);
   border-radius: 50%;
   display: block;
   height: 22px;
-  outline: 1px solid #0d1f2d;
+  outline: 1px solid var(--ink);
   width: 22px;
 }
 
 .placeTag {
-  background: #ffffff;
-  border: 2px solid #0d1f2d;
+  background: var(--card);
+  border: 2px solid var(--ink);
   border-radius: 4px;
-  color: #0d1f2d;
+  color: var(--ink);
   font-family: var(--font-body), system-ui, sans-serif;
   font-size: 1rem;
   font-weight: 700;
@@ -89,19 +93,5 @@
   white-space: nowrap;
 }
 
-/* Focus inside the map: the project's ring, drawn inside each control so the map's
-   rounded, clipped frame never hides it (MapLibre's own focus is a soft blue glow).
-   The map is light in both themes, so the ring keeps the light theme's #E06F00:
-   3.3:1 on the white controls, where the dark theme's #FFB454 would be 1.7:1. */
-.frame :global(.maplibregl-canvas:focus-visible),
-.frame :global(.maplibregl-ctrl-group button:focus-visible),
-.frame :global(.maplibregl-ctrl-attrib-button:focus-visible),
-.frame :global(.maplibregl-ctrl-attrib a:focus-visible) {
-  box-shadow: none;
-  outline: 3px solid #e06f00;
-  outline-offset: -4px;
-}
-
-.frame :global(.maplibregl-ctrl-group button:focus:not(:focus-visible)) {
-  outline: none;
-}
+/* The focus ring inside the map and the 44 px controls are in globals.css (the map
+   surface rules), shared with the city map. */

@@ -1,8 +1,9 @@
 "use client";
 
-// The planner's map (OP-301): the API's routes on the OpenFreeMap liberty basemap.
+// The planner's map (OP-301): the API's routes on the OpenFreeMap liberty basemap, or
+// on the high-contrast style when that setting is on (OP-307, wired in OP-410).
 //
-// - The selected route is the thick line (6 px, action blue, on a white casing); the
+// - The selected route is the thick line (6 px, the route colour, on a casing); the
 //   other routes are thin muted lines. A walk and LRT trip draws its rides as a double
 //   line, as on the route line beside it.
 // - Start and end are filled circles with a "Start" / "End" tag.
@@ -10,6 +11,9 @@
 //   shortcuts only: hidden from assistive technology and out of the tab order. A click
 //   jumps to the same stop in the list, which is the keyboard and screen-reader path.
 // - Selecting a route fits the map to it; under reduced motion it jumps, never flies.
+// - The style follows the settings and the theme (lib/map-style.ts); the element that
+//   holds the canvas carries the map's palette (lib/map-surface.ts), so markers and
+//   controls inside it keep their contrast on either basemap.
 //
 // The map only illustrates the list. If WebGL or the basemap fails, a sentence says so
 // and the list still holds everything.
@@ -18,19 +22,13 @@ import { MutableRefObject, useEffect, useRef, useState } from "react";
 import type { GeoJSONSource, LngLatBoundsLike, Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { effectShape, hazardShapeSvg } from "./ui/hazard-shapes";
+import { type LinePalette, useMapSurface } from "@/lib/map-surface";
 import maplibregl from "@/lib/maplibre";
 import type { PlannerPlace, RouteOut } from "@/lib/planner-types";
+import { prefersReducedMotion, useReducedMotion } from "@/lib/settings";
 import styles from "./planner-map.module.css";
 
 const EDMONTON: [number, number] = [-113.4938, 53.5461];
-const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-
-// The liberty basemap is light in both themes, so the lines use the light theme's
-// colours: action #1450A3 is 7.8:1 on white and about 7:1 on the map's land colour;
-// muted #4A5B6A is 7.0:1 on white. The white casing keeps the line off the roads.
-const ACTION = "#1450A3";
-const MUTED = "#4A5B6A";
-const CASING = "#FFFFFF";
 
 export type MapCondition = { id: string; effect: string; title: string; lng: number; lat: number };
 export type MapCentre = { lat: number; lng: number };
@@ -47,6 +45,8 @@ type Props = {
 };
 
 type Coordinates = [number, number][];
+
+const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 function lineCoordinates(geometry: Record<string, unknown>): Coordinates {
   const coordinates = geometry.coordinates;
@@ -98,10 +98,6 @@ function boundsOf(points: Coordinates): LngLatBoundsLike | null {
   ];
 }
 
-function prefersReducedMotion(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 function placeMarker(label: "Start" | "End"): HTMLElement {
   const element = document.createElement("div");
   element.className = styles.place;
@@ -109,6 +105,50 @@ function placeMarker(label: "Start" | "End"): HTMLElement {
   // Constant markup; no user text goes into HTML.
   element.innerHTML = `<span class="${styles.placeDot}"></span><span class="${styles.placeTag}">${label}</span>`;
   return element;
+}
+
+/**
+ * The route source and its four layers. A style change (`map.setStyle`) drops every
+ * layer a page added, so this runs on each `style.load` and draws the current data
+ * again in the current palette.
+ */
+function addRouteLayers(map: MapLibreMap, lines: LinePalette, data: GeoJSON.FeatureCollection): void {
+  if (map.getSource("routes")) return;
+  map.addSource("routes", { type: "geojson", data });
+  const layout = { "line-join": "round", "line-cap": "round" } as const;
+  map.addLayer({
+    id: "route-others",
+    type: "line",
+    source: "routes",
+    filter: ["==", ["get", "selected"], false],
+    layout,
+    paint: { "line-color": lines.others, "line-width": 3 }
+  });
+  map.addLayer({
+    id: "route-casing",
+    type: "line",
+    source: "routes",
+    filter: ["==", ["get", "selected"], true],
+    layout,
+    paint: { "line-color": lines.casing, "line-width": ["case", ["get", "ride"], 14, 10] }
+  });
+  map.addLayer({
+    id: "route-selected",
+    type: "line",
+    source: "routes",
+    filter: ["all", ["==", ["get", "selected"], true], ["==", ["get", "ride"], false]],
+    layout,
+    paint: { "line-color": lines.route, "line-width": 6 }
+  });
+  map.addLayer({
+    id: "route-ride",
+    type: "line",
+    source: "routes",
+    filter: ["all", ["==", ["get", "selected"], true], ["==", ["get", "ride"], true]],
+    layout,
+    // Two 3 px rails with a 5 px gap: the double line of an LRT ride.
+    paint: { "line-color": lines.route, "line-width": 3, "line-gap-width": 5 }
+  });
 }
 
 export default function PlannerMap({ routes, selectedRank, from, to, conditions, onCondition, centreRef }: Props) {
@@ -119,23 +159,31 @@ export default function PlannerMap({ routes, selectedRank, from, to, conditions,
   const onConditionRef = useRef(onCondition);
   const [loaded, setLoaded] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const surface = useMapSurface();
+  const reduce = useReducedMotion();
+  // What the current style needs to draw again after a style change.
+  const linesRef = useRef(surface.lines);
+  const dataRef = useRef<GeoJSON.FeatureCollection>(EMPTY);
+  const styleKeyRef = useRef(surface.styleKey);
 
   useEffect(() => {
     onConditionRef.current = onCondition;
   }, [onCondition]);
+  useEffect(() => {
+    linesRef.current = surface.lines;
+  }, [surface.lines]);
 
   // Create the map once.
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-    const reduce = prefersReducedMotion();
     let map: MapLibreMap;
     try {
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: STYLE_URL,
+        style: surface.style,
         center: EDMONTON,
         zoom: 11,
-        fadeDuration: reduce ? 0 : 300,
+        fadeDuration: prefersReducedMotion() ? 0 : 300,
         // On a phone the map sits in a scrolling page: one finger scrolls the page,
         // two move the map.
         cooperativeGestures: window.matchMedia("(pointer: coarse)").matches,
@@ -147,42 +195,9 @@ export default function PlannerMap({ routes, selectedRank, from, to, conditions,
     }
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.getCanvas().setAttribute("aria-label", "Map of the routes. The route list has the same information.");
-    map.on("load", () => {
-      map.addSource("routes", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      const layout = { "line-join": "round", "line-cap": "round" } as const;
-      map.addLayer({
-        id: "route-others",
-        type: "line",
-        source: "routes",
-        filter: ["==", ["get", "selected"], false],
-        layout,
-        paint: { "line-color": MUTED, "line-width": 3 }
-      });
-      map.addLayer({
-        id: "route-casing",
-        type: "line",
-        source: "routes",
-        filter: ["==", ["get", "selected"], true],
-        layout,
-        paint: { "line-color": CASING, "line-width": ["case", ["get", "ride"], 14, 10] }
-      });
-      map.addLayer({
-        id: "route-selected",
-        type: "line",
-        source: "routes",
-        filter: ["all", ["==", ["get", "selected"], true], ["==", ["get", "ride"], false]],
-        layout,
-        paint: { "line-color": ACTION, "line-width": 6 }
-      });
-      map.addLayer({
-        id: "route-ride",
-        type: "line",
-        source: "routes",
-        filter: ["all", ["==", ["get", "selected"], true], ["==", ["get", "ride"], true]],
-        layout,
-        // Two 3 px rails with a 5 px gap: the double line of an LRT ride.
-        paint: { "line-color": ACTION, "line-width": 3, "line-gap-width": 5 }
-      });
+    // Fires for the first style and after every setStyle.
+    map.on("style.load", () => {
+      addRouteLayers(map, linesRef.current, dataRef.current);
       setLoaded(true);
     });
     map.on("error", () => {
@@ -202,12 +217,24 @@ export default function PlannerMap({ routes, selectedRank, from, to, conditions,
       map.remove();
       mapRef.current = null;
     };
+    // The surface at creation time only; changes go through setStyle below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [centreRef]);
+
+  // The style follows the high-contrast setting, the theme and the text size.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || styleKeyRef.current === surface.styleKey) return;
+    styleKeyRef.current = surface.styleKey;
+    setLoaded(false);
+    map.setStyle(surface.style);
+  }, [surface.styleKey, surface.style]);
 
   // The route lines.
   useEffect(() => {
+    dataRef.current = routeFeatures(routes, selectedRank);
     const source = mapRef.current?.getSource("routes") as GeoJSONSource | undefined;
-    if (loaded && source) source.setData(routeFeatures(routes, selectedRank));
+    if (loaded && source) source.setData(dataRef.current);
   }, [loaded, routes, selectedRank]);
 
   // Fit the map to the selected route, or to the chosen places before there are routes.
@@ -218,7 +245,7 @@ export default function PlannerMap({ routes, selectedRank, from, to, conditions,
     const points: Coordinates = selected
       ? lineCoordinates(selected.geometry)
       : [from?.coordinates, to?.coordinates].filter((point): point is [number, number] => Boolean(point));
-    const animate = !prefersReducedMotion();
+    const animate = !reduce;
     if (points.length === 1) {
       map.jumpTo({ center: points[0], zoom: Math.max(map.getZoom(), 14) });
       return;
@@ -227,6 +254,8 @@ export default function PlannerMap({ routes, selectedRank, from, to, conditions,
     // More room at the bottom, where the attribution sits.
     const padding = { top: 56, right: 64, bottom: 72, left: 48 };
     if (bounds) map.fitBounds(bounds, { padding, maxZoom: 16, animate, duration: animate ? 500 : 0 });
+    // Only a new route or place moves the map; a motion setting applies to the next move.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routes, selectedRank, from, to]);
 
   // Start and end.
@@ -246,7 +275,8 @@ export default function PlannerMap({ routes, selectedRank, from, to, conditions,
     }
   }, [from, to]);
 
-  // Conditions on the selected route.
+  // Conditions on the selected route. Built from the conditions alone, never from the
+  // selection, so an existing marker element is kept while the selection changes.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -264,30 +294,35 @@ export default function PlannerMap({ routes, selectedRank, from, to, conditions,
   }, [conditions]);
 
   const selected = routes.find((route) => route.rank === selectedRank);
+  const { lines } = surface;
+  const swatch = { background: lines.land };
   return (
     <div className={styles.frame}>
-      <div ref={containerRef} className={styles.canvas} />
+      <div className={`${styles.surface} ${surface.surfaceClass}`}>
+        <div ref={containerRef} className={styles.canvas} />
+      </div>
       {problem && <p className={styles.problem}>{problem}</p>}
       {selected && (
         <ul className={styles.key} aria-label="Map lines">
           <li>
-            <svg className={styles.swatch} width="36" height="16" viewBox="0 0 36 16" aria-hidden="true" focusable="false">
-              <path d="M6 8h24" stroke={ACTION} strokeWidth="6" strokeLinecap="round" />
+            <svg className={styles.swatch} style={swatch} width="36" height="16" viewBox="0 0 36 16" aria-hidden="true" focusable="false">
+              <path d="M6 8h24" stroke={lines.casing} strokeWidth="10" strokeLinecap="round" />
+              <path d="M6 8h24" stroke={lines.route} strokeWidth="6" strokeLinecap="round" />
             </svg>
             Thick line: route {selected.rank}
           </li>
           {selected.legs?.some((leg) => leg.kind === "ride") && (
             <li>
-              <svg className={styles.swatch} width="36" height="16" viewBox="0 0 36 16" aria-hidden="true" focusable="false">
-                <path d="M6 4h24M6 12h24" stroke={ACTION} strokeWidth="3" strokeLinecap="round" />
+              <svg className={styles.swatch} style={swatch} width="36" height="16" viewBox="0 0 36 16" aria-hidden="true" focusable="false">
+                <path d="M6 4h24M6 12h24" stroke={lines.route} strokeWidth="3" strokeLinecap="round" />
               </svg>
               Double line: LRT ride
             </li>
           )}
           {routes.length > 1 && (
             <li>
-              <svg className={styles.swatch} width="36" height="16" viewBox="0 0 36 16" aria-hidden="true" focusable="false">
-                <path d="M6 8h24" stroke={MUTED} strokeWidth="3" strokeLinecap="round" />
+              <svg className={styles.swatch} style={swatch} width="36" height="16" viewBox="0 0 36 16" aria-hidden="true" focusable="false">
+                <path d="M6 8h24" stroke={lines.others} strokeWidth="3" strokeLinecap="round" />
               </svg>
               Thin lines: the other routes
             </li>

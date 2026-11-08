@@ -236,3 +236,33 @@ The route line alone is only 2.2:1 (light) and 2.0:1 (dark) against the roads it
 
 **Changes after the first screenshots ("remove one accessory").** The reading lists had lost their markers to Tailwind's preflight; they are back. A credit that already ended in a full stop got a second one; credits are now quoted exactly. The long "What OpenPath uses it for" column name became "Used for". Numbers and units are joined by non-breaking spaces so "30 m" never splits across lines. The explanation above the speech switches was cut to two short sentences.
 
+
+## 10. States and the map surface (OP-410)
+
+**Plan.** Three things were missing or inconsistent before Phase 4: what a page says when it fails or does not exist, what the site says when the device is offline, and how the map looks in the dark theme. The plan adds nothing new to the chrome: one problem block for every failure, one offline sentence in one place, and the map as its own surface.
+
+| Element | Choice |
+| --- | --- |
+| Problem block | The shape `RouteFailure` already has: an ink rule on the left, a heading that says what happened, one sentence that says what to do, then the action. On the not-found and error pages it is the whole page (`.page-problem`). No illustration, no "oops", no exclamation mark. |
+| Offline line | One sentence under the header rule: "You are offline. Showing what was loaded before." It is a `role="status"` line that is always in the page, pulled up into the page's top padding with a negative margin, so it moves nothing when it appears or clears. Fetches that fail while offline say so and keep the last good data on screen. |
+| Offline page | `public/offline.html`, which the service worker serves only when a navigation fails: the wordmark, "You are offline.", what to do and "Try again". It reloads itself when the connection returns. The worker never caches API responses or pages, so a stale route can never be shown as current. |
+| Map surface | The liberty basemap and the high-contrast light style are light in both page themes, and the high-contrast dark style is dark. Everything drawn inside a map (condition markers, camera tags, Start and End tags, the zoom controls, the focus ring) therefore takes the map's palette, not the page's: `.map-light` and `.map-dark` redefine the tokens for the map frame, and the map components choose one from the settings. Nothing outside the frame (the key, the detail, the problem sentence) is inside the scope. |
+| Zoom controls | 44 x 44 CSS px, the ink border, and the project's focus ring drawn 4 px inside the control, on both maps. |
+
+**Review against the tells.** The not-found and error pages invite a centred illustration with a joke: refused; they are the problem block, left aligned, in the type scale. The offline line could be a coloured banner: it is one sentence in ink on the page background. The map markers could grow a label strip: they keep the shape on a disc, and the words stay in the list, which is the keyboard and screen-reader path.
+
+**Measured contrast** (WCAG relative luminance, computed November 8, 2026 with a script; the same pairs appear as comments in `globals.css`). The light map applies on the liberty basemap, whose land is `#F1EFE9`, and on the high-contrast light style; the dark map is the high-contrast dark style.
+
+| Pair | Light map | Dark map |
+| --- | --- | --- |
+| Blocked shape on the marker disc | `#B3261E` on `#FFFFFF`, 6.5:1 | `#FF9A8F` on `#16293A`, 7.3:1 |
+| Ice-risk shape on the disc | `#0B6F80` on `#FFFFFF`, 5.8:1 | `#5FD4E8` on `#16293A`, 8.6:1 |
+| Snow shape on the disc | `#5B4FCF` on `#FFFFFF`, 6.1:1 | `#C2B8FF` on `#16293A`, 8.2:1 |
+| Caution shape on the disc | `#8A5300` on `#FFFFFF`, 6.3:1 | `#F4B860` on `#16293A`, 8.4:1 |
+| Disc border on the land | `#0D1F2D` on `#F1EFE9`, 14.6:1 | `#F2F6F9` on `#0D1F2D`, 15.5:1 |
+| Camera reading and Start/End words on their tag | `#0D1F2D` on `#FFFFFF`, 16.8:1 | `#F2F6F9` on `#16293A`, 13.7:1 |
+| Selected ring on its gap and on the land | `#1450A3` on `#FFFFFF`, 7.8:1; on `#F1EFE9`, 6.8:1 | `#8DB8FF` on `#16293A`, 7.4:1; on `#0D1F2D`, 8.3:1 |
+| Focus ring on the controls | `#E06F00` on `#FFFFFF`, 3.3:1 | `#FFB454` on `#16293A`, 8.4:1 |
+| Zoom icons (MapLibre's grey, inverted on the dark map) | MapLibre's `#333333` on `#FFFFFF`, 12.6:1 | `#CCCCCC` on `#16293A`, 9.3:1 |
+
+Before this change, the city markers took the page's tokens, so in the dark theme on the light basemap the disc border was 1.06:1 against the land and the selected ring 1.75:1, below the 3:1 that a meaningful graphic needs (issue #118).

@@ -19,6 +19,7 @@ import SaveRouteButton from "./save-route-button";
 import Button from "./ui/button";
 import CheckField from "./ui/check-field";
 import CityWideConditions from "./ui/city-wide-conditions";
+import LazyMount from "./ui/lazy-mount";
 import Panel from "./ui/panel";
 import { cityWideItems, stopId } from "./ui/route-line";
 import SegmentedChoice from "./ui/segmented-choice";
@@ -43,7 +44,8 @@ import { isCityWide, plural } from "@/lib/report-format";
 import { parseTripParams, plannerHref, reportHref } from "@/lib/route-link";
 import styles from "./planner-page.module.css";
 
-// MapLibre is large and needs the browser; load it after the form is usable.
+// MapLibre is large and needs the browser; load it after the form is usable, and only
+// once the map's place comes near the viewport (on a phone it sits below the form).
 const PlannerMap = dynamic(() => import("./planner-map"), {
   ssr: false,
   loading: () => <div className={styles.mapLoading}>Loading the map.</div>
@@ -456,15 +458,17 @@ export default function PlannerPage() {
             <h2 className="sr-only" id="planner-map-title">
               Map
             </h2>
-            <PlannerMap
-              routes={routes}
-              selectedRank={selected?.rank ?? null}
-              from={places.from}
-              to={places.to}
-              conditions={conditions}
-              onCondition={jumpToCondition}
-              centreRef={centreRef}
-            />
+            <LazyMount placeholder={<div className={styles.mapLoading}>Loading the map.</div>}>
+              <PlannerMap
+                routes={routes}
+                selectedRank={selected?.rank ?? null}
+                from={places.from}
+                to={places.to}
+                conditions={conditions}
+                onCondition={jumpToCondition}
+                centreRef={centreRef}
+              />
+            </LazyMount>
             {routes.length > 0 && (
               <p className={styles.mapNote}>The list has everything the map shows, in words.</p>
             )}

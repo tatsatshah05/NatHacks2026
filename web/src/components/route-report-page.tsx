@@ -133,7 +133,9 @@ function RouteReport({ params }: { params: ReportParams }) {
             </div>
           </div>
         ) : !loaded ? (
-          <StatusLine>Loading the route report.</StatusLine>
+          <div className="loading-space">
+            <StatusLine>Loading the route report.</StatusLine>
+          </div>
         ) : !route ? (
           <div className="page report">
             <div className="page-main">
