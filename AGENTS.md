@@ -19,6 +19,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
+- **OP-311 (walk and LRT trips):** behind `LRT_TRIPS` (off by default). With it on, `GET /api/route?mode=walk_lrt` keeps the walking routes and adds the best walk and LRT trip (`mode`, `legs`, `lrt` fields) when it is faster. `cloud/app/lrt.py` plans it from `cloud/data/lrt.json` (built from the ETS GTFS schedule by `make lrt`); wheelchair and walker profiles use a station only when its platform elevators and one entrance elevator are in service in the City outage feed; waits are labelled estimates (half the scheduled headway). With the flag off, or `mode=walk`, responses are byte-for-byte unchanged. Its Maps links use `travelmode=transit` / `dirflg=r`. See [docs/OP-311.md](docs/OP-311.md).
+
 - **OP-205:** camera `ice` (or `wet` while the watch is active) becomes `ice_risk` on the crossings within 50 m of the camera. `CameraIceHazardProvider` (`cloud/app/camera_ice_routing.py`) is `app.state.hazard_provider`: it wraps the matcher and adds those exact crossings, so camera risks never meet the matcher's area rule. See [docs/OP-205.md](docs/OP-205.md).
 
 - **OP-204 on this branch:** `vision/worker.py` and `vision/inference.py` run
@@ -236,6 +238,7 @@ These live in the root Makefile and are available after OP-102.
 | `make web` | Only the web app on :3000, pointed at the API on :8000 |
 | `make test` | `pytest` for cloud and vision, plus `npm run lint` and `npm run typecheck` in `web/` |
 | `make graph` | Installs `scripts/requirements-graph.txt`, then rebuilds `cloud/data/network.npz` with OSMnx (local only, then commit). macOS or Linux for now: `scripts/build_graph.py` uses the Unix-only `resource` module |
+| `make lrt` | Downloads the ETS GTFS zip once (City of Edmonton open data) and rebuilds `cloud/data/lrt.json`, the LRT station graph for walk and LRT trips (then commit it; the zip is never committed). `python scripts/build_lrt_graph.py --gtfs <zip>` rebuilds from a zip already downloaded |
 | `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` (with `npx openapi-typescript`) |
 | `make record` | Records a replay snapshot of every source (no images) |
 | `make worker` | Runs the vision worker locally |
