@@ -39,7 +39,8 @@ Speed and safety
     ``HazardProvider`` rebuilds the map from the store at most every
     ``REFRESH_S`` seconds, in a background thread, so a route request only reads a
     dictionary. A failed rebuild keeps the last good map: routing never depends on
-    a database read succeeding.
+    a database read succeeding. Live updates (OP-303) and push alerts (OP-304)
+    register ``on_rebuild`` callbacks to learn about each new map.
 """
 
 from __future__ import annotations
@@ -409,6 +410,19 @@ class HazardProvider:
         self.worker: threading.Thread | None = None  # the last background rebuild
         self._attempted_at = -math.inf  # clock() when the last rebuild started
         self._lock = threading.Lock()  # held while a rebuild runs
+        # Called with each new MatchResult, in the thread that rebuilt it (on_rebuild).
+        self._rebuild_callbacks: list[Callable[[MatchResult], None]] = []
+
+    def on_rebuild(self, callback: Callable[[MatchResult], None]) -> None:
+        """Register ``callback`` to receive every new ``MatchResult``.
+
+        Live updates (OP-303) and push alerts (OP-304) both attach here, so neither
+        has to edit the other. Callbacks run in the thread that rebuilt the map (the
+        background thread after the first build), right after ``latest`` is replaced.
+        A callback that raises is logged, the others still run, and matching is
+        never affected.
+        """
+        self._rebuild_callbacks.append(callback)
 
     def __call__(self, now: datetime) -> HazardMap:
         if self.latest is None or not self.background:
@@ -463,4 +477,9 @@ class HazardProvider:
             (time.perf_counter() - started) * 1000,
         )
         self.latest = result
+        for callback in list(self._rebuild_callbacks):
+            try:
+                callback(result)
+            except Exception:  # a listener must never break matching
+                log.exception("MATCH rebuild callback failed")
         return result
