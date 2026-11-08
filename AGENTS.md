@@ -22,6 +22,9 @@ Update this section whenever the status changes.
 - **November 7, 2026:** Phase 1 is in progress. OP-104's walking network is merged through PR #97. OP-101 (contracts) and OP-102 (skeleton) remain integration dependencies on this branch.
 - **OP-105 review updates on this branch:** outage freshness uses our UTC fetch time; individual invalid rows are logged/countable without deleting their previous records; failed lookup refreshes use cached tables. OP-103 owns retry/backoff and the 120-second cadence. See `cloud/app/adapters/README.md`; shared schema/store/scheduler integration is still pending.
 - **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
+- **November 7, 2026:** planning is complete and there is no application code yet. Phase 1 starts with OP-101 (contracts) and OP-102 (skeleton), which create the folders described below.
+- **CI/CD is live, and every branch below is protected.** Every pull request needs the `CI passed` check and an approval from Tatsat, Ipsa or Kashish. See [docs/CI_CD.md](docs/CI_CD.md).
+- **Phase branches:** Phase 1 work goes into the `phase_1` branch, which is the default branch. When the phase passes its checkpoint, `phase_1` is released into `main`, and `phase_2` starts from `main`.
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
 ## Where to Find Context
@@ -42,10 +45,10 @@ Update this section whenever the status changes.
 | Person | GitHub | Label |
 | --- | --- | --- |
 | Tatsat (lead and scrum master) | `tatsatshah05` | `person: Tatsat` |
-| Ipsa | `ipsamanhas` | `person: Ipsa` |
+| Ipsa (reviewer) | `ipsamanhas` | `person: Ipsa` |
 | Estella | `estella1221` | `person: Estella` |
 | Kaleb | `kalebpham` | `person: Kaleb` |
-| Kashish | `kashishgupta2911` | `person: Kashish` |
+| Kashish (reviewer) | `kashishgupta2911` | `person: Kashish` |
 | Matthew | not yet a collaborator | `person: Matthew` |
 
 Issues also carry `phase N: ...`, `points: N`, `priority: must|should|could` and `epic: ...` labels, and one of four phase milestones.
@@ -81,11 +84,11 @@ Open decisions D-1 to D-5 are in PLAN.md section 16.
 ## How to Work a Story
 
 1. Open the story's issue (`OP-<id>`). Read the user story, the acceptance criteria and the dependencies. Check that the dependencies are merged or can be mocked.
-2. Branch from `main` as `op-<id>-<short-name>`.
+2. Branch from the current phase branch (`phase_1` during Phase 1) as `op-<id>-<short-name>`. Never branch from `main` or open story pull requests into it.
 3. For any change that touches more than one file, plan first. Stay inside the acceptance criteria, and do not build later-phase stories.
 4. Add tests and run `make test`.
-5. Open a pull request titled `OP-<id>: <story title>` with `Closes #<issue number>`. Work outside a story uses a `docs:`, `chore:`, `ci:` or `fix:` title. CI checks the title, the link, the files, the Python code and the web app.
-6. The pull request merges only when `CI passed` is green and the scrum master (`@tatsatshah05`) approves. Merges are squash-only, and a merge to `main` deploys to production.
+5. Open a pull request into the story's phase branch (`OP-1xx` into `phase_1`, `OP-2xx` into `phase_2`, and so on), titled `OP-<id>: <story title>`, with `Closes #<issue number>`. Work outside a story uses a `docs:`, `chore:`, `ci:` or `fix:` title. CI checks the title, the link, the files, the Python code and the web app.
+6. The pull request merges only when `CI passed` is green and one reviewer approves: Tatsat (`@tatsatshah05`), Ipsa (`@ipsamanhas`) or Kashish (`@kashishgupta2911`). Merges are squash-only. Merges into a phase branch deploy to staging, and phase releases into `main` deploy to production.
 7. If the story needs a change to a shared contract, stop and ask the lead.
 8. If you add a command, an endpoint, an environment variable or a decision, update this file in the same pull request.
 
@@ -120,7 +123,7 @@ web/     Next.js on Vercel: planner, route report, alerts (PWA), city dashboard,
 ```
 PLAN.md  AGENTS.md  CLAUDE.md  GUIDELINE.md  README.md  Makefile  render.yaml  .env.example
 .github/   workflows/ci.yml  CODEOWNERS  pull_request_template.md  ISSUE_TEMPLATE/
-cloud/     app/{main,schemas,db,store,network,scheduler,status,matching,routing,report,search,weather,push,ws}.py
+cloud/     app/{main,schemas,db,store,network,obstructions_api,scheduler,status,matching,routing,report,search,weather,push,ws}.py
            app/adapters/  one file per source   data/network.npz (prebuilt walking network, committed)   tests/ (fixtures in tests/fixtures/)
 vision/    train.py  worker.py  tools/label.py  LABELS.md  MODEL_CARD.md  tests/
 web/       src/app/{page.tsx, alerts/, city/, sources/, about/, privacy/, demo/}  src/lib/api-types.ts (generated)  public/sw.js
@@ -187,6 +190,8 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 
 ## Commands
 
+OP-109's standalone weather app: `.venv/bin/python -m uvicorn cloud.app.weather_app:create_app --factory --port 8001`; replay requires `DATA_MODE=replay` and `REPLAY_SNAPSHOT` pointing to the snapshot described in [Estella's weather guide](docs/ESTELLA_PHASE1.md).
+
 These live in the root Makefile and are available after OP-102.
 
 | Command | What it does |
@@ -244,6 +249,8 @@ These apply to the web app, and judges will check them.
 - Fully keyboard operable with visible focus, 44 px touch targets, `prefers-reduced-motion` respected, text resizable to 200%.
 
 ## Testing
+
+Until OP-102 adds `make test`, run the cloud tests from the repository root with `PYTHONPATH=.:cloud pytest -q cloud/tests`. Tests import code as `cloud.app.<module>`.
 
 - **cloud:**
   - Each adapter with recorded fixtures, including a failing source and a changed schema.
