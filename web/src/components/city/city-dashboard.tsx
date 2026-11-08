@@ -257,6 +257,11 @@ export default function CityDashboard() {
         </div>
 
         <div className={ranking || !loading ? styles.list : `${styles.list} loading-space`}>
+          {/* The rows are h3s; this h2 keeps the outline in order (h1, h2, h3) without
+              adding a visible heading above a list that already has its count. */}
+          <h2 className="sr-only" id="barriers-title">
+            Barriers, most important first
+          </h2>
           {ranking && !items.length && !problems.ranking && (
             <p className={styles.empty}>
               No barriers are reported right now. The list fills in as the City&apos;s sources report closures,
@@ -264,7 +269,7 @@ export default function CityDashboard() {
             </p>
           )}
           {shown.length > 0 && (
-            <ol className={styles.rows} aria-label="Barriers, most important first">
+            <ol className={styles.rows} aria-labelledby="barriers-title">
               {shown.map((item) => (
                 <PriorityRow
                   key={item.id}

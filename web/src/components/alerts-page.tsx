@@ -273,7 +273,7 @@ export default function AlertsPage() {
           <h1 className="page-title">Alerts</h1>
           <p className="lead">Your saved routes, checked again whenever conditions change.</p>
 
-          <section aria-labelledby="saved-title" className={routes === null ? `${styles.saved} loading-space` : styles.saved}>
+          <section aria-labelledby="saved-title" className={styles.saved}>
             <h2 id="saved-title" tabIndex={-1}>
               Saved routes
             </h2>
