@@ -197,7 +197,7 @@ This is a summary; PLAN.md section 10 and the code are the source of truth.
 
 ## Commands
 
-OP-201 dataset audit: `python -m vision.tools.dataset --images vision/data/raw --labels vision/data/labels_estella.csv --out vision/data/dataset`; see the [dataset workflow](docs/ESTELLA_OP201.md) for blind second labelling and source permissions.
+OP-201 dataset audit: `python -m vision.tools.dataset --images vision/data/raw --labels vision/data/labels_primary.csv --out vision/data/dataset`; see the [dataset workflow](docs/ESTELLA_OP201.md) for blind second labelling and source permissions. Preserve AI-assisted labeling provenance; non-blind review is not independent agreement.
 
 OP-201 collection after team source clearance: `python -m vision.tools.collect --limit 6 --reviewer Estella` previews each image in memory; only `k` retains a privacy-reviewed frame in ignored `vision/data/raw/`. `--plan` lists cached camera IDs offline. The UTC filename timestamp is retrieval time, not verified capture time.
 
