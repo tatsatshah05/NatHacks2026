@@ -39,6 +39,7 @@ from cloud.app import (
     ingest_api,
     lrt,
     obstructions_api,
+    priority,
     push,
     push_api,
     reports_api,
@@ -319,6 +320,7 @@ def create_app() -> FastAPI:
     app.state.search = search.load_index()  # OP-302: prebuilt, None if missing (503)
     app.include_router(reports_api.router)
     app.include_router(ws.router)  # WS /ws (OP-303)
+    app.include_router(priority.router)  # GET /api/priority (OP-310)
 
     @app.get("/health", tags=["ops"])
     def health() -> Health:

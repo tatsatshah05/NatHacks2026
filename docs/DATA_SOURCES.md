@@ -152,6 +152,22 @@ shared app's sources page when integrated.
 
 **Recorded sample.** `cloud/tests/fixtures/traffic_disruptions/current.json` holds 30 current rows recorded on November 8, 2026 (see `manifest.json`), used by the tests and by replay mode.
 
+## Daily Pedestrian Counts (OP-310)
+
+**What it is.** The City's Daily Pedestrian and Bike Counts (dataset `sw7k-ptx8`): one row per counter location and day, with the counter's latitude and longitude and the day's pedestrians and cyclists in both directions. The dataset says the counts are raw equipment data with no quality control, and that a day can be incomplete.
+
+**How we use it.** Only for the clear-first ranking on `/city` (`GET /api/priority`): a barrier near busy counters ranks higher. `scripts/build_pedestrian_counts.py` reads the last 120 days of rows once from the official City API (`https://data.edmonton.ca/resource/sw7k-ptx8.json`, pages of 5,000 rows, `SOCRATA_APP_TOKEN` sent when set) and writes `cloud/data/pedestrian_counts.json`, which is committed. The API loads that file at startup and never calls the City at request time; without it every barrier simply gets no pedestrian weight.
+
+**What we keep.** One typical day per counter: the median daily pedestrian count over the 28 days ending on the dataset's latest day, from the days that have a row. A counter needs at least 7 such days. Counters that report 0 pedestrians on every day are bicycle-only counters and are left out, not treated as empty streets. The median keeps the ranking steady against broken days (the data holds one day of 477,654 pedestrians at a park entrance).
+
+**Measured on November 8, 2026** (read at 16:28 UTC): 6,060 rows from 2026-07-11 on; window October 11 to November 7, 2026; 31 counters with pedestrians kept; 22 left out (19 bicycle-only, 3 with no rows in the window). Typical days range from 42 (East Trails) to 808 (Railtown Park SUP) pedestrians.
+
+**Weight near a barrier.** Every kept counter within 400 m of the barrier's geometry adds its typical day times `1 - distance / 400 m`. The 400 m radius (about a five-minute walk) and the linear fall-off are our choice, not a measured value.
+
+**Licence and attribution.** City of Edmonton Open Data Terms of Use (the dataset metadata lists "See Terms of Use" and attribution "City of Edmonton"). Shown as "City of Edmonton Open Data" in the ranking explanation on `/city`, with a link to the dataset. No personal information: the file holds counter names, positions and daily totals only.
+
+**Recorded sample.** `cloud/tests/fixtures/pedestrian_counts/rows.json` holds the official rows of five counters for October 4 to November 7, 2026 (171 rows, including one bicycle-only counter), recorded with `--record` (see `manifest.json`).
+
 ## Parcel Addresses, LRT Stations and Named Places: Search (OP-302, Matthew)
 
 **What it is.** The index behind `GET /api/search?q=`, which turns typed text into a point to route from or to. It has three parts:

@@ -1,0 +1,333 @@
+{
+ "dataset": "sw7k-ptx8",
+ "title": "Daily Pedestrian and Bike Counts",
+ "url": "https://data.edmonton.ca/d/sw7k-ptx8",
+ "attribution": "City of Edmonton Open Data",
+ "licence": "City of Edmonton Open Data Terms of Use",
+ "window": {
+  "start": "2026-10-11",
+  "end": "2026-11-07",
+  "days": 28,
+  "min_days": 7
+ },
+ "statistic": "median of the daily total_pedestrian_count (both directions) over the window's days that have a row",
+ "rows": {
+  "used": 6060,
+  "skipped": 0
+ },
+ "counters": [
+  {
+   "name": "102 Avenue SUP W Groat Rd Bridge",
+   "lat": 53.54316,
+   "lng": -113.54486,
+   "daily_pedestrians": 86,
+   "days": 28
+  },
+  {
+   "name": "103A Avenue W of 96 Street",
+   "lat": 53.54733,
+   "lng": -113.48421,
+   "daily_pedestrians": 591,
+   "days": 28
+  },
+  {
+   "name": "121 Street SUP N of 107 Avenue",
+   "lat": 53.55131,
+   "lng": -113.53093,
+   "daily_pedestrians": 280,
+   "days": 28
+  },
+  {
+   "name": "132 Ave E of 108 St N",
+   "lat": 53.59215,
+   "lng": -113.50594,
+   "daily_pedestrians": 64,
+   "days": 28
+  },
+  {
+   "name": "132 Ave E of 108 St S",
+   "lat": 53.592,
+   "lng": -113.50571,
+   "daily_pedestrians": 74,
+   "days": 28
+  },
+  {
+   "name": "142 Street N of Whitemud Drive",
+   "lat": 53.48316,
+   "lng": -113.56596,
+   "daily_pedestrians": 157,
+   "days": 28
+  },
+  {
+   "name": "163 Ave SUP W 75 Street",
+   "lat": 53.62495,
+   "lng": -113.45756,
+   "daily_pedestrians": 188,
+   "days": 28
+  },
+  {
+   "name": "23 Avenue W of Hewes Way",
+   "lat": 53.45432,
+   "lng": -113.42513,
+   "daily_pedestrians": 176,
+   "days": 28
+  },
+  {
+   "name": "91 Street S Whitemud Dr",
+   "lat": 53.47906,
+   "lng": -113.46542,
+   "daily_pedestrians": 640,
+   "days": 28
+  },
+  {
+   "name": "Belgravia Rd Foot Bridge SUP",
+   "lat": 53.50646,
+   "lng": -113.53187,
+   "daily_pedestrians": 352,
+   "days": 28
+  },
+  {
+   "name": "Buena Vista Bridge",
+   "lat": 53.52139,
+   "lng": -113.54829,
+   "daily_pedestrians": 272,
+   "days": 28
+  },
+  {
+   "name": "Capilano Bridge",
+   "lat": 53.56135,
+   "lng": -113.42009,
+   "daily_pedestrians": 272,
+   "days": 28
+  },
+  {
+   "name": "East Trails",
+   "lat": 53.604,
+   "lng": -113.31977,
+   "daily_pedestrians": 42,
+   "days": 28
+  },
+  {
+   "name": "Emily Murphy",
+   "lat": 53.53238,
+   "lng": -113.53166,
+   "daily_pedestrians": 200,
+   "days": 28
+  },
+  {
+   "name": "Funicular @ 100 St",
+   "lat": 53.53948,
+   "lng": -113.48837,
+   "daily_pedestrians": 488,
+   "days": 28
+  },
+  {
+   "name": "Gold Bar Trail",
+   "lat": 53.55477,
+   "lng": -113.40146,
+   "daily_pedestrians": 249,
+   "days": 28
+  },
+  {
+   "name": "Hermitage North",
+   "lat": 53.5998,
+   "lng": -113.37286,
+   "daily_pedestrians": 374,
+   "days": 28
+  },
+  {
+   "name": "Hermitage South",
+   "lat": 53.57861,
+   "lng": -113.37223,
+   "daily_pedestrians": 65,
+   "days": 24
+  },
+  {
+   "name": "High Level Bridge East",
+   "lat": 53.5325,
+   "lng": -113.50951,
+   "daily_pedestrians": 70,
+   "days": 28
+  },
+  {
+   "name": "High Level Bridge West",
+   "lat": 53.53278,
+   "lng": -113.50994,
+   "daily_pedestrians": 390,
+   "days": 28
+  },
+  {
+   "name": "LRT SUP East of 92 Street",
+   "lat": 53.55646,
+   "lng": -113.47495,
+   "daily_pedestrians": 130,
+   "days": 28
+  },
+  {
+   "name": "MacKinnon Ravine",
+   "lat": 53.53905,
+   "lng": -113.54702,
+   "daily_pedestrians": 222,
+   "days": 28
+  },
+  {
+   "name": "Power Line Tr E Carter Crest Way",
+   "lat": 53.46167,
+   "lng": -113.57469,
+   "daily_pedestrians": 152,
+   "days": 28
+  },
+  {
+   "name": "Queen Elizabeth Park",
+   "lat": 53.52595,
+   "lng": -113.50289,
+   "daily_pedestrians": 220,
+   "days": 28
+  },
+  {
+   "name": "Queen Elizabeth Park 2",
+   "lat": 53.52457,
+   "lng": -113.49748,
+   "daily_pedestrians": 171,
+   "days": 28
+  },
+  {
+   "name": "Railtown Park SUP",
+   "lat": 53.54303,
+   "lng": -113.51026,
+   "daily_pedestrians": 808,
+   "days": 28
+  },
+  {
+   "name": "Sir Wilfrid Laurier Park",
+   "lat": 53.51167,
+   "lng": -113.54897,
+   "daily_pedestrians": 126,
+   "days": 28
+  },
+  {
+   "name": "Terwillegar Park Footbridge",
+   "lat": 53.47999,
+   "lng": -113.59943,
+   "daily_pedestrians": 228,
+   "days": 28
+  },
+  {
+   "name": "Victoria Trail S 137 Avenue",
+   "lat": 53.59773,
+   "lng": -113.38593,
+   "daily_pedestrians": 100,
+   "days": 28
+  },
+  {
+   "name": "Wedgewood",
+   "lat": 53.47273,
+   "lng": -113.64153,
+   "daily_pedestrians": 168,
+   "days": 28
+  },
+  {
+   "name": "Woodward Trail Wolf Willow",
+   "lat": 53.4938,
+   "lng": -113.59727,
+   "daily_pedestrians": 138,
+   "days": 28
+  }
+ ],
+ "excluded": [
+  {
+   "name": "100 Avenue E of 107 Street",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "100 Street S of 81 Avenue",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "102 Avenue E of 105 Street",
+   "reason": "no rows in the window"
+  },
+  {
+   "name": "102 Avenue E of 121 Street",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "102A Avenue W of 96 Street",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "103 Street N of 100 Avenue",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "103 Street N of 102 Avenue",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "106 Street N of 76 Avenue NB",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "106 Street N of 76 Avenue SB",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "106 Street S of 104 Avenue",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "106 Street S of 61 Ave E",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "106 Street S of 61 Avenue W",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "110 Street N of 86 Avenue",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "119 Ave E 91 Street evo",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "127 Street N of 107 Avenue",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "76 Avenue W of 106 Street EB",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "76 Avenue W of 106 Street WB",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "83 Avenue W 106 Street",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "83 Avenue W of 99 Street",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "96 Street S of Jasper Ave",
+   "reason": "counts bicycles only"
+  },
+  {
+   "name": "Capilano SUP",
+   "reason": "no rows in the window"
+  },
+  {
+   "name": "Whitemud Ravine Boardwalk",
+   "reason": "no rows in the window"
+  }
+ ],
+ "read": {
+  "mode": "live",
+  "read_at": "2026-11-08T16:28:39Z",
+  "query": "https://data.edmonton.ca/resource/sw7k-ptx8.json {\"$select\": \"counter_location_description,latitude,longitude,log_timstamp,total_pedestrian_count\", \"$where\": \"log_timstamp >= '2026-07-11T00:00:00'\", \"$order\": \":id\"}",
+  "rows_read": 6060
+ }
+}
