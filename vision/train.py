@@ -27,29 +27,35 @@ functions that need them (scripts/requirements-train.txt).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import math
 import platform
 import random
-import statistics
 import sys
 import time
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from vision.model_contract import IMAGENET_MEAN, IMAGENET_STD, labels_manifest
 from vision.tools.label import IMAGE_SUFFIXES, LABELS, UNKNOWN_CAMERA, read_labels
+
+if (
+    TYPE_CHECKING
+):  # type hints only; PyTorch is imported inside the functions that need it
+    import torch
+    from torch import nn
+    from torch.utils.data import DataLoader
 
 log = logging.getLogger("vision.train")
 
 CLASS_TO_INDEX: dict[str, int] = {label: i for i, label in enumerate(LABELS)}
 INPUT_SIZE_PX = 224
-IMAGENET_MEAN = (0.485, 0.456, 0.406)
-IMAGENET_STD = (0.229, 0.224, 0.225)
 ARCHITECTURES = ("mobilenet_v3_small", "efficientnet_b0")
 RSCD_SOURCE = "rscd"
 
@@ -180,6 +186,9 @@ def split_by_camera(
     cameras = sorted({s.camera_id for s in samples if s.source != RSCD_SOURCE})
     if test_cameras is not None:
         test = sorted(set(test_cameras))
+        if not test:
+            # An empty list would silently put every camera into training.
+            raise ValueError("--test-cameras needs at least one camera id")
         missing = sorted(set(test) - set(cameras))
         if missing:
             raise ValueError(
@@ -300,9 +309,10 @@ def seed_everything(seed: int) -> None:
     torch.manual_seed(seed)
     torch.use_deterministic_algorithms(True, warn_only=True)
     torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
 
 
-def build_model(arch: str, num_classes: int, pretrained: bool):
+def build_model(arch: str, num_classes: int, pretrained: bool) -> nn.Module:
     """An ImageNet-pretrained backbone with a new classification layer."""
     from torch import nn
     from torchvision import models
@@ -322,7 +332,7 @@ def build_model(arch: str, num_classes: int, pretrained: bool):
     return model
 
 
-def _transforms(size_px: int, train: bool):
+def _transforms(size_px: int, train: bool) -> Callable[[Any], Any]:
     from torchvision import transforms as T
 
     normalize = T.Normalize(IMAGENET_MEAN, IMAGENET_STD)
@@ -340,46 +350,70 @@ def _transforms(size_px: int, train: bool):
     return T.Compose([T.Resize((size_px, size_px)), T.ToTensor(), normalize])
 
 
-def _dataset(samples: Sequence[Sample], transform):
-    from PIL import Image
-    from torch.utils.data import Dataset
+class _ImageDataset:
+    """Images and class indices for a DataLoader.
 
-    class _Images(Dataset):
-        def __len__(self) -> int:
-            return len(samples)
+    Defined at module level (not inside a function) so DataLoader workers can
+    pickle it: macOS and Windows start workers with "spawn", which pickles the
+    dataset and fails on local classes. A plain class with __len__ and
+    __getitem__ is a valid map-style dataset, and keeps this module importable
+    without PyTorch.
+    """
 
-        def __getitem__(self, index: int):
-            sample = samples[index]
-            with Image.open(sample.path) as image:
-                return transform(image.convert("RGB")), CLASS_TO_INDEX[sample.label]
+    def __init__(
+        self, samples: Sequence[Sample], transform: Callable[[Any], Any]
+    ) -> None:
+        self.samples = list(samples)
+        self.transform = transform
 
-    return _Images()
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, index: int) -> tuple[Any, int]:
+        from PIL import Image
+
+        sample = self.samples[index]
+        with Image.open(sample.path) as image:
+            return self.transform(image.convert("RGB")), CLASS_TO_INDEX[sample.label]
 
 
-def _loader(samples, transform, config: TrainConfig, *, shuffle: bool):
+def _seed_worker(worker_id: int) -> None:
+    """Seed Python and NumPy in each DataLoader worker from PyTorch's per-worker seed.
+
+    Module level so spawned workers can pickle it. PyTorch already derives each
+    worker's seed from the loader's seeded generator, so this stays reproducible.
+    """
+    import numpy as np
+    import torch
+
+    worker_seed = torch.initial_seed() % 2**32
+    random.seed(worker_seed)
+    np.random.seed(worker_seed)
+
+
+def _loader(
+    samples: Sequence[Sample],
+    transform: Callable[[Any], Any],
+    config: TrainConfig,
+    *,
+    shuffle: bool,
+) -> DataLoader:
     import torch
     from torch.utils.data import DataLoader
 
-    generator = torch.Generator().manual_seed(config.seed)
-
-    def worker_init(worker_id: int) -> None:
-        import numpy as np
-
-        worker_seed = (config.seed + worker_id) % 2**32
-        random.seed(worker_seed)
-        np.random.seed(worker_seed)
-
     return DataLoader(
-        _dataset(samples, transform),
+        _ImageDataset(samples, transform),
         batch_size=config.batch_size,
         shuffle=shuffle,
         num_workers=config.num_workers,
-        generator=generator,
-        worker_init_fn=worker_init,
+        generator=torch.Generator().manual_seed(config.seed),
+        worker_init_fn=_seed_worker,
     )
 
 
-def _accuracy(model, loader, device) -> float | None:
+def _accuracy(
+    model: nn.Module, loader: DataLoader, device: torch.device
+) -> float | None:
     import torch
 
     if len(loader.dataset) == 0:
@@ -472,19 +506,22 @@ def train_model(split: Split, config: TrainConfig, out_dir: Path) -> dict[str, A
     }
 
 
-def export_onnx(model, path: Path, size_px: int) -> None:
+def export_onnx(model: nn.Module, path: Path, size_px: int) -> dict[str, Any]:
     """Export with a dynamic batch dimension: input "image" (N,3,H,W), output "logits" (N,6).
 
     Uses PyTorch's current exporter (torch.export). The example batch has 2 images,
     because an example of 1 lets the exporter fix the batch size at 1. The legacy
     TorchScript exporter is only a fallback for older PyTorch. check_onnx() then
-    verifies the file against PyTorch on a batch of 4.
+    verifies the file against PyTorch on a batch of 4. Returns which exporter ran
+    and the ONNX opset, for metrics.json.
     """
+    import onnx
     import torch
 
     names = {"input_names": ["image"], "output_names": ["logits"]}
     try:
         batch = torch.export.Dim("batch", min=1, max=64)
+        exporter = "dynamo"
         torch.onnx.export(
             model,
             (torch.zeros(2, 3, size_px, size_px),),
@@ -497,6 +534,7 @@ def export_onnx(model, path: Path, size_px: int) -> None:
         )
     except Exception as exc:  # noqa: BLE001 - any exporter failure falls back
         log.warning("New ONNX exporter failed (%s); using the legacy exporter", exc)
+        exporter = "legacy"
         torch.onnx.export(
             model,
             torch.zeros(1, 3, size_px, size_px),
@@ -506,10 +544,13 @@ def export_onnx(model, path: Path, size_px: int) -> None:
             opset_version=17,
             **names,
         )
+    opsets = onnx.load(str(path), load_external_data=False).opset_import
+    opset = next((o.version for o in opsets if o.domain in ("", "ai.onnx")), None)
+    return {"exporter": exporter, "opset": opset}
 
 
 def check_onnx(
-    model, path: Path, size_px: int, latency_runs: int, seed: int
+    model: nn.Module, path: Path, size_px: int, latency_runs: int, seed: int
 ) -> dict[str, Any]:
     """Compare ONNX with PyTorch on a random batch and measure single-image CPU latency."""
     import numpy as np
@@ -543,16 +584,25 @@ def check_onnx(
         start = time.perf_counter()
         session.run(["logits"], {"image": one})
         timings_ms.append((time.perf_counter() - start) * 1000)
-    timings_ms.sort()
     return {
         "onnx_max_abs_diff_vs_torch": max_abs_diff,
         "cpu_latency_ms": {
-            "median": round(statistics.median(timings_ms), 2),
-            "p95": round(timings_ms[max(0, int(len(timings_ms) * 0.95) - 1)], 2),
+            "median": round(float(np.percentile(timings_ms, 50)), 2),
+            "p95": round(float(np.percentile(timings_ms, 95)), 2),
             "runs": latency_runs,
             "threads": 1,
             "target_ms": 200,
-            "measured_on": f"{platform.system()} {platform.machine()} {platform.processor()}".strip(),
+            "measured_on": " ".join(
+                dict.fromkeys(
+                    p
+                    for p in (
+                        platform.system(),
+                        platform.machine(),
+                        platform.processor(),
+                    )
+                    if p
+                )
+            ),
         },
         "onnx_size_mb": round(path.stat().st_size / 1e6, 2),
     }
@@ -604,30 +654,16 @@ def run(
     result = train_model(split, config, out_dir)
     model = result.pop("model")
     onnx_path = out_dir / "model.onnx"
-    export_onnx(model, onnx_path, config.input_size_px)
+    export_info = export_onnx(model, onnx_path, config.input_size_px)
+    model_sha256 = hashlib.sha256(onnx_path.read_bytes()).hexdigest()
     checks = check_onnx(
         model, onnx_path, config.input_size_px, config.latency_runs, config.seed
     )
 
-    # What the worker (OP-204) needs to use the model exactly as it was trained.
+    # What the worker (OP-204) needs to use the model exactly as it was trained,
+    # including the checksum it verifies before loading (vision/model_contract.py).
     (out_dir / "labels.json").write_text(
-        json.dumps(
-            {
-                "classes": list(LABELS),
-                "input": {
-                    "name": "image",
-                    "layout": "NCHW",
-                    "size_px": config.input_size_px,
-                    "resize": "stretch to size_px x size_px",
-                    "color": "RGB",
-                    "scale": "pixel / 255",
-                    "mean": list(IMAGENET_MEAN),
-                    "std": list(IMAGENET_STD),
-                },
-                "output": {"name": "logits", "softmax": "apply in the worker"},
-            },
-            indent=2,
-        )
+        json.dumps(labels_manifest(config.input_size_px, model_sha256), indent=2)
     )
 
     metrics = {
@@ -640,15 +676,19 @@ def run(
         "best_epoch": result["best_epoch"],
         "best_val_accuracy": result["best_val_accuracy"],
         "history": result["history"],
+        "model_sha256": model_sha256,
+        **export_info,
         **checks,
         "note": "Validation accuracy only. Test-camera results come from OP-203.",
     }
     (out_dir / "metrics.json").write_text(json.dumps(metrics, indent=2))
     log.info(
-        "DONE best_epoch=%d val_accuracy=%s cpu_median_ms=%s -> %s",
+        "DONE best_epoch=%d val_accuracy=%s cpu_median_ms=%s exporter=%s sha256=%s -> %s",
         result["best_epoch"],
         result["best_val_accuracy"],
         checks["cpu_latency_ms"]["median"],
+        export_info["exporter"],
+        model_sha256,
         out_dir,
     )
     return metrics
@@ -710,7 +750,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--rscd-per-class", type=positive_int, default=1000)
     parser.add_argument(
         "--test-cameras",
-        nargs="*",
+        nargs="+",
         help="Fix the test cameras (otherwise a seeded 20%% of cameras).",
     )
     parser.add_argument("--out", type=Path, required=True)

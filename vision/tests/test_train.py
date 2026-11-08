@@ -278,6 +278,15 @@ def test_trains_exports_onnx_and_measures_latency(tmp_path: Path):
         and metrics["cpu_latency_ms"]["median"] > 0
     )
     assert len(metrics["history"]) == 2
+    # The worker verifies the model by SHA-256 (review on #110): same value everywhere.
+    import hashlib
+
+    digest = hashlib.sha256((out / "model.onnx").read_bytes()).hexdigest()
+    assert metrics["model_sha256"] == digest
+    assert json.loads((out / "labels.json").read_text())["sha256"] == digest
+    assert metrics["exporter"] in {"dynamo", "legacy"} and isinstance(
+        metrics["opset"], int
+    )
     assert (
         json.loads((out / "metrics.json").read_text())["best_epoch"]
         == metrics["best_epoch"]
@@ -366,3 +375,76 @@ def test_run_rejects_rscd_per_class_below_one(tmp_path: Path):
             rscd_dir=tmp_path,
             rscd_per_class=0,
         )
+
+
+# -- review on #110 (Tatsat) -----------------------------------------------------------
+
+
+def test_empty_test_camera_list_is_refused_not_silently_ignored(capsys):
+    from vision.train import main
+
+    with pytest.raises(ValueError, match="at least one camera id"):
+        split_by_camera(samples_for(cameras=6), seed=202, test_cameras=[])
+    with pytest.raises(SystemExit) as exit_info:
+        main(["--out", "unused", "--labels", "unused.csv", "--test-cameras"])
+    assert exit_info.value.code == 2
+    assert "--test-cameras" in capsys.readouterr().err
+
+
+def test_dataset_and_worker_seeding_can_be_pickled_for_spawned_workers():
+    # macOS and Windows start DataLoader workers with "spawn", which pickles both.
+    import pickle
+
+    from vision.train import _ImageDataset, _seed_worker
+
+    dataset = _ImageDataset(samples_for(cameras=1), transform=str)
+    restored = pickle.loads(pickle.dumps(dataset))
+    assert len(restored) == len(dataset) == 6
+    assert pickle.loads(pickle.dumps(_seed_worker)) is _seed_worker
+
+
+def test_loader_works_with_a_spawned_worker(tmp_path: Path):
+    pytest.importorskip("torch")
+    pytest.importorskip("torchvision")
+    from PIL import Image
+    from torch.utils.data import DataLoader
+
+    from vision.train import _ImageDataset, _seed_worker, _transforms
+
+    samples = []
+    for index, label in enumerate(LABELS[:2]):
+        path = tmp_path / f"cam_{index}.png"
+        Image.new("RGB", (40, 30), (40 * index, 80, 120)).save(path)
+        samples.append(Sample(path, label, "cam", "511"))
+    loader = DataLoader(
+        _ImageDataset(samples, _transforms(32, train=False)),
+        batch_size=2,
+        num_workers=1,
+        multiprocessing_context="spawn",  # what macOS and Windows use by default
+        worker_init_fn=_seed_worker,
+    )
+    images, targets = next(iter(loader))
+    assert tuple(images.shape) == (2, 3, 32, 32)
+    assert targets.tolist() == [0, 1]
+
+
+def test_labels_manifest_is_the_worker_contract():
+    from vision.model_contract import labels_manifest
+
+    digest = "ab" * 32
+    manifest = labels_manifest(224, digest)
+    assert manifest["classes"] == list(LABELS)
+    assert manifest["sha256"] == digest
+    assert manifest["input"] == {
+        "name": "image",
+        "layout": "NCHW",
+        "size_px": 224,
+        "resize": "stretch to size_px x size_px",
+        "color": "RGB",
+        "scale": "pixel / 255",
+        "mean": [0.485, 0.456, 0.406],
+        "std": [0.229, 0.224, 0.225],
+    }
+    assert manifest["output"] == {"name": "logits", "softmax": "apply in the worker"}
+    with pytest.raises(ValueError):
+        labels_manifest(224, "not-a-digest")
