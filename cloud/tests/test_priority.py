@@ -425,6 +425,11 @@ def test_endpoint_counts_routes_that_detour_around_a_closure(api) -> None:
     plain = client.app.state.priority_plain_routes
     assert len(plain._edges) == 3
     assert client.get("/api/priority").json()["items"][0]["saved_routes_affected"] == 2
+    # A deleted route leaves the count and the cache.
+    (work,) = (r for r in routes.all() if r.name == "Work")
+    assert work.id is not None and routes.delete(work.id, CLIENT)
+    assert client.get("/api/priority").json()["items"][0]["saved_routes_affected"] == 1
+    assert len(plain._edges) == 2
 
 
 def test_endpoint_budget_leaves_plain_routes_for_later(api, monkeypatch) -> None:

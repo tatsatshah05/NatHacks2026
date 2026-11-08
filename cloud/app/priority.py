@@ -310,6 +310,13 @@ class PlainRoutes:
     def cached(self, row: SavedRouteRow) -> frozenset[int] | None:
         return self._edges.get(self.key(row))
 
+    def keep_only(self, rows: Sequence[SavedRouteRow]) -> None:
+        """Forget deleted or edited routes, so the cache never outgrows the table."""
+        keys = {self.key(row) for row in rows}
+        with self._lock:
+            for key in [key for key in self._edges if key not in keys]:
+                del self._edges[key]
+
     def compute(self, row: SavedRouteRow) -> frozenset[int]:
         try:
             result = self.router.route(
@@ -336,6 +343,8 @@ def route_edges(
     """Every saved route's edges, plus how many still lack their plain route."""
     budget = PLAIN_BUDGET_S if budget_s is None else budget_s
     started = time.perf_counter()
+    if plain is not None:
+        plain.keep_only(rows)
     result: list[RouteEdges] = []
     pending = 0
     for row in rows:
