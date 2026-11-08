@@ -1,0 +1,107 @@
+/* OP-301: the planner map. The basemap is light in both themes; the page around it
+   follows the theme. */
+
+.frame {
+  min-width: 0;
+}
+
+.canvas {
+  background: #f1efe9; /* the basemap's land colour, shown while tiles load */
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  height: 56vh;
+  max-height: 520px;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+/* Beside the plan, the map and the report section below it fit in one screen. */
+@media (min-width: 900px) {
+  .canvas {
+    height: calc(100vh - 330px);
+    max-height: none;
+    min-height: 380px;
+  }
+}
+
+.problem {
+  border-left: 4px solid var(--ink);
+  margin: 12px 0 0;
+  padding-left: 12px;
+}
+
+/* What the line weights mean, in words beside a swatch drawn on the map's own white. */
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.key li {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.swatch {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+
+/* Start and end: a filled circle on the point, with its word beside it. The basemap
+   is light in both themes, so these use the light theme's ink (#0D1F2D) and white
+   (16.8:1), not the theme tokens, which would turn the dot white in dark mode. */
+.place {
+  height: 22px;
+  position: relative;
+  width: 22px;
+}
+
+.placeDot {
+  background: #0d1f2d;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  display: block;
+  height: 22px;
+  outline: 1px solid #0d1f2d;
+  width: 22px;
+}
+
+.placeTag {
+  background: #ffffff;
+  border: 2px solid #0d1f2d;
+  border-radius: 4px;
+  color: #0d1f2d;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  left: 28px;
+  line-height: 1.2;
+  padding: 2px 6px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+/* Focus inside the map: the project's ring, drawn inside each control so the map's
+   rounded, clipped frame never hides it (MapLibre's own focus is a soft blue glow).
+   The map is light in both themes, so the ring keeps the light theme's #E06F00:
+   3.3:1 on the white controls, where the dark theme's #FFB454 would be 1.7:1. */
+.frame :global(.maplibregl-canvas:focus-visible),
+.frame :global(.maplibregl-ctrl-group button:focus-visible),
+.frame :global(.maplibregl-ctrl-attrib-button:focus-visible),
+.frame :global(.maplibregl-ctrl-attrib a:focus-visible) {
+  box-shadow: none;
+  outline: 3px solid #e06f00;
+  outline-offset: -4px;
+}
+
+.frame :global(.maplibregl-ctrl-group button:focus:not(:focus-visible)) {
+  outline: none;
+}

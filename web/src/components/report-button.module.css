@@ -1,94 +1,36 @@
-/* OP-308: the floating Report button and its dialog.
-   Colours come from the shared tokens by name, with fallbacks to today's tokens and
-   then to fixed values, so the button works before and after the design foundation. */
-
-.trigger,
-.dialog {
-  --rb-ink: var(--ink, #15241f);
-  --rb-muted: var(--muted, #52635c);
-  --rb-action: var(--action, var(--brand, #146b55));
-  --rb-on-action: var(--on-action, var(--paper, #ffffff));
-  --rb-card: var(--card, var(--surface, #ffffff));
-  --rb-line: var(--line, #c9d6ce);
-  --rb-snow: var(--snow, #3d6a99);
-  --rb-focus: var(--focus, #e85d04);
-  --rb-danger: var(--danger, #8d291f);
-}
-
-.trigger {
-  align-items: center;
-  background: var(--rb-action);
-  border: 2px solid var(--rb-on-action);
-  border-radius: 28px;
-  bottom: max(16px, env(safe-area-inset-bottom));
-  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
-  color: var(--rb-on-action);
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 800;
-  gap: 10px;
-  max-width: calc(100vw - 32px);
-  min-height: 56px;
-  min-width: 56px;
-  padding: 8px 22px 8px 16px;
-  position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  text-align: left;
-  transition: transform 120ms ease;
-  z-index: 40;
-}
-
-.trigger:hover {
-  transform: translateY(-1px);
-}
-
-.trigger:focus-visible {
-  outline: 3px solid var(--rb-focus);
-  outline-offset: 3px;
-}
-
-.triggerIcon {
-  align-items: center;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  display: inline-flex;
-  flex: 0 0 28px;
-  font-size: 1rem;
-  height: 28px;
-  justify-content: center;
-  line-height: 1;
-}
+/* OP-308's report dialog, in the design system since OP-301 (docs/design/DESIGN.md):
+   tokens only, Atkinson throughout, a flat card with an ink frame, no shadows. The
+   trigger and the buttons are the system's Button; the problem choice is its
+   SegmentedChoice with hazard shapes. */
 
 .dialog {
-  background: var(--rb-card);
-  border: 1px solid var(--rb-line);
-  border-radius: 16px;
-  color: var(--rb-ink);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  color: var(--ink);
   max-height: calc(100dvh - 32px);
+  max-width: calc(100vw - 32px);
   overflow: auto;
   padding: 0;
-  width: min(36rem, calc(100vw - 32px));
+  width: 36rem;
 }
 
 .dialog::backdrop {
-  background: rgb(0 0 0 / 50%);
+  background: rgb(13 31 45 / 60%); /* ink at 60% */
 }
 
 .header {
-  align-items: flex-start;
-  border-bottom: 1px solid var(--rb-line);
+  align-items: center;
+  border-bottom: 1px solid var(--line);
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 12px 16px;
 }
 
 .header h2 {
-  font-size: 1.3rem;
-  line-height: 1.25;
-  margin: 8px 0 0;
+  margin: 0;
 }
 
 .header h2:focus {
@@ -96,14 +38,16 @@
 }
 
 .header h2:focus-visible {
-  outline: 3px solid var(--rb-focus);
-  outline-offset: 3px;
+  box-shadow: 0 0 0 2px var(--card);
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .body {
   display: grid;
   gap: 20px;
-  padding: 20px;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 16px;
 }
 
 .fieldset {
@@ -116,60 +60,24 @@
 .fieldset legend,
 .label {
   display: block;
-  font-weight: 800;
-  margin-bottom: 8px;
+  font-weight: 700;
+  margin-bottom: 6px;
   padding: 0;
 }
 
-.types {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.typeOption {
+.shapeDisc {
   align-items: center;
-  border: 2px solid var(--rb-line);
-  border-radius: 12px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  background: var(--card);
+  border-radius: 50%;
+  display: inline-flex;
+  height: 24px;
   justify-content: center;
-  min-height: 96px;
-  padding: 12px 8px;
-  text-align: center;
+  width: 24px;
 }
 
-.typeOption input {
-  height: 20px;
-  margin: 0;
-  width: 20px;
-}
-
-.typeOption:has(input:checked) {
-  background: color-mix(in srgb, var(--rb-action) 12%, transparent);
-  border-color: var(--rb-action);
-  border-width: 3px;
-}
-
-.typeOption:has(input:focus-visible) {
-  outline: 3px solid var(--rb-focus);
-  outline-offset: 2px;
-}
-
-.typeIcon {
-  font-size: 1.4rem;
-  line-height: 1;
-}
-
-.typeOption[data-type="snow"] .typeIcon {
-  color: var(--rb-snow);
-}
-
-.typeLabel {
-  font-weight: 800;
-  line-height: 1.25;
+.legendError {
+  display: block;
+  margin: 2px 0 0;
 }
 
 .actions,
@@ -179,61 +87,21 @@
   gap: 8px;
 }
 
-.primary,
-.secondary {
-  border-radius: 10px;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 800;
-  min-height: 44px;
-  min-width: 44px;
-  padding: 8px 18px;
-}
-
-.primary {
-  background: var(--rb-action);
-  border: 2px solid var(--rb-action);
-  color: var(--rb-on-action);
-}
-
-.secondary {
-  background: transparent;
-  border: 2px solid var(--rb-action);
-  color: var(--rb-ink);
-}
-
-.primary[aria-disabled="true"] {
-  cursor: progress;
-  opacity: 0.8;
-}
-
 .hint,
 .status {
-  color: var(--rb-muted);
-  font-size: 0.9rem;
+  color: var(--muted);
   margin: 6px 0 0;
-}
-
-.error {
-  color: var(--rb-danger);
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin: 6px 0 0;
-}
-
-.error::before {
-  content: "\26A0\FE0E  ";
 }
 
 .textarea {
-  border: 2px solid var(--rb-muted);
-  border-radius: 9px;
-  box-sizing: border-box;
+  background: var(--card);
+  border: 2px solid var(--muted);
+  border-radius: 6px;
   color: inherit;
-  background: transparent;
+  display: block;
   font: inherit;
   min-height: 72px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   width: 100%;
 }
 
@@ -241,6 +109,19 @@
   font: inherit;
   max-width: 100%;
   min-height: 44px;
+}
+
+.file::file-selector-button {
+  background: transparent;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  margin-right: 12px;
+  min-height: 44px;
+  padding: 8px 18px;
 }
 
 .photoChosen {
@@ -258,7 +139,7 @@
 }
 
 .summary dt {
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .summary dd {
@@ -266,36 +147,12 @@
   overflow-wrap: anywhere;
 }
 
-.question {
-  font-size: 1.1rem;
+.question,
+.success {
+  font-size: 1.125rem;
   margin: 0;
 }
 
 .success {
-  font-size: 1.1rem;
-  font-weight: 800;
-  margin: 0;
-}
-
-@media (max-width: 30rem) {
-  .types {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .typeOption {
-    flex-direction: row;
-    justify-content: flex-start;
-    min-height: 56px;
-    text-align: left;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .trigger {
-    transition: none;
-  }
-
-  .trigger:hover {
-    transform: none;
-  }
+  font-weight: 700;
 }
