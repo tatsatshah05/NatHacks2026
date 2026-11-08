@@ -172,3 +172,31 @@ def test_explicit_non_camera_source_is_not_relabelled() -> None:
     )
     assert not provider(NOW)
     assert provider.latest.warnings
+
+
+def test_stop_ends_camera_reads_and_stops_the_matcher() -> None:
+    """Shutdown: later calls keep the last camera map and never read the database."""
+    reads: list[object] = []
+    stopped: list[float] = []
+
+    class Matcher:
+        def __call__(self, now: object) -> dict:
+            return {}
+
+        def stop(self, timeout_s: float = 5.0) -> bool:
+            stopped.append(timeout_s)
+            return True
+
+    def read(now: object) -> list[SimpleNamespace]:
+        reads.append(now)
+        return [stored_row(label="wet")]
+
+    provider = CameraIceHazardProvider(
+        diamond_network(), read, weather=weather_service(), base=Matcher()
+    )
+    before = provider(NOW)
+    assert set(before) == {1} and len(reads) == 1
+    assert provider.stop(2.0) is True
+    assert stopped == [2.0]
+    assert provider(NOW + timedelta(minutes=5)) == before
+    assert len(reads) == 1  # no read after stop()

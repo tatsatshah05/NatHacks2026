@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -286,3 +287,89 @@ def test_a_store_failure_is_reported_as_a_source_failure(store) -> None:
         scheduler.status("city_lrt_devices").last_error
         == "store: RuntimeError: disk full"
     )
+
+
+# ------------------------------------------------------------------ shutdown
+
+
+class HeldStore:
+    """A store whose writes wait at a gate the test opens, so one is mid-call."""
+
+    def __init__(self) -> None:
+        self.entered = threading.Event()
+        self.gate = threading.Event()
+        self.writes = 0
+        self.finished = 0
+
+    def replace_source(self, source: str, items: Any, now: datetime) -> None:
+        self.writes += 1
+        self.entered.set()
+        assert self.gate.wait(10), "the test never opened the gate"
+        self.finished += 1
+
+    def purge_expired(self, now: datetime) -> list[str]:
+        return []
+
+
+def held_scheduler(store: HeldStore, sources: int = 1) -> Scheduler:
+    return Scheduler(
+        store,  # type: ignore[arg-type]
+        [
+            Source(f"src_{n}", 60, Scripted([lrt_row("1", source=f"src_{n}")]).fetch)
+            for n in range(sources)
+        ],
+        clock=lambda: NOW,
+        purge_every_s=60,
+        backoff_s=(0,),
+    )
+
+
+def test_stop_waits_for_a_store_write_that_has_started() -> None:
+    """Cancelling a loop does not stop its worker thread, so stop() must wait."""
+
+    async def scenario() -> None:
+        store = HeldStore()
+        # Three sources: one write runs, the other two queue behind it.
+        scheduler = held_scheduler(store, sources=3)
+        await scheduler.start()
+        assert await asyncio.to_thread(store.entered.wait, 10)
+        stopping = asyncio.create_task(scheduler.stop())
+        await asyncio.sleep(0.2)
+        assert not stopping.done()  # the write is still running
+        store.gate.set()
+        assert await asyncio.wait_for(stopping, 10) is True
+        assert store.finished == store.writes == 1  # the queued writes were dropped
+        assert scheduler.running is False
+
+    run(scenario())
+
+
+def test_stop_gives_up_after_its_timeout_and_says_so(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def scenario() -> bool:
+        store = HeldStore()
+        scheduler = held_scheduler(store)
+        await scheduler.start()
+        assert await asyncio.to_thread(store.entered.wait, 10)
+        try:
+            return await scheduler.stop(timeout_s=0.05)
+        finally:
+            store.gate.set()
+
+    assert run(scenario()) is False
+    assert "store call was still running" in caplog.text
+
+
+def test_stop_waits_for_the_store_lock_too() -> None:
+    """The final barrier: a store call made some other way still holds the lock."""
+
+    async def scenario() -> None:
+        scheduler = held_scheduler(HeldStore())
+        scheduler._store_lock.acquire()
+        threading.Timer(0.2, scheduler._store_lock.release).start()
+        started = asyncio.get_running_loop().time()
+        assert await scheduler.stop() is True
+        assert asyncio.get_running_loop().time() - started >= 0.15
+
+    run(scenario())
