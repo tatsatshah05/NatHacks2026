@@ -11,8 +11,14 @@ Honest numbers (AGENTS.md):
   CSVs with the same rules as training, never re-split.
 - Images are prepared exactly as labels.json describes, which is what the worker
   (OP-204) must do too; a test checks this matches train.py's own preprocessing.
-- Every number written to MODEL_CARD.md is computed here, from this run. The
-  card says "not measured" rather than show a number that was not measured.
+- The model is identified by its SHA-256. evaluate.py refuses a model.onnx that
+  does not hash to labels.json's sha256, and records the hash on the card, so the
+  card describes exactly the release asset the worker loads.
+- Every number written to MODEL_CARD.md comes from this run: accuracy and the
+  per-class results from the test cameras here, speed from train.py's
+  metrics.json, agreement from the label CSVs. Training details (RSCD, ImageNet
+  weights) are taken from the run, never assumed. A section with nothing measured
+  says "Not measured yet", and a value that cannot be computed says "n/a".
 
 Writes <run>/evaluation.json and vision/MODEL_CARD.md.
 """
@@ -20,6 +26,7 @@ Writes <run>/evaluation.json and vision/MODEL_CARD.md.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import sys
@@ -84,26 +91,62 @@ def score(truth: Sequence[str], predicted: Sequence[str]) -> Metrics:
 
 @dataclass(frozen=True)
 class Agreement:
-    images: int  # images labelled by two or more people
+    images: int  # images labelled by two different labellers
     agreed: int
-    kappa: float | None  # Cohen's kappa for the first two labellers of each image
+    kappa: float | None  # Cohen's kappa, first labeller of each image vs the second
+    labellers: tuple[str, ...] = ()  # the labeller names behind those pairs
 
     @property
     def percent(self) -> float | None:
         return self.agreed / self.images if self.images else None
 
 
-def labeller_agreement(label_csvs: Iterable[Path]) -> Agreement:
-    """Agreement on images labelled more than once (OP-201's 10% double-labelled set)."""
-    labels_by_image: dict[str, list[str]] = {}
+def _labels_by_labeller(
+    label_csvs: Iterable[Path],
+) -> dict[str, dict[str, tuple[str, str]]]:
+    """image -> {labeller key: (labeller name, label)}, first label per labeller.
+
+    Labeller names are compared without case or surrounding spaces. Rows with an
+    empty labeller are skipped, because nobody can tell who made them.
+    """
+    by_image: dict[str, dict[str, tuple[str, str]]] = {}
     for csv_path in label_csvs:
         for image, row in read_labels(csv_path).items():
-            labels_by_image.setdefault(image, []).append(row.label)
-    pairs = [
-        (labels[0], labels[1])
-        for labels in labels_by_image.values()
-        if len(labels) >= 2
-    ]
+            name = row.labeller.strip()
+            if name:
+                by_image.setdefault(image, {}).setdefault(
+                    name.casefold(), (name, row.label)
+                )
+    return by_image
+
+
+def labeller_names(label_csvs: Iterable[Path]) -> list[str]:
+    """Every labeller named in the label CSVs, as first written, in sorted order."""
+    names: dict[str, str] = {}
+    for labels in _labels_by_labeller(label_csvs).values():
+        for key, (name, _) in labels.items():
+            names.setdefault(key, name)
+    return sorted(names.values(), key=str.casefold)
+
+
+def labeller_agreement(label_csvs: Iterable[Path]) -> Agreement:
+    """Agreement on images labelled by two different labellers (OP-201's agreement set).
+
+    A pair counts only when the two labels come from different `labeller` values,
+    so passing the same CSV twice, or two files from one labeller, measures
+    nothing. When three or more labellers labelled an image, the first two (in
+    --labels order) are compared.
+    """
+    pairs: list[tuple[str, str]] = []
+    names: dict[str, str] = {}  # labeller key -> name as first written
+    for labels in _labels_by_labeller(label_csvs).values():
+        if len(labels) >= 2:
+            (key_a, (name_a, label_a)), (key_b, (name_b, label_b)) = list(
+                labels.items()
+            )[:2]
+            pairs.append((label_a, label_b))
+            names.setdefault(key_a, name_a)
+            names.setdefault(key_b, name_b)
     if not pairs:
         return Agreement(0, 0, None)
     agreed = sum(a == b for a, b in pairs)
@@ -112,7 +155,55 @@ def labeller_agreement(label_csvs: Iterable[Path]) -> Agreement:
     observed = agreed / n
     expected = sum(first[label] * second[label] for label in LABELS) / (n * n)
     kappa = None if expected == 1 else (observed - expected) / (1 - expected)
-    return Agreement(images=n, agreed=agreed, kappa=kappa)
+    return Agreement(
+        images=n,
+        agreed=agreed,
+        kappa=kappa,
+        labellers=tuple(sorted(names.values(), key=str.casefold)),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Model identity
+# ---------------------------------------------------------------------------
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def check_model_sha256(
+    model_path: Path, labels_spec: dict[str, Any], training: dict[str, Any]
+) -> str:
+    """The SHA-256 of model.onnx, after checking it is the model labels.json describes.
+
+    The worker (OP-204) loads model.onnx and labels.json from the release asset
+    and refuses a model with another hash, so the card must describe that exact
+    file. metrics.json's model_sha256, when present, must agree too.
+    """
+    expected = labels_spec.get("sha256")
+    if not expected:
+        raise ValueError(
+            "labels.json has no sha256; re-export the run with vision/train.py"
+        )
+    if not model_path.is_file():
+        raise ValueError(f"{model_path} not found")
+    actual = file_sha256(model_path)
+    if actual != expected:
+        raise ValueError(
+            f"model.onnx has SHA-256 {actual}, but labels.json says {expected}; "
+            "evaluate the model.onnx that was exported with this labels.json"
+        )
+    recorded = training.get("model_sha256")
+    if recorded is not None and recorded != expected:
+        raise ValueError(
+            f"metrics.json model_sha256 {recorded} differs from labels.json sha256 {expected}"
+        )
+    return actual
 
 
 # ---------------------------------------------------------------------------
@@ -168,32 +259,76 @@ def predict(
 # ---------------------------------------------------------------------------
 
 
-def _pct(value: float | None) -> str:
-    return "not measured" if value is None else f"{value * 100:.1f}%"
+def _pct(value: float | None, missing: str = "n/a") -> str:
+    """A fraction as a percentage; `missing` when it cannot be computed."""
+    return missing if value is None else f"{value * 100:.1f}%"
+
+
+def _names(names: Sequence[str]) -> str:
+    quoted = [f"`{n}`" for n in names]
+    return (
+        " and ".join(quoted)
+        if len(quoted) <= 2
+        else ", ".join(quoted[:-1]) + " and " + quoted[-1]
+    )
 
 
 def render_card(evaluation: dict[str, Any] | None) -> str:
-    """vision/MODEL_CARD.md. With no evaluation, every result reads "not measured"."""
+    """vision/MODEL_CARD.md. With no evaluation, every result reads "Not measured yet"."""
     e = evaluation or {}
     metrics = e.get("metrics")
     training = e.get("training", {})
     agreement = e.get("labeller_agreement")
+    rscd_images = training.get("rscd_train_images") or 0
+    pretrained = training.get("pretrained")
+    if pretrained is True:
+        weights = "fine-tuned from ImageNet weights with `vision/train.py` (OP-202)"
+    elif pretrained is False:
+        weights = "trained from random weights (no ImageNet pre-training) with `vision/train.py` (OP-202)"
+    else:
+        weights = "trained with `vision/train.py` (OP-202)"
+    frames = "**511 Alberta camera frames** labelled with `vision/LABELS.md` (OP-201)."
+    if e.get("labellers"):
+        frames += (
+            f" Labeller names as recorded in the label CSVs: {_names(e['labellers'])}."
+        )
+    if "train_images" in training:
+        frames += (
+            f" Training: {training['train_images']} frames from "
+            f"{len(training.get('train_cameras', []))} cameras; validation: "
+            f"{training.get('val_images', 'n/a')} frames from "
+            f"{len(training.get('val_cameras', []))} cameras."
+        )
+    else:
+        frames += (
+            f" Training cameras: {len(training.get('train_cameras', [])) or 'n/a'}; "
+            f"validation cameras: {len(training.get('val_cameras', [])) or 'n/a'}."
+        )
+    frames += (
+        " Frames are kept only where the terms allow (decision D-3, docs/DATA_SOURCES.md), "
+        "and never one in which a person can be identified."
+    )
     lines = [
         "# Model Card: OpenPath Road-Condition Model",
         "",
-        "Generated by `python -m vision.evaluate` (OP-203). Do not edit the numbers by hand:",
-        "every number here is measured by that script on cameras the model never saw in training.",
+        "Generated by `python -m vision.evaluate` (OP-203). Do not edit the numbers by hand.",
+        "Accuracy, recall, precision and the confusion matrix are measured by that script on test",
+        "cameras the model never saw in training or validation. Speed is measured by `vision/train.py`",
+        "on the machine that trained the model, and labeller agreement comes from the label CSVs, so",
+        "neither of those is a result on unseen cameras.",
         "",
         "## Model",
         "",
         f"- **Task:** classify one road camera frame as {', '.join(f'`{c}`' for c in LABELS)}.",
         (
             f"- **Architecture:** {training.get('arch', 'MobileNetV3-Small (default) or EfficientNet-B0')}, "
-            "fine-tuned from ImageNet weights with `vision/train.py` (OP-202)."
+            f"{weights}."
         ),
         (
-            f"- **Run:** `{e.get('run', 'none yet')}`, seed {training.get('seed', 'n/a')}, "
-            f"PyTorch {training.get('torch', 'n/a')}, evaluated {e.get('evaluated_at', 'not yet')}."
+            f"- **Run:** `{e.get('run', 'none yet')}`, model SHA-256 "
+            f"{'`' + e['model_sha256'] + '`' if e.get('model_sha256') else 'n/a'}, "
+            f"seed {training.get('seed', 'n/a')}, PyTorch {training.get('torch', 'n/a')}, "
+            f"evaluated {e.get('evaluated_at', 'not yet')}."
         ),
         "- **Weights:** published as a GitHub release asset (`model.onnx` and `labels.json`), never committed.",
         (
@@ -205,31 +340,30 @@ def render_card(evaluation: dict[str, Any] | None) -> str:
         "",
         "## Training data",
         "",
-        (
-            f"- **511 Alberta camera frames** labelled with `vision/LABELS.md` (OP-201). Training cameras: "
-            f"{len(training.get('train_cameras', [])) or 'n/a'}; validation cameras: "
-            f"{len(training.get('val_cameras', [])) or 'n/a'}. Frames are kept only where the terms allow "
-            "(decision D-3, docs/DATA_SOURCES.md), and never one in which a person can be identified."
-        ),
-        (
-            '- **RSCD** road-surface patches, training only: Tong Zhao, "RSCD: Road Surface Classification '
-            'Dataset with Detailed Annotations for Driving Assistance", IEEE DataPort, 2022, '
-            "doi:10.21227/446p-xr65, CC BY 4.0. RSCD images are close-up and forward-facing, unlike roadside cameras."
-        ),
-        "",
-        "## Labeller agreement",
-        "",
+        f"- {frames}",
     ]
-    if agreement and agreement["images"]:
+    if rscd_images:
         lines.append(
-            f"{agreement['images']} images were labelled by two people: "
+            f"- **RSCD** road-surface patches, {rscd_images} in training only: Tong Zhao, "
+            '"RSCD: Road Surface Classification Dataset with Detailed Annotations for Driving '
+            'Assistance", IEEE DataPort, 2022, doi:10.21227/446p-xr65, CC BY 4.0. RSCD images '
+            "are close-up and forward-facing, unlike roadside cameras."
+        )
+    lines += ["", "## Labeller agreement", ""]
+    if agreement and agreement["images"]:
+        names = agreement.get("labellers") or []
+        lines.append(
+            f"{agreement['images']} images were labelled in two labelling passes"
+            f"{', by ' + _names(names) if names else ''}: "
             f"{_pct(agreement['percent'])} agreement, Cohen's kappa "
-            f"{'not measured' if agreement['kappa'] is None else format(agreement['kappa'], '.2f')}. "
-            "Images the two labellers disagreed on are left out of training and testing."
+            f"{'n/a' if agreement['kappa'] is None else format(agreement['kappa'], '.2f')}. "
+            "Agreement shows how consistent the labels are, not that they are correct. "
+            "Images the two passes disagreed on are left out of training and testing."
         )
     else:
         lines.append(
-            "Not measured yet: no image has been labelled twice (OP-201 targets 10%)."
+            "Not measured yet: no image has been labelled by two different labellers "
+            "(OP-201 targets 10%)."
         )
 
     lines += ["", "## Results on unseen cameras", ""]
@@ -256,9 +390,9 @@ def render_card(evaluation: dict[str, Any] | None) -> str:
         ]
         for label in LABELS:
             c = metrics["per_class"][label]
-            lines.append(
-                f"| `{label}` | {c['support']} | {_pct(c['recall'])} | {_pct(c['precision'])} |"
-            )
+            recall = _pct(c["recall"], "n/a (no test images)")
+            precision = _pct(c["precision"], "n/a (never predicted)")
+            lines.append(f"| `{label}` | {c['support']} | {recall} | {precision} |")
         lines += [
             "",
             "Confusion matrix (rows: true class, columns: predicted class):",
@@ -314,7 +448,8 @@ def render_card(evaluation: dict[str, Any] | None) -> str:
             "be `unusable`."
         ),
         (
-            "- **Coverage.** Trained and tested only on Alberta 511 cameras (and RSCD). Accuracy on other "
+            "- **Coverage.** Trained and tested only on Alberta 511 cameras"
+            f"{' (training also used RSCD patches)' if rscd_images else ''}. Accuracy on other "
             "cameras, angles or regions is unknown."
         ),
         (
@@ -341,12 +476,22 @@ def evaluate(
     test_cameras = set(split["test_cameras"])
     if not test_cameras:
         raise ValueError("this run has no test cameras; train with at least 3 cameras")
-
-    samples, _ = load_labelled(images_dir, label_csvs)
-    test = [s for s in samples if s.camera_id in test_cameras]
     leaked = sorted(test_cameras & set(split["train_cameras"] + split["val_cameras"]))
     if leaked:
         raise ValueError(f"test cameras also used in training: {', '.join(leaked)}")
+    try:
+        counts = split["counts"]
+        rscd_train_images = sum(counts["train_from_rscd"].values())
+        train_images = sum(counts["train"].values()) - rscd_train_images
+        val_images = sum(counts["val"].values())
+    except (KeyError, AttributeError, TypeError):
+        raise ValueError(
+            "split.json has no per-class counts; it was not written by vision/train.py"
+        ) from None
+    model_sha256 = check_model_sha256(run_dir / "model.onnx", labels_spec, training)
+
+    samples, _ = load_labelled(images_dir, label_csvs)
+    test = [s for s in samples if s.camera_id in test_cameras]
     if not test:
         raise ValueError(
             "no labelled images found for the test cameras; check --images and --labels"
@@ -357,8 +502,10 @@ def evaluate(
     agreement = labeller_agreement(label_csvs)
     evaluation = {
         "run": run_dir.name,
+        "model_sha256": model_sha256,
         "evaluated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "test_cameras": sorted(test_cameras),
+        "labellers": labeller_names(label_csvs),
         "metrics": {
             "total": metrics.total,
             "correct": metrics.correct,
@@ -379,24 +526,30 @@ def evaluate(
             "agreed": agreement.agreed,
             "percent": agreement.percent,
             "kappa": agreement.kappa,
+            "labellers": list(agreement.labellers),
         },
         "training": {
             "arch": training["config"]["arch"],
             "seed": training["config"]["seed"],
+            "pretrained": training["config"].get("pretrained"),
             "torch": training.get("torch"),
             "best_val_accuracy": training.get("best_val_accuracy"),
             "cpu_latency_ms": training.get("cpu_latency_ms"),
             "train_cameras": split["train_cameras"],
             "val_cameras": split["val_cameras"],
+            "train_images": train_images,
+            "val_images": val_images,
+            "rscd_train_images": rscd_train_images,
         },
     }
     (run_dir / "evaluation.json").write_text(json.dumps(evaluation, indent=2))
     log.info(
-        "EVALUATED %s accuracy=%s on %d images from %d unseen cameras",
+        "EVALUATED %s accuracy=%s on %d images from %d unseen cameras sha256=%s",
         run_dir.name,
         _pct(metrics.accuracy),
         metrics.total,
         len(test_cameras),
+        model_sha256,
     )
     return evaluation
 
