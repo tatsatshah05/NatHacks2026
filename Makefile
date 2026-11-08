@@ -68,8 +68,8 @@ graph:  ## Rebuild cloud/data/network.npz with OSMnx (laptop only; commit the re
 lrt:  ## Rebuild cloud/data/lrt.json from the ETS GTFS schedule (one official download; commit the result)
 	$(VENV_PY) scripts/build_lrt_graph.py
 
-record:  ## Record a replay snapshot of every source (OP-305)
-	@echo make record is not built yet: OP-305 adds scripts/record_snapshot.py && exit 1
+record:  ## Record a replay snapshot of every source into snapshots/<UTC time>/ (OP-305, no images)
+	$(VENV_PY) scripts/record_snapshot.py $(RECORD_FLAGS)
 
 worker:  ## Run the vision worker locally (OP-204)
 	$(VENV_PY) -m vision.worker
