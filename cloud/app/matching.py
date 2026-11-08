@@ -471,6 +471,25 @@ class HazardProvider:
     def _due(self) -> bool:
         return self.clock() - self._attempted_at >= self.refresh_s
 
+    def rebuild_now(self, now: datetime, timeout_s: float = STOP_TIMEOUT_S) -> bool:
+        """Rebuild the map in this thread, whether or not a refresh is due.
+
+        For a write that must reach live clients and saved-route checks at once (the
+        admin override, OP-406's seeded change) instead of at the next ``refresh_s``
+        tick. Waits for a rebuild in progress, then runs one here and fires the
+        ``on_rebuild`` callbacks. Returns False, and leaves the last good map, when
+        the provider is stopped or the lock is still held after ``timeout_s``.
+        """
+        if self._stopped or not self._lock.acquire(timeout=timeout_s):
+            return False
+        try:
+            if self._stopped:
+                return False
+            self._rebuild(now)
+        finally:
+            self._lock.release()
+        return True
+
     def _rebuild(self, now: datetime) -> None:
         """One rebuild attempt that never raises. The caller holds the lock."""
         self._attempted_at = self.clock()
