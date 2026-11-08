@@ -25,7 +25,13 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from cloud.app import lrt, routing_api
-from cloud.app.lrt import LrtPlanner, LrtSchedule, match_outages, station_access
+from cloud.app.lrt import (
+    LrtPlanner,
+    LrtSchedule,
+    match_outages,
+    outage_place,
+    station_access,
+)
 from cloud.app.lrt_gtfs import GtfsError, read_lrt, station_key
 from cloud.app.matching import HazardProvider
 from cloud.app.network import (
@@ -639,6 +645,42 @@ def test_an_unlisted_elevator_outage_closes_its_station_by_name(router) -> None:
     result = plan(router, planner, "wheelchair", records)
     assert result.trip is None
     assert any("cannot tell which one" in w for w in result.warnings)
+
+
+def test_an_unlisted_outage_reason_names_only_the_station_and_location(
+    router,
+) -> None:
+    """OP-313 details run to several sentences; the reason quotes only the first."""
+    planner = planner_for(router)
+    detail = (
+        "S3, Somewhere new. No other elevator at Somewhere new is in service. "
+        "In service at S3: elevators at North and South; 2 escalators."
+    )
+    records = [outage("999", detail)]
+    (unknown,) = match_outages(planner.schedule, records)
+    assert unknown.station_id == "S3"  # still matched by the name before the comma
+    result = plan(router, planner, "wheelchair", records)
+    assert result.trip is None
+    (reason,) = [w for w in result.warnings if "cannot tell which one" in w]
+    assert "(S3, Somewhere new) and OpenPath cannot tell which one" in reason
+    assert "In service at" not in reason and "No other elevator" not in reason
+
+
+@pytest.mark.parametrize(
+    ("detail", "place"),
+    [
+        ("Central, West Platform", "Central, West Platform"),
+        ("Central, West Platform.", "Central, West Platform"),
+        (
+            "Central, West Platform. In service at Central: ...",
+            "Central, West Platform",
+        ),
+        ("", "location unknown"),
+        (None, "location unknown"),
+    ],
+)
+def test_outage_place_is_the_detail_lead(detail: str | None, place: str) -> None:
+    assert outage_place(detail) == place
 
 
 def test_at_grade_stations_need_no_elevator(router) -> None:
