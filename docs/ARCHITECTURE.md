@@ -79,7 +79,7 @@ The same boxes as a list, for screen readers:
 | Matcher | `cloud/app/matching.py` | Render, background thread |
 | Camera readings and camera ice risk | `cloud/app/camera_readings.py`, `cloud/app/ingest_api.py`, `cloud/app/camera_ice.py`, `cloud/app/camera_ice_routing.py` | Render |
 | Router, report, Maps links | `cloud/app/routing.py`, `cloud/app/routing_api.py`, `cloud/app/report.py`, `cloud/app/maps_links.py`, `config/profiles.json` | Render |
-| Walk and LRT trips (off by default) | `cloud/app/lrt.py`, `cloud/data/lrt.json` | Render, only with `LRT_TRIPS` on |
+| Walk and LRT trips (on in production) | `cloud/app/lrt.py`, `cloud/data/lrt.json` | Render, only with `LRT_TRIPS` on |
 | Search | `cloud/app/search.py`, `cloud/data/search.npz` | Render |
 | Community reports | `cloud/app/reports.py`, `cloud/app/reports_api.py`, `config/reports.json` | Render |
 | Live updates | `cloud/app/ws.py` | Render |
@@ -102,7 +102,7 @@ What happens when someone presses "Find routes":
 7. **Each route** gets its distance, its time (length divided by the profile's assumed speed, times the multiplier), text steps, the hazards it passes, the hazards it avoids compared with the plain shortest route, and a one-line reason when it detours.
 8. **Report.** `report.build_report` lists every known item `on_route`, `nearby` (within 50 m of the route line) or `avoided`, in fixed groups: Indoor, Sidewalks and paths, Roads and crossings, Weather and ice (Transit only when it has items). Camera ice records come first, then the matcher's records. If the report fails, the route falls back to the hazards it met; a report can never fail a route.
 9. **Hand-off.** The Google Maps link carries up to 3 waypoints where the route leaves the plain shortest route; the Apple Maps link has only the start and end, with a note that it may not keep the detour (`cloud/app/maps_links.py`).
-10. **Walk and LRT trips.** With `LRT_TRIPS` on and `mode=walk_lrt`, a faster walk and LRT trip comes first and the slowest walking route is dropped (`cloud/app/lrt.py`). Production has `LRT_TRIPS` set to `false` (`render.yaml`).
+10. **Walk and LRT trips.** With `LRT_TRIPS` on and `mode=walk_lrt`, a faster walk and LRT trip comes first and the slowest walking route is dropped (`cloud/app/lrt.py`). Production has `LRT_TRIPS` set to `true` (`render.yaml`; lead decision, November 8), and the flag is off when it is unset.
 11. **On screen.** The web app draws the recommended route as a line diagram with every condition as a stop, the steps as text, the grouped report, and city-wide conditions once above the routes ([docs/design/DESIGN.md](design/DESIGN.md)). It then subscribes to live updates for that route.
 
 ## The ingest path

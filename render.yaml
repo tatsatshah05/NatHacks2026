@@ -32,8 +32,9 @@ services:
         generateValue: true
       - key: DATA_MODE
         value: live
+      # Walk and LRT trips (OP-311) are on in production: lead decision, November 8.
       - key: LRT_TRIPS
-        value: "false"
+        value: "true"
       # Set these in the Render dashboard; values are never committed.
       - key: CORS_ORIGINS
         sync: false
