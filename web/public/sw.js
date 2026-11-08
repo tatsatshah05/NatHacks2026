@@ -82,15 +82,15 @@ self.addEventListener("notificationclick", (event) => {
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       const exact = windows.find((client) => client.url === target);
       if (exact) {
-        await exact.focus();
+        await exact.focus().catch(() => undefined);
         return;
       }
       const open = windows.find((client) => new URL(client.url).origin === self.location.origin);
       if (open) {
+        // Focus first, while the click still allows it; a failed focus is not fatal.
+        await open.focus().catch(() => undefined);
         try {
-          const focused = await open.focus();
-          const moved = await focused.navigate(target);
-          if (moved) return;
+          if (await open.navigate(target)) return;
         } catch {
           // navigate() needs a tab this worker controls; open a new one instead.
         }

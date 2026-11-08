@@ -45,6 +45,13 @@ function listErrorText(error: unknown): string {
   return "Your saved routes could not be loaded. Check your connection, then reload the page.";
 }
 
+// Routes that need attention first: no route, then changed, then clear; oldest first within each.
+const STATUS_ORDER: Record<SavedRoute["status"], number> = { impossible: 0, changed: 1, ok: 2 };
+
+function byAttention(routes: SavedRoute[]): SavedRoute[] {
+  return [...routes].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || a.id - b.id);
+}
+
 function countText(count: number): string {
   return count === 1 ? "1 saved route." : `${count} saved routes.`;
 }
@@ -70,7 +77,7 @@ export default function AlertsPage() {
     try {
       const next = await listSavedRoutes();
       if (!live.current) return;
-      setRoutes(next);
+      setRoutes(byAttention(next));
       setListError("");
       setNow(new Date());
     } catch (error) {
@@ -165,7 +172,7 @@ export default function AlertsPage() {
     setRemoved({ ...removed, restoring: true });
     try {
       const restored = await resaveRoute(removed.route);
-      setRoutes((current) => [...(current ?? []), restored]);
+      setRoutes((current) => byAttention([...(current ?? []), restored]));
       setRemoved(null);
       setListMessage(`${restored.name} is saved again.`);
       setFocusId(`saved-${restored.id}-name`);
@@ -431,7 +438,7 @@ function DeviceActions({ state, busy, onTurnOn, onTurnOff, onTest }: ActionsProp
   if (state === "off") {
     return (
       <div className={styles.deviceActions}>
-        <Button variant="primary" block onClick={onTurnOn} aria-disabled={disabled}>
+        <Button variant="primary" onClick={onTurnOn} aria-disabled={disabled}>
           Turn on alerts
         </Button>
         <p className="note">Your browser will ask to allow notifications from OpenPath.</p>
@@ -441,7 +448,7 @@ function DeviceActions({ state, busy, onTurnOn, onTurnOff, onTest }: ActionsProp
   if (state === "on") {
     return (
       <div className={styles.deviceActions}>
-        <Button variant="secondary" block onClick={onTest} aria-disabled={disabled}>
+        <Button variant="secondary" onClick={onTest} aria-disabled={disabled}>
           Send me a test alert
         </Button>
         <Button variant="text" onClick={onTurnOff} aria-disabled={disabled}>

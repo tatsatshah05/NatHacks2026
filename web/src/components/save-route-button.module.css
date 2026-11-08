@@ -5,6 +5,14 @@
   min-width: 0;
 }
 
+/* Open (the form or the result): set apart from the link buttons by two quiet rules. */
+.open {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  margin: 4px 0;
+  padding: 12px 0 16px;
+}
+
 .form {
   display: grid;
   gap: 12px;

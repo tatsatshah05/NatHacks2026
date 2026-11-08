@@ -40,26 +40,27 @@ function promise(rank: number): string {
     : "OpenPath watches the recommended route for this trip and alerts you if it closes or gets 20% slower.";
 }
 
-/** The sentence after "Saved." for each alerts state. */
+/** What follows "Saved." for each alerts state. */
 function savedText(name: string, rank: number, alerts: AlertsState, outcome: AlertOutcome): string {
   if (alerts === "on") return promise(rank);
-  if (outcome === "dismissed") return `${name} is on your Alerts page. Alerts are still off because the browser did not get permission.`;
-  if (outcome === "failed") return `${name} is on your Alerts page. Alerts could not be turned on just now.`;
+  const as = `as ${name}.`;
+  if (outcome === "dismissed") return `${as} Alerts are still off because the browser did not get permission.`;
+  if (outcome === "failed") return `${as} Alerts could not be turned on just now.`;
   switch (alerts) {
     case "denied":
-      return `${name} is on your Alerts page. Alerts are blocked for this site; allow notifications in your browser's site settings to get them.`;
+      return `${as} Alerts are blocked for this site; allow notifications in your browser's site settings to get them.`;
     case "needs_install":
-      return `${name} is on your Alerts page. Add to Home Screen to get alerts: ${IOS_STEPS.charAt(0).toLowerCase()}${IOS_STEPS.slice(1)}`;
+      return `${as} Add to Home Screen to get alerts: ${IOS_STEPS.charAt(0).toLowerCase()}${IOS_STEPS.slice(1)}`;
     case "needs_ios_update":
-      return `${name} is on your Alerts page. Alerts need iOS 16.4 or later.`;
+      return `${as} Alerts need iOS 16.4 or later.`;
     case "unsupported":
-      return `${name} is on your Alerts page. This browser cannot show alerts, so check the route there before you leave.`;
+      return `${as} This browser cannot show alerts, so check the route on your Alerts page before you leave.`;
     case "server_off":
-      return `${name} is on your Alerts page. Alerts are not set up on this server yet, so check the route there before you leave.`;
+      return `${as} Alerts are not set up on this server yet, so check the route on your Alerts page before you leave.`;
     case "server_unreachable":
-      return `${name} is on your Alerts page. Alerts could not be checked just now.`;
+      return `${as} Alerts could not be checked just now.`;
     default:
-      return `${name} is on your Alerts page. Alerts are off on this device.`;
+      return `${as} Alerts are off on this device.`;
   }
 }
 
@@ -218,9 +219,11 @@ export default function SaveRouteButton({ query, rank }: Props) {
   if (phase === "saved" && saved) {
     const offerTurnOn = alerts === "off" && Boolean(config?.public_key);
     return (
-      <div className={styles.save}>
+      <div className={`${styles.save} ${styles.open}`}>
         <p className={styles.result} ref={resultRef} tabIndex={-1}>
-          <strong>Saved.</strong> {savedText(saved.name, rank, alerts, outcome)}
+          <strong>Saved</strong>
+          {alerts === "on" ? ". " : " "}
+          {savedText(saved.name, rank, alerts, outcome)}
         </p>
         <div className={styles.buttons}>
           {offerTurnOn && (
@@ -240,7 +243,7 @@ export default function SaveRouteButton({ query, rank }: Props) {
   const saving = phase === "saving";
   const note = canTurnOn ? "" : formNote(alerts);
   return (
-    <div className={styles.save}>
+    <div className={`${styles.save} ${styles.open}`}>
       <form className={styles.form} onSubmit={onSubmit} onKeyDown={onKeyDown} noValidate aria-label={`Save route ${rank}`}>
         <Field
           id={inputId}
