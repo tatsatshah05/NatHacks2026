@@ -36,6 +36,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from cloud.app import (
+    admin_api,
     ingest_api,
     lrt,
     obstructions_api,
@@ -326,6 +327,7 @@ def create_app() -> FastAPI:
     app.include_router(reports_api.router)
     app.include_router(ws.router)  # WS /ws (OP-303)
     app.include_router(priority.router)  # GET /api/priority (OP-310)
+    app.include_router(admin_api.router)  # POST /api/admin/override (testing only)
 
     @app.get("/health", tags=["ops"])
     def health() -> Health:

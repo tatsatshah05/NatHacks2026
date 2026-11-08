@@ -1,9 +1,11 @@
 # OpenPath CI/CD
 #
 # Branch flow: story branch -> phase_N (one branch per phase) -> main (one release per phase).
-# Pull requests into main or phase_*: PR rules, repo hygiene, Python checks, web checks.
+# Pull requests into main or phase_*: PR rules, repo hygiene, Python checks, web checks, and the
+# Playwright end-to-end tests against the API (replay mode) and web build started on the runner.
 # The single required status check is "CI passed".
-# Pushes to phase_*: deploy to staging. Pushes to main: deploy to production. Both smoke-test.
+# Pushes to phase_*: deploy to staging. Pushes to main: deploy to production. Both smoke-test,
+# with curl and then the Playwright @smoke tests against the deployed URLs.
 # Checks for cloud/, vision/ and web/ switch on by themselves once those folders exist.
 # See docs/CI_CD.md.
 
@@ -76,16 +78,33 @@ jobs:
     outputs:
       python: ${{ steps.parts.outputs.python }}
       web: ${{ steps.parts.outputs.web }}
+      e2e: ${{ steps.parts.outputs.e2e }}
     steps:
       - uses: actions/checkout@v4
       - id: parts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
         run: |
           python=false; web=false
           if [ -n "$(git ls-files 'cloud/*.py' 'vision/*.py')" ]; then python=true; fi
           if [ -f web/package.json ]; then web=true; fi
+          # The end-to-end tests (OP-406) need the API and the web app. They run on every
+          # push; on a pull request only when the app itself changed, so a docs-only
+          # change does not spend five minutes on them. If the file list cannot be read,
+          # they run.
+          e2e=false
+          if [ "$python" = true ] && [ "$web" = true ]; then
+            e2e=true
+            if [ "$EVENT" = pull_request ] && files="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate --jq '.[].filename')"; then
+              if ! grep -Eq '^(cloud/|web/|config/|scripts/|Makefile$|\.github/workflows/ci\.yml$)' <<<"$files"; then e2e=false; fi
+            fi
+          fi
           echo "python=$python" >> "$GITHUB_OUTPUT"
           echo "web=$web" >> "$GITHUB_OUTPUT"
-          echo "Python checks: $python. Web checks: $web."
+          echo "e2e=$e2e" >> "$GITHUB_OUTPUT"
+          echo "Python checks: $python. Web checks: $web. End-to-end tests: $e2e."
 
   hygiene:
     name: Repo hygiene
@@ -199,10 +218,58 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
+  e2e:
+    # OP-406: the critical path in a real browser. scripts/e2e.py (make e2e) starts the
+    # API in replay mode with a temporary SQLite file and the production build of the
+    # web app on this runner, runs Playwright against both and stops them.
+    name: End-to-end
+    needs: [detect, python, web]
+    if: needs.detect.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: cloud/requirements.txt
+      - name: Install the API
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r cloud/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - name: Cache the Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+      - name: Install Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+      - name: Run the end-to-end tests
+        run: make e2e VENV_PY=python
+      - name: Upload traces and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: web/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
   ci-passed:
     name: CI passed
     if: always()
-    needs: [pr-rules, detect, hygiene, python, web]
+    needs: [pr-rules, detect, hygiene, python, web, e2e]
     runs-on: ubuntu-latest
     steps:
       - name: All checks passed
@@ -240,6 +307,18 @@ jobs:
         run: |
           if [ -n "$API_HOOK" ]; then curl -fsS -X POST "$API_HOOK" >/dev/null && echo "API deploy started."; else echo "::notice::RENDER_API_DEPLOY_HOOK is not set yet; skipping the API deploy."; fi
           if [ -n "$WORKER_HOOK" ]; then curl -fsS -X POST "$WORKER_HOOK" >/dev/null && echo "Vision worker deploy started."; else echo "::notice::RENDER_WORKER_DEPLOY_HOOK is not set yet; skipping the vision worker deploy."; fi
+      # The Playwright smoke tests (OP-406) are set up while Render builds.
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - name: Install Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
       - name: Smoke test the API (waits for this commit)
         env:
           API_URL: ${{ vars.API_URL }}
@@ -267,3 +346,14 @@ jobs:
             sleep 20
           done
           echo "::error::The web app at $WEB_URL did not respond."; exit 1
+      - name: Smoke test the deployed app with Playwright (@smoke)
+        # Read-only: the home page, GET /api/status and one planned route. A failure
+        # fails this job, which is the alert; nothing is rolled back.
+        working-directory: web
+        env:
+          E2E_WEB_URL: ${{ vars.WEB_URL }}
+          E2E_API_URL: ${{ vars.API_URL }}
+          CI: true
+        run: |
+          if [ -z "$E2E_WEB_URL" ] || [ -z "$E2E_API_URL" ]; then echo "::notice::WEB_URL or API_URL is not set yet; skipping the Playwright smoke tests."; exit 0; fi
+          npm run e2e:smoke

@@ -298,6 +298,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Override
+         * @description Store one labelled test obstruction and rebuild the hazard map (testing only).
+         */
+        post: operations["set_override_api_admin_override_post"];
+        /**
+         * Clear Overrides
+         * @description Remove every override (a clean slate after a test run).
+         */
+        delete: operations["clear_overrides_api_admin_override_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/override/{source_ref}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Override
+         * @description Remove one override by its ``source_ref`` (404 when none is active).
+         */
+        delete: operations["remove_override_api_admin_override__source_ref__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -788,6 +832,63 @@ export interface components {
          * @enum {string}
          */
         Outcome: "new" | "changed" | "same" | "older";
+        /**
+         * OverrideIn
+         * @description One test obstruction. The same fields as an ``Obstruction``, minus what the
+         *     server fills in (source, id, times, attribution).
+         */
+        OverrideIn: {
+            /**
+             * Source Ref
+             * @example e2e-laptop
+             */
+            source_ref: string;
+            /**
+             * Title
+             * @example Sidewalk closed
+             */
+            title: string;
+            geometry: components["schemas"]["Geometry"];
+            /** @default sidewalk */
+            category: components["schemas"]["Category"];
+            /** @default blocked */
+            kind: components["schemas"]["Kind"];
+            /** @default blocked */
+            effect: components["schemas"]["Effect"];
+            /** @default high */
+            confidence: components["schemas"]["Confidence"];
+            /** Detail */
+            detail?: string | null;
+            /**
+             * Ttl S
+             * @default 600
+             */
+            ttl_s: number;
+        };
+        /** OverrideOut */
+        OverrideOut: {
+            /** Id */
+            id: string;
+            /** Source */
+            source: string;
+            /** Source Ref */
+            source_ref: string;
+            /** Title */
+            title: string;
+            effect: components["schemas"]["Effect"];
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Rebuilt */
+            rebuilt: boolean;
+        };
         /** PedestrianCountsInfo */
         PedestrianCountsInfo: {
             /** Dataset */
@@ -1867,6 +1968,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PriorityResponse"];
+                };
+            };
+        };
+    };
+    set_override_api_admin_override_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-admin-key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverrideOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_overrides_api_admin_override_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-admin-key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_override_api_admin_override__source_ref__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-admin-key"?: string | null;
+            };
+            path: {
+                source_ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

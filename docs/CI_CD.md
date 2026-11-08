@@ -50,6 +50,7 @@ All checks run in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), for
 | Repo hygiene | Always | No `.env` or `secrets.h` files, nothing over 5 MB (50 MB for the prebuilt network in `cloud/data/`), no model weights, and no images outside `web/public/`, `web/src/`, `docs/` and `vision/tests/fixtures/`. Also scans for leaked keys (gitleaks) and new dependencies with high-severity vulnerabilities |
 | Python | Once `cloud/` or `vision/` contains Python files | Installs every `requirements*.txt` under `cloud/` and `vision/`, then runs `ruff check`, `ruff format --check`, and `pytest` for `cloud/tests` and `vision/tests`. The repository root, `cloud/` and `vision/` are on the import path |
 | Web | Once `web/package.json` exists | `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build` |
+| End-to-end | When both `cloud/` and `web/` exist; on a pull request only when the app changed (`cloud/`, `web/`, `config/`, `scripts/`, the Makefile or the workflow), on a push always | `make e2e` (OP-406): starts the API in replay mode (SQLite in a temporary folder, test admin and worker keys, scheduler on) and the production build of the web app on the runner, then runs the Playwright flows in `web/e2e/` on a phone and a laptop viewport: plan a route through the place search, open the route report, receive a seeded live change over `WS /ws`, save a route and find it on `/alerts`, plus axe on every page of the flows (serious and critical violations fail). A failed test is retried once; traces and screenshots are uploaded as the `playwright-test-results` artifact |
 
 Ruff is pinned to **0.17.4** in CI. Before pushing, run `pip install ruff==0.17.4`, then `ruff check --fix .` and `ruff format .`.
 
@@ -59,6 +60,8 @@ Ruff is pinned to **0.17.4** in CI. Before pushing, run `pip install ruff==0.17.
 | --- | --- | --- |
 | `phase_N` | `staging` | The deploy job calls the staging Render deploy hooks, then smoke-tests the staging API and web app |
 | `main` | `production` | The deploy job calls the production Render deploy hooks, then smoke-tests production |
+
+The smoke test has two parts. First `curl`: `/health` must report the deployed commit within 15 minutes, and the web app must answer. Then the Playwright `@smoke` tests (`npm run e2e:smoke` in `web/`, OP-406) run against the environment's `WEB_URL` and `API_URL`: the home page loads with its heading and navigation, `GET /api/status` returns 200 with sources, and a route plans between two fixed places. They only read; nothing is written to production. A failure fails the deploy job, which is the alert, and rolls nothing back: the previous version keeps serving until a fix is merged.
 
 Vercel's Git integration deploys production from `main` only. `web/vercel.json` turns Git deployments off for every other branch (`git.deploymentEnabled`), because the Hobby plan allows 100 deployments per rolling 24 hours and preview deployments for every push used them up on November 8. Review a web change locally with `make dev` or `make web`; there are no preview links.
 
@@ -105,3 +108,5 @@ These steps need the Render and Vercel projects, which OP-102 creates.
 | "This branch is out-of-date" | Click **Update branch** |
 | gitleaks failed | A key or token was committed. Remove it, **rotate the key**, and push again |
 | Deploy smoke test timed out | Check the Render logs; the previous version keeps running until the new one is healthy |
+| End-to-end failed | Download the `playwright-test-results` artifact from the job and open its trace with `npx playwright show-trace <trace.zip>`. Run the same suite locally with `make e2e` (`make e2e E2E_FLAGS="--skip-build -- --grep <test name>"` to repeat one test without rebuilding) |
+| Playwright smoke test failed after a deploy | The deployed site or API does not answer as expected. Check `WEB_URL` and `API_URL` in the environment, the Render logs and the Vercel deployment; run `E2E_WEB_URL=<web> E2E_API_URL=<api> npm run e2e:smoke` in `web/` to see it locally |
