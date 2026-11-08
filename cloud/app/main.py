@@ -159,6 +159,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     snapshot_raw = os.environ.get("REPLAY_SNAPSHOT")
     snapshot = Path(snapshot_raw) if snapshot_raw else None
     run_scheduler = scheduler_enabled(os.environ.get("SCHEDULER"))
+    # One clock for the scheduler, the map and route hazards (obstructions_api.get_now).
+    # In replay mode REPLAY_AT freezes it, so recorded closures stay active everywhere.
+    clock = sources.replay_clock(snapshot) if mode == "replay" else utcnow
+    app.state.clock = clock
     app.state.scheduler = None
     app.state.weather_service = None
     # Routing (OP-207): the prebuilt walking network loads in well under a second.
@@ -188,7 +192,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     sync_client=sync_client,
                     weather_service=weather,
                 )
-                clock = sources.replay_clock(snapshot) if mode == "replay" else utcnow
                 scheduler = Scheduler(store, built, clock=clock)
                 app.state.scheduler = scheduler
                 await scheduler.start()

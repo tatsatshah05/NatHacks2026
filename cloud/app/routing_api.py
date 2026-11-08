@@ -28,6 +28,7 @@ from .maps_links import (
     google_maps_url,
 )
 from .matching import HazardProvider
+from .obstructions_api import get_now
 from .report import ItemIndex, RouteReportOut, build_report
 from .routing import HazardMap, Route, Router, RoutingError
 
@@ -97,9 +98,12 @@ def get_router(request: Request) -> Router:
     return router_
 
 
-def get_hazards(request: Request) -> HazardMap:
+def get_hazards(
+    request: Request, now: Annotated[datetime, Depends(get_now)]
+) -> HazardMap:
+    """The current hazards, at the app's time (the replay clock when it is frozen)."""
     provider = getattr(request.app.state, "hazard_provider", None)
-    return provider(datetime.now(UTC)) if provider else {}
+    return provider(now) if provider else {}
 
 
 def get_report_items(
