@@ -239,9 +239,9 @@ def test_in_service_record_is_not_an_obstruction(feeds: Feeds) -> None:
     assert device_id not in {r["source_ref"] for r in normalize(feeds)}
 
 
-@pytest.mark.parametrize("dataset", [lrt.DEVICES, lrt.STATIONS])
-def test_empty_lookup_feed_fails(feeds: Feeds, dataset: str) -> None:
-    feeds[dataset] = []
+def test_empty_station_lookup_fails(feeds: Feeds) -> None:
+    # OP-313: an empty device list still posts outages (test_lrt_station_devices).
+    feeds[lrt.STATIONS] = []
     with pytest.raises(lrt.FeedError, match="must not be empty"):
         normalize(feeds)
 

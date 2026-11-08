@@ -40,8 +40,26 @@ background scheduler or write to a database.
   list supplies metadata only: its potentially stale status cannot create an
   outage or override the outage feed. If either daily refresh fails, its cached
   table is reused and the failure is recorded in `last_error`. If no usable
-  cached table exists, the fetch raises. Each table refreshes independently;
-  lookup records are not deep-copied on every outage poll.
+  station table exists, the fetch raises. Without a usable device list (OP-313)
+  the outages still post with the plain detail below, the failure is recorded in
+  `last_error`, and the next poll reads the list again. Each table refreshes
+  independently; lookup records are not deep-copied on every outage poll.
+- **OP-313:** the adapter keeps the device list grouped by station, and each
+  outage's `detail` adds the station's other devices that are in service, by type
+  and the City's location label, elevators first. A device is in service unless
+  the outage feed lists it (any status other than `0`); the list's own status is
+  never used. "Use the ... instead" appears only for an in-service device with the
+  same location label, and an escalator is never suggested in place of an
+  elevator. From the recorded snapshot:
+  - `Central, West Platform. In service at Central: elevators at Platform and North Entrance; escalators at East Platform and North Entrance.`
+  - `Health Sciences/Jubilee, Platform. Use the Platform elevator instead.`
+  - An elevator with no other in-service elevator at its label adds
+    `No other elevator at Platform is in service.`; a station with every device
+    out says `No elevators or escalators at <station> are in service.`
+  - The detail stays within 500 characters: a long list names as many labels as
+    fit and counts the rest (`and 3 more`), never cutting a word. An outage row
+    without a device ID, or a station whose device rows lack a type or label,
+    keeps the plain detail, because the answer could be wrong.
 - Returns the obstruction fields documented in PLAN.md section 10, including
   device ID, station/device location, outage start, our fetch confirmation time,
   attribution and station geometry. Elevator outages are `blocked`; escalator
@@ -67,7 +85,8 @@ background scheduler or write to a database.
   ten minutes later. A City outage still present in a new fetch is freshly
   confirmed even if `polled_time_stamp` is old. This prevents recurring gaps
   between City updates. `since_time_stamp` remains `starts_at`; human-readable
-  `detail` contains just station and device location, without an ISO timestamp.
+  `detail` starts with `<station>, <device location>` (OP-311 reads the station
+  name before the first comma), never an ISO timestamp.
 
 ## Integration still needed
 

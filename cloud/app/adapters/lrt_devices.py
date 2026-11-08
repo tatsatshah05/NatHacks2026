@@ -4,6 +4,12 @@ Read City outages, add device details and station locations, and return map
 records. Elevator outages block access; escalator outages add a caution.
 Keep the last working data when a fetch fails.
 
+OP-313: each outage's ``detail`` also names the station's other elevators and
+escalators that are in service, from the daily City device list grouped by
+station. A device is in service unless the outage feed lists it; the device
+list's own status is never used. Without a usable device list the outages still
+post, with the plain "<station>, <location>" detail.
+
 Output dictionaries follow PLAN.md section 10. The shared SourceAdapter/Obstruction
 integration belongs to OP-101; this module does not define a competing schema.
 """
@@ -16,7 +22,7 @@ import logging
 import math
 import os
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, tzinfo
@@ -38,6 +44,10 @@ LOOKUP_INTERVAL = timedelta(days=1)
 # Each successful fetch confirms the outage for another ten minutes. The City's
 # own poll timestamp can be much older and must not shorten that lifetime.
 DEFAULT_LIFETIME = timedelta(minutes=10)
+# Obstruction.detail is at most 500 characters (cloud/app/schemas.py). An item
+# with a longer detail would be skipped by the scheduler, so every detail fits.
+DETAIL_LIMIT = 500
+DEVICE_KINDS = ("elevator", "escalator")  # the order the detail lists them in
 Row = dict[str, Any]
 LOGGER = logging.getLogger(__name__)
 
@@ -76,6 +86,19 @@ class RowDiagnostics:
             device_id or "unknown",
             error,
         )
+
+
+@dataclass(frozen=True)
+class StationDevice:
+    """One City elevator or escalator, as the daily device list describes it."""
+
+    device_id: str
+    kind: str  # "elevator" or "escalator"
+    location: str  # the City's location label, e.g. "North Entrance"
+
+
+# Station key (``_station_key``) -> that station's devices, in device-id order.
+StationDevices = Mapping[str, tuple[StationDevice, ...]]
 
 
 def _utc(value: datetime) -> datetime:
@@ -243,6 +266,187 @@ def _valid_lookup_rows(
     return valid
 
 
+def _device_order(device: StationDevice) -> tuple[int, int, str]:
+    """Numeric device ids in number order (9 before 10), then any others."""
+    digits = device.device_id.isdigit()
+    return (
+        0 if digits else 1,
+        int(device.device_id) if digits else 0,
+        device.device_id,
+    )
+
+
+def _label_key(label: str) -> str:
+    return " ".join(label.split()).casefold()
+
+
+def group_station_devices(devices: list[Row]) -> dict[str, tuple[StationDevice, ...]]:
+    """Group the City device list by station for the OP-313 detail text.
+
+    The list's own status field is ignored: only the outage feed says what is out.
+    A station with a device row that lacks its type or location label is left out,
+    so its outages keep the plain detail instead of an incomplete answer.
+    """
+    groups: dict[str, list[StationDevice]] = {}
+    incomplete: set[str] = set()
+    seen: set[str] = set()
+    for row in devices:
+        device_id = str(row.get("device_id") or "").strip()
+        station = str(row.get("lrt_station_name") or "").strip()
+        if not device_id or not station:
+            LOGGER.warning("LRT device %s has no station; not listed", device_id or "?")
+            continue
+        key = _station_key(station)
+        kind = str(row.get("device_type") or "").strip().casefold()
+        location = " ".join(str(row.get("lrt_device_location") or "").split())
+        if kind not in DEVICE_KINDS or not location:
+            incomplete.add(key)
+            LOGGER.warning(
+                "LRT device %s at %s lacks a type or location; the station's "
+                "other devices are not listed",
+                device_id,
+                station,
+            )
+            continue
+        if device_id not in seen:
+            seen.add(device_id)
+            groups.setdefault(key, []).append(StationDevice(device_id, kind, location))
+    return {
+        key: tuple(sorted(items, key=_device_order))
+        for key, items in groups.items()
+        if key not in incomplete
+    }
+
+
+def _usable_devices(devices: Any, diagnostics: RowDiagnostics) -> list[Row]:
+    """The valid device rows, or none when the list is missing or invalid.
+
+    The device list only fills missing outage fields and names the station's other
+    devices, so a bad list never stops the outages (OP-313).
+    """
+    if not devices:
+        return []
+    try:
+        return _valid_lookup_rows(DEVICES, devices, diagnostics)
+    except FeedError as exc:
+        LOGGER.warning("LRT device list unusable; plain outage details: %s", exc)
+        return []
+
+
+def _out_of_service_ids(outages: list[Row]) -> set[str] | None:
+    """Device ids the outage feed lists as not in service.
+
+    Any status other than "0" counts, so a row that is invalid for another reason
+    still keeps its device from being called in service. ``None`` when a listed
+    row has no device id: then nobody can tell which devices are in service.
+    """
+    out: set[str] = set()
+    for row in outages:
+        if str(row.get("device_op_status_code") or "").strip() == "0":
+            continue
+        device_id = str(row.get("device_id") or "").strip()
+        if not device_id:
+            return None
+        out.add(device_id)
+    return out
+
+
+def _join(words: Sequence[str]) -> str:
+    """Join words as "A", "A and B" or "A, B and C"."""
+    if len(words) == 1:
+        return words[0]
+    return f"{', '.join(words[:-1])} and {words[-1]}"
+
+
+def _noun(kind: str, count: int) -> str:
+    return kind if count == 1 else f"{kind}s"
+
+
+def _device_list(devices: Sequence[StationDevice], shown: int) -> str:
+    """List devices as "elevators at A and B; escalators at C".
+
+    At most ``shown`` location labels are named. Labels hidden to fit the detail
+    are counted ("and 3 more") from the end, so elevators keep their names longest.
+    """
+    parts = []
+    for kind in DEVICE_KINDS:
+        of_kind = [device for device in devices if device.kind == kind]
+        if not of_kind:
+            continue
+        labels = list({_label_key(d.location): d.location for d in of_kind}.values())
+        visible = labels[: max(shown, 0)]
+        shown -= len(visible)
+        hidden = len(labels) - len(visible)
+        noun = _noun(kind, len(of_kind))
+        if not visible:
+            parts.append(f"{len(of_kind)} {noun}")
+        else:
+            more = [f"{hidden} more"] if hidden else []
+            parts.append(f"{noun} at {_join([*visible, *more])}")
+    return "; ".join(parts)
+
+
+def _fit(text: str, limit: int = DETAIL_LIMIT) -> str:
+    """Cut an overlong text at a word boundary, never inside a word."""
+    if len(text) <= limit:
+        return text
+    cut = text[: limit - 1]
+    if text[limit - 1] != " " and " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+    return cut.rstrip(" ,;:.") + "…"
+
+
+def station_detail(
+    station_name: str,
+    location: str,
+    device_type: str,
+    device_id: str,
+    devices: Sequence[StationDevice] | None,
+    out_ids: set[str] | None,
+    limit: int = DETAIL_LIMIT,
+) -> str:
+    """The outage's ``detail``: where it is, then the station's in-service devices.
+
+    "Use the <label> <kind> instead" names only an in-service device with the same
+    location label; an escalator is never suggested in place of an elevator. With
+    no station devices or unknown statuses it is the plain "<station>, <location>".
+    """
+    base = f"{station_name}, {location}"
+    if not devices or out_ids is None:
+        return _fit(base, limit)
+    in_service = [
+        device
+        for device in devices
+        if device.device_id != device_id and device.device_id not in out_ids
+    ]
+    if not in_service:
+        return _fit(
+            f"{base}. No elevators or escalators at {station_name} are in service.",
+            limit,
+        )
+    usable = ("elevator",) if device_type == "elevator" else DEVICE_KINDS
+    same = [
+        device
+        for device in in_service
+        if device.kind in usable and _label_key(device.location) == _label_key(location)
+    ]
+    text = f"{base}."
+    if same:
+        kinds = [kind for kind in DEVICE_KINDS if any(d.kind == kind for d in same)]
+        text += f" Use the {same[0].location} {' or '.join(kinds)} instead."
+    elif device_type == "elevator":
+        text += f" No other elevator at {location} is in service."
+    rest = [device for device in in_service if device not in same]
+    if rest:
+        prefix = "Also in service at" if same else "In service at"
+        # Name as many labels as fit; drop the list only if not even counts fit.
+        for shown in range(len(rest), -1, -1):
+            listed = f"{text} {prefix} {station_name}: {_device_list(rest, shown)}."
+            if len(listed) <= limit:
+                return listed
+    return _fit(text, limit)
+
+
 def normalize_outages(
     outages: list[Row],
     devices: list[Row],
@@ -252,23 +456,29 @@ def normalize_outages(
     source_timezone: tzinfo,
     lifetime: timedelta = DEFAULT_LIFETIME,
     diagnostics: RowDiagnostics | None = None,
+    station_devices: StationDevices | None = None,
 ) -> list[Row]:
     """Convert valid rows and report bad rows without discarding other outages.
 
     Only the outage feed can create an obstruction. Station coordinates are a
     representative station point, not a verified elevator/entrance position.
+    ``station_devices`` is the device list grouped by station (the adapter keeps
+    it between daily refreshes); without it, ``devices`` is grouped here. An
+    empty or invalid device list still converts outages, with plain details.
     """
     if lifetime <= timedelta(0):
         raise ValueError("Observation lifetime must be positive")
     observed_at = _utc(observed_at)
     diagnostics = diagnostics if diagnostics is not None else RowDiagnostics()
     _rows(outages)
-    _rows(devices)
     _rows(stations)
-    if not devices or not stations:
-        raise FeedError("LRT lookup datasets must not be empty")
-    devices = _valid_lookup_rows(DEVICES, devices, diagnostics)
+    if not stations:
+        raise FeedError("LRT station lookup must not be empty")
+    devices = _usable_devices(devices, diagnostics)
     stations = _valid_lookup_rows(STATIONS, stations, diagnostics)
+    if station_devices is None:
+        station_devices = group_station_devices(devices)
+    out_ids = _out_of_service_ids(outages)
     device_by_id = {_required(row, "device_id"): row for row in devices}
     station_by_name: dict[str, Row] = {}
     # Multiple stops can represent a station. Prefer a Station over a Stop
@@ -295,6 +505,8 @@ def normalize_outages(
                 source_timezone,
                 observed_at,
                 lifetime,
+                station_devices,
+                out_ids,
             )
             device_id = _required(outage, "device_id")
             if device_id in seen:
@@ -321,6 +533,8 @@ def _normalize_outage(
     source_timezone: tzinfo,
     observed_at: datetime,
     lifetime: timedelta,
+    station_devices: StationDevices,
+    out_ids: set[str] | None,
 ) -> Row | None:
     """Convert one outage; callers isolate and log any row validation error."""
     device_id = _required(outage, "device_id")
@@ -343,6 +557,14 @@ def _normalize_outage(
     if since > observed_at:
         raise FeedError(f"Outage starts after observation for device {device_id}")
     location = _required(row, "lrt_device_location")
+    detail = station_detail(
+        station_name,
+        location,
+        device_type,
+        device_id,
+        station_devices.get(_station_key(station_name)),
+        out_ids,
+    )
     # A successful fetch confirms that this outage is still listed. Keep the
     # source's start time, but measure freshness from our own fetch time.
     return {
@@ -353,7 +575,7 @@ def _normalize_outage(
         "kind": f"{device_type}_out",
         "effect": "blocked" if device_type == "elevator" else "caution",
         "title": f"{device_type.capitalize()} out of service",
-        "detail": f"{station_name}, {location}",
+        "detail": detail,
         "geometry": {"type": "Point", "coordinates": _coordinates(station)},
         "confidence": "high",
         "starts_at": _iso(since),
@@ -384,6 +606,8 @@ class LrtDevicesAdapter:
         self.last_error: str | None = None
         self._lookup_success: dict[str, datetime] = {}
         self._devices: list[Row] = []
+        # OP-313: the device list grouped by station, kept with the last good list.
+        self._station_devices: dict[str, tuple[StationDevice, ...]] = {}
         self._stations: list[Row] = []
         self._last_good: list[Row] = []
 
@@ -399,18 +623,27 @@ class LrtDevicesAdapter:
         refreshed_at = self._lookup_success.get(dataset)
         if refreshed_at is not None and now - refreshed_at < LOOKUP_INTERVAL:
             return cached
+        # A missing or unreadable device list (a replay snapshot without the
+        # file, say) must never stop the outages (OP-313); stations are required.
+        errors = (OSError, ValueError) if dataset == DEVICES else (FeedError,)
         try:
             rows = _valid_lookup_rows(dataset, self.reader.read(dataset), diagnostics)
-        except FeedError as exc:
-            if not cached:
+        except errors as exc:
+            if not cached and dataset != DEVICES:
                 raise
-            note = f"Using cached {dataset} lookup after refresh failed: {exc}"
+            note = (
+                f"Using cached {dataset} lookup after refresh failed: {exc}"
+                if cached
+                else f"No {dataset} device list, so outage details name no other "
+                f"devices: {exc}"
+            )
             notes.append(note)
             LOGGER.warning(note)
             return cached
         # Cache the validated rows by reference; conversion only reads them.
         if dataset == DEVICES:
             self._devices = rows
+            self._station_devices = group_station_devices(rows)
         else:
             self._stations = rows
         self._lookup_success[dataset] = now
@@ -431,6 +664,7 @@ class LrtDevicesAdapter:
                 observed_at=now,
                 source_timezone=self.source_timezone,
                 diagnostics=diagnostics,
+                station_devices=self._station_devices,
             )
         except FeedError as exc:
             self.last_error = _diagnostic_summary(diagnostics, [*notes, str(exc)])
