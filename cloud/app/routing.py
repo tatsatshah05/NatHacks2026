@@ -24,21 +24,35 @@ Where hazards come from
     hazards on that edge. Routing only consumes that map, so the matcher can
     change without touching this file. Until OP-206 lands, callers pass an empty
     map and routes ignore hazards.
+
+Where the time goes (OP-404, measured on the city network)
+    A route runs Dijkstra four or five times (the best route, up to three more
+    attempts for alternates, and the plain route that hazards are compared
+    against), about 12 ms each on a laptop, which is over 90% of a request. The
+    weights (0.3 ms) and the sparse matrix (about 1 ms, built once per Dijkstra
+    run) are cached per profile and hazard map in ``WeightCache``, and the
+    penalised searches reuse the cached matrix structure. Routes are identical
+    with and without the cache; ``docs/PERFORMANCE.md`` has the numbers.
 """
 
 from __future__ import annotations
 
+import logging
+import threading
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from itertools import pairwise
 from typing import Literal
 
 import numpy as np
+from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components, dijkstra
 
 from .network import EDGE_STEPS, WalkNetwork
 from .profiles import Profile, RoutingConfig
 from .schemas import Confidence, Effect
+
+log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------- hazard input
 
@@ -175,13 +189,158 @@ def profile_weights(
     return weights
 
 
+# ------------------------------------------------------------- weight cache
+
+
+@dataclass(frozen=True)
+class ProfileWeights:
+    """The cost per edge for one profile on one hazard map, ready for SciPy (OP-404).
+
+    ``weights`` is ``profile_weights()`` for the pair, read-only so no caller can
+    change what every other request sees (copy it first, as ``Router._search``
+    does). ``indices`` and ``indptr`` are the structure of ``length_matrix(weights)``
+    once its zero entries are gone, and ``kept`` is the edge behind each stored
+    entry, in order. ``matrix()`` rebuilds the matrix from them with one gather
+    instead of a full ``length_matrix()`` (about a third of the time on the city
+    network; the measurements are in ``docs/PERFORMANCE.md``), and ``matrix(other)``
+    does the same for any weights with this entry's zero pattern, such as the
+    penalised copies the alternates search makes. Either way the result is exactly
+    what ``length_matrix()`` would return.
+    """
+
+    network: WalkNetwork
+    profile: Profile
+    weights: np.ndarray  # float64 [E], read-only; 0 = removed edge
+    kept: np.ndarray  # int32 [nnz]: the edge of each stored matrix entry
+    indices: np.ndarray  # the matrix's CSR structure, read-only
+    indptr: np.ndarray
+    removed: np.ndarray  # bool [E]: True where the weight is 0 (no edge)
+
+    @classmethod
+    def build(
+        cls, network: WalkNetwork, profile: Profile, hazards: HazardMap
+    ) -> ProfileWeights:
+        weights = profile_weights(network, profile, hazards)
+        matrix = network.length_matrix(weights)
+        removed = weights == 0
+        kept = network.edge_ids[~removed[network.edge_ids]]
+        for array in (weights, kept, matrix.indices, matrix.indptr, removed):
+            array.flags.writeable = False
+        return cls(
+            network, profile, weights, kept, matrix.indices, matrix.indptr, removed
+        )
+
+    def matrix(self, weights: np.ndarray | None = None) -> csr_matrix:
+        """``length_matrix()`` of these weights, or of ``weights`` when given.
+
+        ``weights`` with this entry's zero pattern (the same edges removed) reuse
+        the stored structure; any other weights get a full ``length_matrix()`` build,
+        so the answer is always the one ``length_matrix()`` gives.
+        """
+        if weights is None:
+            weights = self.weights
+        elif weights is not self.weights and not np.array_equal(
+            weights == 0, self.removed
+        ):
+            return self.network.length_matrix(weights)
+        n = self.network.node_count
+        return csr_matrix((weights[self.kept], self.indices, self.indptr), shape=(n, n))
+
+
+class WeightCache:
+    """``ProfileWeights`` per profile and hazard map, shared by every router on a network.
+
+    Keyed by the hazard map *object*: the providers (OP-205, OP-206) build a new map
+    whenever anything changes and never edit one they have handed out, so "the same
+    object" means "the same hazards", and a rebuild simply misses the cache. The
+    cache keeps a reference to each map it holds entries for, so Python cannot give
+    a new map the id of a cached one. Every empty map shares the plain entries.
+
+    Memory stays bounded: only the ``max_maps`` newest hazard maps are kept, and a
+    map holds one entry per profile used (about 5 MB each on the city network:
+    weights, kept, indices and indptr). Entries are immutable, the tables change
+    only under a lock, and a miss builds outside it, so two threads may build the
+    same entry once; the second build is simply dropped.
+    """
+
+    def __init__(self, network: WalkNetwork, *, max_maps: int = 1) -> None:
+        self.network = network
+        self.max_maps = max(0, max_maps)
+        self._plain: dict[str, ProfileWeights] = {}
+        # Newest last. Each map's entries by profile key.
+        self._maps: list[tuple[HazardMap, dict[str, ProfileWeights]]] = []
+        self._lock = threading.Lock()
+        self.hits = 0
+        self.misses = 0
+
+    def get(self, profile: Profile, hazards: HazardMap) -> ProfileWeights:
+        """The entry for this profile on this map, built on the first request."""
+        with self._lock:
+            entries = self._entries(hazards)
+            found = entries.get(profile.key)
+            if found is not None and (
+                found.profile is profile or found.profile == profile
+            ):
+                self.hits += 1
+                return found
+            self.misses += 1
+        built = ProfileWeights.build(self.network, profile, hazards)
+        with self._lock:
+            entries = self._entries(hazards)
+            return entries.setdefault(profile.key, built)
+
+    def _entries(self, hazards: HazardMap) -> dict[str, ProfileWeights]:
+        """The entry table for ``hazards``; the caller holds the lock."""
+        if not hazards:
+            return self._plain
+        for i, (held, entries) in enumerate(self._maps):
+            if held is hazards:
+                if i != len(self._maps) - 1:  # most recently used last
+                    self._maps.append(self._maps.pop(i))
+                return entries
+        entries = {}
+        if self.max_maps:
+            self._maps.append((hazards, entries))
+            while len(self._maps) > self.max_maps:
+                _, dropped = self._maps.pop(0)
+                log.debug(
+                    "ROUTE weight cache: new hazard map, %d entries dropped",
+                    len(dropped),
+                )
+        return entries
+
+    def clear(self) -> None:
+        with self._lock:
+            self._plain.clear()
+            self._maps.clear()
+
+    @property
+    def size(self) -> int:
+        """How many entries the cache holds right now."""
+        with self._lock:
+            return len(self._plain) + sum(len(e) for _, e in self._maps)
+
+
 # -------------------------------------------------------------------- router
 
 
 class Router:
-    def __init__(self, network: WalkNetwork, config: RoutingConfig) -> None:
+    def __init__(
+        self,
+        network: WalkNetwork,
+        config: RoutingConfig,
+        cache: WeightCache | None = None,
+    ) -> None:
         self.network = network
         self.config = config
+        # Shared between routers on one network (ws.py keeps a best-route-only one).
+        if cache is not None and cache.network is not network:
+            raise ValueError("the weight cache belongs to another network")
+        self.cache = cache if cache is not None else WeightCache(network)
+
+    def weights(self, profile: Profile, hazards: HazardMap) -> ProfileWeights:
+        """This profile's cached weights and matrix on ``hazards`` (OP-404)."""
+        return self.cache.get(profile, hazards)
 
     # -- public --------------------------------------------------------------
 
@@ -202,24 +361,23 @@ class Router:
         # Weights first: snapping must know which paths this profile can use right now,
         # otherwise a start inside a blocked stretch snaps to a node with no way out and
         # the whole trip fails even though an open path is a few metres away.
-        weights = profile_weights(self.network, profile, hazards)
+        entry = self.cache.get(profile, hazards)
+        weights = entry.weights
         start = self._snap(from_lat, from_lng, "start", weights)
         end = self._snap(to_lat, to_lng, "end", weights)
         found = (
-            self._search(weights, start.node, end.node)
-            if start.node != end.node
-            else []
+            self._search(entry, start.node, end.node) if start.node != end.node else []
         )
         if not found and start.node != end.node:
             # An end may sit in a pocket of paths cut off from the rest of the network
             # for this profile (between stairs and a closure, say): its node has usable
             # paths, but none of them leads out. Move such an end to the nearest node
             # that connects, and search again.
-            joined = self._join_main_piece(start, end, weights)
+            joined = self._join_main_piece(start, end, entry)
             if joined is not None:
                 start, end = joined
                 if start.node != end.node:
-                    found = self._search(weights, start.node, end.node)
+                    found = self._search(entry, start.node, end.node)
 
         warn_m = self.config.snap.warn_m
         warnings = [w for s in (start, end) if (w := s.warning(warn_m)) is not None]
@@ -241,8 +399,15 @@ class Router:
 
         # The plain shortest route ignores hazards (but keeps the profile's stair rule),
         # so "what did this route avoid?" and "why is it longer?" have a baseline.
-        plain_weights = profile_weights(self.network, profile, NO_HAZARDS)
-        plain = self._shortest(plain_weights, start.node, end.node)
+        plain_entry = self.cache.get(profile, NO_HAZARDS)
+        plain_weights = plain_entry.weights
+        if np.array_equal(weights, plain_weights):
+            # No hazard changes a weight for this profile, so the plain search would
+            # run Dijkstra on the very same matrix as the first search did and find
+            # the very same path: the best route is the plain route.
+            plain: tuple[int, ...] | None = found[0][0]
+        else:
+            plain = self._shortest(plain_entry.matrix(), start.node, end.node)
         plain_edges = set(self._edges_of(plain, plain_weights)) if plain else set()
         routes = [
             self._describe(
@@ -291,7 +456,7 @@ class Router:
         return _Snap(which, lat, lng, chosen, chosen_m, moved)
 
     def _join_main_piece(
-        self, start: _Snap, end: _Snap, weights: np.ndarray
+        self, start: _Snap, end: _Snap, entry: ProfileWeights
     ) -> tuple[_Snap, _Snap] | None:
         """Move each end outside the main connected piece to its nearest node in it.
 
@@ -302,9 +467,7 @@ class Router:
         Runs only after a search has failed, so ordinary routes never pay for it
         (about 12 ms on the city network).
         """
-        _, labels = connected_components(
-            self.network.length_matrix(weights), directed=False
-        )
+        _, labels = connected_components(entry.matrix(), directed=False)
         main = labels == np.bincount(labels).argmax()
         joined: list[_Snap] = []
         for snap in (start, end):
@@ -338,7 +501,7 @@ class Router:
             k *= 4
 
     def _search(
-        self, weights: np.ndarray, src: int, dst: int
+        self, entry: ProfileWeights, src: int, dst: int
     ) -> list[tuple[tuple[int, ...], tuple[int, ...]]]:
         """The best route plus alternates by the penalty method, best first.
 
@@ -347,10 +510,12 @@ class Router:
         from the node path would pick the same edge every time and repeat a route.
         """
         found: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
-        penalised = weights.copy()
+        penalised = entry.weights.copy()  # the cached array is read-only
         alt = self.config.alternates
         for _ in range(alt.attempts):
-            path = self._shortest(penalised, src, dst)
+            # Penalising multiplies weights, so the penalised copy keeps the entry's
+            # zero pattern and its matrix reuses the cached structure.
+            path = self._shortest(entry.matrix(penalised), src, dst)
             if path is None:
                 break
             edges = self._edges_of(path, penalised)
@@ -364,10 +529,10 @@ class Router:
         return found
 
     def _shortest(
-        self, weights: np.ndarray, src: int, dst: int
+        self, matrix: csr_matrix, src: int, dst: int
     ) -> tuple[int, ...] | None:
-        """Dijkstra from src; returns the node path to dst or None when unreachable."""
-        matrix = self.network.length_matrix(weights)
+        """Dijkstra from src on ``matrix`` (a ``length_matrix``); the node path to
+        dst, or None when unreachable."""
         _, predecessors = dijkstra(
             matrix, directed=True, indices=src, return_predecessors=True
         )

@@ -15,7 +15,7 @@ REQUIREMENTS := $(sort $(wildcard cloud/requirements*.txt cloud/tests/requiremen
 # The web app (web/) comes from OP-113. Web steps are skipped until it is here.
 HAS_WEB := $(wildcard web/package.json)
 
-.PHONY: setup dev web test lint format build types e2e graph lrt record worker
+.PHONY: setup dev web test lint format build types e2e graph lrt record worker bench
 
 setup:  ## Create .venv (cloud + vision) and install the web app's dependencies
 	$(PYTHON) -m venv .venv
@@ -76,3 +76,6 @@ record:  ## Record a replay snapshot of every source into snapshots/<UTC time>/ 
 
 worker:  ## Run the vision worker locally (OP-204)
 	$(VENV_PY) -m vision.worker
+
+bench:  ## Measure /api/route latency: 20 trips x 4 profiles against the API on :8000 (OP-404; BENCH_FLAGS="--base-url https://..." for another)
+	$(VENV_PY) scripts/route_bench.py $(BENCH_FLAGS)

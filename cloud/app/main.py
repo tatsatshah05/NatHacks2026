@@ -55,7 +55,7 @@ from cloud.app import (
 )
 from cloud.app.camera_ice_routing import CameraIceHazardProvider
 from cloud.app.camera_readings import CameraReadingStore
-from cloud.app.db import make_engine
+from cloud.app.db import ensure_indexes, make_engine
 from cloud.app.matching import HazardProvider
 from cloud.app.network import DEFAULT_NETWORK_PATH, WalkNetwork
 from cloud.app.profiles import load_routing_config
@@ -286,6 +286,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 hazard_clock=clock,
                 run=run_scheduler,
             )
+            # OP-404: every table exists now; add any index declared since a table
+            # was first created (create_all never alters an existing table). A
+            # database error here must not stop the API: the queries still work.
+            try:
+                created = ensure_indexes(store.engine)
+            except Exception:
+                log.exception("DB could not check indexes; starting without them")
+            else:
+                if created:
+                    log.info("DB created %d missing index(es)", len(created))
             app.state.live = ws.attach(app)  # OP-303: WS /ws live updates
             try:
                 yield

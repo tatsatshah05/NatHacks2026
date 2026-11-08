@@ -21,14 +21,15 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from collections.abc import Iterable
 from typing import Any, cast
 
-from sqlalchemy import event
+from sqlalchemy import Table, event, inspect
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.interfaces import DBAPIConnection
 from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from sqlalchemy.pool import ConnectionPoolEntry, PoolResetState, StaticPool
-from sqlmodel import create_engine
+from sqlmodel import SQLModel, create_engine
 
 log = logging.getLogger("openpath.db")
 
@@ -67,6 +68,37 @@ def make_engine(url: str | None = None) -> Engine:
     # Postgres: pool_pre_ping checks a pooled connection is still alive before using
     # it, so a connection Render dropped overnight gives a reconnect, not an error.
     return create_engine(url, pool_pre_ping=True)
+
+
+def ensure_indexes(engine: Engine, tables: Iterable[Table] | None = None) -> list[str]:
+    """Create every declared index that an existing table lacks (OP-404).
+
+    ``create_all`` makes a table's indexes together with the table and never alters
+    a table that already exists, so a database created by an earlier release lacks
+    any index declared since. This runs at every start: it compares each model's
+    declared indexes with the database's and creates only the missing ones
+    (``checkfirst``, the ``CREATE INDEX IF NOT EXISTS`` of SQLAlchemy). A table that
+    does not exist yet is skipped; ``create_all`` brings its indexes along. Nothing
+    is ever dropped or renamed. Returns the names of the indexes created.
+
+    ``tables`` defaults to every table the imported models declare.
+    """
+    chosen = (
+        list(tables) if tables is not None else list(SQLModel.metadata.sorted_tables)
+    )
+    inspector = inspect(engine)
+    created: list[str] = []
+    for table in chosen:
+        if not inspector.has_table(table.name):
+            continue
+        existing = {index["name"] for index in inspector.get_indexes(table.name)}
+        for index in sorted(table.indexes, key=lambda ix: ix.name or ""):
+            if index.name is None or index.name in existing:
+                continue
+            index.create(engine, checkfirst=True)
+            created.append(index.name)
+            log.info("DB index %s created on %s", index.name, table.name)
+    return created
 
 
 def _memory_engine(url: str) -> Engine:
