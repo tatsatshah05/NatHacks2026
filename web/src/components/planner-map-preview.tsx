@@ -3,6 +3,7 @@ import { PlaceField, PlannerPlace } from "@/lib/planner-types";
 type Props = {
   from: PlannerPlace | null;
   to: PlannerPlace | null;
+  selectedRank: number | null;
   onPick: (field: PlaceField) => void;
 };
 
@@ -12,7 +13,7 @@ const POINTS = { from: { x: 22, y: 30 }, to: { x: 74, y: 70 } };
 // A drawn stand-in for the map until OP-301: two labelled buttons choose the demo
 // start and destination, and a line joins them once both are set. It comes after
 // the results in reading and tab order, and the search fields do everything it does.
-export default function PlannerMapPreview({ from, to, onPick }: Props) {
+export default function PlannerMapPreview({ from, to, selectedRank, onPick }: Props) {
   return (
     <section className="preview" aria-labelledby="map-preview-title">
       <h2 className="sr-only" id="map-preview-title">
@@ -29,8 +30,9 @@ export default function PlannerMapPreview({ from, to, onPick }: Props) {
           {from && to && (
             <path
               d={`M${POINTS.from.x} ${POINTS.from.y} L${POINTS.from.x} ${POINTS.to.y - 12} L${POINTS.to.x} ${POINTS.to.y}`}
+              className={selectedRank ? "preview-route is-selected" : "preview-route"}
               stroke="var(--action)"
-              strokeWidth="4"
+              strokeWidth={selectedRank ? "6" : "4"}
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
               fill="none"
@@ -40,8 +42,8 @@ export default function PlannerMapPreview({ from, to, onPick }: Props) {
         <MapPlace field="from" place={from} onPick={onPick} />
         <MapPlace field="to" place={to} onPick={onPick} />
       </div>
-      <p className="preview-caption">
-        Demo map. The Start and Destination buttons choose sample places; search does the same job.
+      <p className="preview-caption" role="status">
+        {selectedRank ? `Route ${selectedRank} selected on the map.` : "Select a route to highlight it on the map."}
       </p>
     </section>
   );

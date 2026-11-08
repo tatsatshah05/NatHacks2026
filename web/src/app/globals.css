@@ -799,6 +799,15 @@ main > .page-title,
   margin: 8px 0 0;
 }
 
+.route-select {
+  min-height: 44px;
+  margin-bottom: 12px;
+}
+
+.route-select.is-selected {
+  font-weight: 700;
+}
+
 /* Route report */
 .report-actions {
   display: flex;
