@@ -43,6 +43,8 @@ from sqlmodel import Session, SQLModel, col, select
 
 from .camera_status import CamerasStatus
 
+from .camera_status import CamerasStatus
+
 log = logging.getLogger("openpath.cameras")
 
 # The six classes the model knows plus "unknown" for frames it could not judge.
