@@ -13,6 +13,8 @@
 - ``REPLAY_SNAPSHOT``: in replay mode, the folder of recorded responses
   (``cloud/tests/fixtures`` for ``make dev``). ``REPLAY_AT`` optionally freezes the clock.
 - ``SOCRATA_APP_TOKEN``: raises the City open data rate limit. Optional.
+- ``LRT_TRIPS``: ``true`` adds walk and LRT trips to ``/api/route?mode=walk_lrt``
+  (OP-311). Off by default; then every route is walking only.
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ from pydantic import BaseModel
 
 from cloud.app import (
     ingest_api,
+    lrt,
     obstructions_api,
     routing_api,
     sources,
@@ -169,12 +172,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Without the file (a bare checkout) /api/route answers 503 instead of crashing startup.
     app.state.router = None
     app.state.hazard_provider = None
+    app.state.lrt_planner = None  # OP-311: only with LRT_TRIPS on
     if DEFAULT_NETWORK_PATH.exists():
         network = WalkNetwork.load()
         app.state.router = Router(network, load_routing_config())
         # OP-206: matches the store's active obstructions to network edges for routing.
         # OP-205 wraps it below, once the weather service exists.
         app.state.hazard_provider = HazardProvider(store, network)
+        if lrt.enabled(os.environ.get("LRT_TRIPS")):
+            app.state.lrt_planner = lrt.load_planner(app.state.router)
     # One HTTP client per flavour, shared by every adapter and closed at shutdown.
     async with httpx.AsyncClient(timeout=10) as async_client:
         with httpx.Client(timeout=10) as sync_client:
