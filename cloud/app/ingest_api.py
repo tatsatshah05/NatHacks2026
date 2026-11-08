@@ -10,12 +10,19 @@ from __future__ import annotations
 import os
 import secrets
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 
-from .camera_readings import CameraReadingIn, CameraReadingStore, to_feature
+from .camera_readings import (
+    CLOCK_SKEW,
+    CameraCollection,
+    CameraReadingIn,
+    CameraReadingStore,
+    Outcome,
+    to_feature,
+)
 
 router = APIRouter(prefix="/api", tags=["cameras"])
 
@@ -28,19 +35,23 @@ def get_camera_store(request: Request) -> CameraReadingStore:
 
 
 def require_worker_key(x_worker_key: Annotated[str | None, Header()] = None) -> None:
-    """Only the vision worker may post readings. Compared in constant time."""
+    """Only the vision worker may post readings. Compared in constant time, as bytes."""
     expected = os.environ.get("WORKER_KEY")
     if not expected:
         raise HTTPException(503, "WORKER_KEY is not configured on this server.")
-    if not x_worker_key or not secrets.compare_digest(x_worker_key, expected):
+    # Bytes, so a header with non-ASCII characters is a plain mismatch, not a 500.
+    if not x_worker_key or not secrets.compare_digest(
+        x_worker_key.encode("utf-8", "surrogateescape"), expected.encode("utf-8")
+    ):
         raise HTTPException(401, "Missing or wrong X-Worker-Key header.")
 
 
 class IngestResult(BaseModel):
-    stored: bool
+    stored: bool  # False when a newer reading for this view is already stored
     source_ref: str
     label: str
     changed: bool  # True when the view's label differs from the previous reading
+    outcome: Outcome
 
 
 @router.post(
@@ -50,24 +61,38 @@ class IngestResult(BaseModel):
 )
 def ingest_camera(
     reading: CameraReadingIn,
+    request: Request,
     store: Annotated[CameraReadingStore, Depends(get_camera_store)],
 ) -> IngestResult:
     """Store the latest reading for one camera view (upsert by ``source_ref``)."""
-    changed = store.upsert(reading, datetime.now(UTC))
+    now = datetime.now(UTC)
+    mode: str = request.app.state.mode
+    if reading.mode != mode:
+        # Never show a replayed reading on a live map, or a live one in a replay demo.
+        raise HTTPException(
+            409, f"This API runs in {mode} mode; the reading is {reading.mode}."
+        )
+    if reading.observed_at > now + CLOCK_SKEW:
+        raise HTTPException(
+            422, "observed_at is in the future; check the worker's clock."
+        )
+    outcome = store.upsert(reading, now)
     return IngestResult(
-        stored=True, source_ref=reading.source_ref, label=reading.label, changed=changed
+        stored=outcome is not Outcome.OLDER,
+        source_ref=reading.source_ref,
+        label=reading.label,
+        changed=outcome in (Outcome.NEW, Outcome.CHANGED),
+        outcome=outcome,
     )
 
 
-@router.get("/cameras")
+@router.get("/cameras", response_model=CameraCollection)
 def list_cameras(
     store: Annotated[CameraReadingStore, Depends(get_camera_store)],
-) -> dict[str, Any]:
+) -> CameraCollection:
     """The latest unexpired reading for every camera view, as GeoJSON points."""
     now = datetime.now(UTC)
-    rows = store.latest(now)
-    return {
-        "type": "FeatureCollection",
-        "generated_at": now.isoformat().replace("+00:00", "Z"),
-        "features": [to_feature(row, now) for row in rows],
-    }
+    return CameraCollection(
+        generated_at=now.isoformat().replace("+00:00", "Z"),
+        features=[to_feature(row, now) for row in store.latest(now)],
+    )
