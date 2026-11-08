@@ -15,6 +15,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
+from cloud.app.adapters._text import DETAIL_MAX_CHARS
 from cloud.app.adapters.city_advisories import (
     SnowComplaintsAdapter,
     TrailClosuresAdapter,
@@ -22,6 +23,7 @@ from cloud.app.adapters.city_advisories import (
     end_time,
     iso,
 )
+from cloud.app.schemas import Obstruction
 
 FIXTURES = Path(__file__).parent / "fixtures/city_advisories"
 NOW = datetime(2026, 11, 7, 21, 30, tzinfo=UTC)
@@ -121,6 +123,30 @@ def test_recorded_trails_map_structured_types_and_skip_expired(records):
     assert by_id["1"]["confidence"] == "high"
     assert by_id["1"]["observed_at"] == iso(NOW)
     assert by_id["9"]["starts_at"] == "2011-07-18T00:00:00Z"
+
+
+def test_long_recorded_notices_are_shortened_not_dropped(records):
+    """Notices 3 and 484 run past the 500-character limit; they still publish."""
+    _, trails = records
+    items = TrailClosuresAdapter(None).normalize(trails, NOW)
+    # Every active notice, the two long ones included, and none the scheduler skips.
+    assert len(items) == 46
+    for item in items:
+        Obstruction.model_validate(item)
+    by_id = {item["source_ref"]: item for item in items}
+    notices = {row["id_number"]: row["details"] for row in trails}
+    for ref, reported_end in (("3", "Undetermined"), ("484", "Permanently closed")):
+        assert len(notices[ref]) > DETAIL_MAX_CHARS
+        item = by_id[ref]
+        assert item["effect"] == "blocked" and item["kind"] == "trail_closed"
+        assert len(item["detail"]) <= DETAIL_MAX_CHARS
+        # The City's words are shortened between two words; the end date stays.
+        ending = f"... Reported end: {reported_end}."
+        assert item["detail"].endswith(ending)
+        kept = item["detail"].removesuffix(ending)
+        assert notices[ref].startswith(kept)
+        assert notices[ref][len(kept)] == " "
+        assert item["url"] == "https://data.edmonton.ca/d/k4mi-dkvi"  # the full text
 
 
 def test_future_trail_is_not_active_and_current_day_end_is_inclusive(records):
