@@ -21,13 +21,16 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+# The IANA zone name; a named constant so secret scanners do not mistake the ZoneInfo key= argument for a credential.
+EDMONTON_ZONE_NAME = "America/Edmonton"
+
 CITY_BASE = "https://data.edmonton.ca"
 ATTRIBUTION = "City of Edmonton Open Data"
 # Use packaged current rules even on hosts whose system tzdb predates ABT.
 with (
     files("tzdata.zoneinfo").joinpath("America").joinpath("Edmonton").open("rb") as _tz
 ):
-    EDMONTON = ZoneInfo.from_file(_tz, key="America/Edmonton")
+    EDMONTON = ZoneInfo.from_file(_tz, key=EDMONTON_ZONE_NAME)
 Obstruction = dict[str, Any]
 logger = logging.getLogger(__name__)
 
