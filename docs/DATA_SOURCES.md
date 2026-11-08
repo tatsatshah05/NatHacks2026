@@ -229,3 +229,15 @@ The target is under 200 ms for the top 8 results. These measurements are from on
 - Holidays are not modelled: the busiest date of each day type stands for it.
 - A station with no City elevator and no GTFS elevator pathway is treated as reachable without stairs (`at_grade`). That is an inference from the two datasets, not a survey.
 - Live LRT status is the City outage feed (`snws-u3zx`, OP-105), never the GTFS feed. Waits are schedule estimates, never live arrivals.
+
+## Community Reports (OP-308)
+
+**What it is.** Reports of snow, ice or a blocked path that people send from the web app's Report button (`POST /api/reports`), each with an optional photo. A report becomes a `community_report` obstruction and expires per `config/reports.json`. Shown as "Community report".
+
+**The photo check (decided by Tatsat on November 8, 2026).** The ONNX road-condition model and Claude check each photo together, with the agree rule the camera worker uses. A report gets `medium` confidence only when both agree with the reported type; anything else is `low`, and the reported type is kept. The six road-condition classes cannot show a blocked path, so for a `blocked` report Claude is asked "Is the walking path in this photo blocked?" and the model only has to be able to read the photo: **confirmation of a blocked path rests on Claude alone.** The model was trained and tested on 511 road-camera frames, not on phone photos of sidewalks, so its accuracy on report photos is not measured.
+
+**Privacy.**
+- A report photo is held in memory for one request and never stored by OpenPath: not on disk, not in the database, not in a log. Only its size and the class a check saw are logged.
+- **Third-party processing.** For the Claude check, the API sends the photo to the Anthropic API (Claude, model `claude-haiku-5-5` by default), in memory, over HTTPS. Anthropic processes it under its API terms; OpenPath keeps no copy. Claude is not sent the reported type, the note, the location or the device's anonymous id. The model check runs on our own server.
+- Before sending, the web app re-encodes the photo as a JPEG at most 1600 px on its longest edge, which drops its metadata (such as GPS position). If the browser cannot decode the photo, it sends the original JPEG or PNG file instead, metadata included; Claude receives the photo as sent.
+- The `/sources` and privacy pages must say that report photos are checked by Claude through the Anthropic API when they are built, as for camera frames.

@@ -15,6 +15,7 @@ Secrets live only in the Render, Vercel and GitHub settings, never in the reposi
    - `CORS_ORIGINS`: leave it empty for now and set it after step 2 below
    - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`: generate them as in section 5. Left empty, the API runs and saves routes, but sends no push alerts
    - `WEATHER_*` can stay empty until OP-109 uses them
+   - `ANTHROPIC_API_KEY`, `MODEL_URL`, `MODEL_LABELS`, `MODEL_SHA256`: the report photo check, set as in section 6. Left empty, the API runs and every report gets low confidence
 4. Render generates `ADMIN_KEY` and `WORKER_KEY` itself. Share them with the team privately, never in Git.
 5. Open the `openpath-api` service, go to **Settings → Deploy Hook**, and copy the URL.
 6. Check that `https://<service>.onrender.com/health` returns `{"status": "ok", "version": "<commit>", "mode": "live"}`.
@@ -60,11 +61,11 @@ Render's free plan has no background workers, so the camera worker (OP-204) runs
    export ALBERTA_511_KEY="..."   # the team's 511 Alberta key
    export WORKER_KEY="..."        # the same value as WORKER_KEY on the openpath-api service
    export CLOUD_URL="https://openpath-api-w6ql.onrender.com"
-   export ANTHROPIC_API_KEY="..." # the Claude agree check; this laptop only, never on Render
-   export MODEL_URL="..."         # the model release asset, once it is published (see step 3)
+   export ANTHROPIC_API_KEY="..." # the Claude agree check (Render has its own for report photos, section 6)
+   export MODEL_URL="..."         # the model release asset, once it is published (section 6, step 1)
    ```
 
-3. **Get the model details:** `labels.json`, the model's SHA-256 and the validated minimum score in `vision/MODEL_CARD.md`. The weights are not published as a release yet, so until they are, use the local `model.onnx` with `--model-file` instead of setting `MODEL_URL`; the SHA-256 is checked either way.
+3. **Get the model details:** `labels.json`, the model's SHA-256 and the validated minimum score in `vision/MODEL_CARD.md`. Until the weights are published as a release (section 6, step 1), use the local `model.onnx` with `--model-file` instead of setting `MODEL_URL`; the SHA-256 is checked either way.
 4. **Start it** and keep the laptop awake and on power (`caffeinate -i` on macOS):
 
    ```bash
@@ -90,6 +91,62 @@ Push alerts for saved routes are signed with a VAPID key pair. Generate one once
 It prints four lines. Put `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` on the `openpath-api` service in Render, and `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (the same public key) in Vercel for Production and Preview. Share the private key only through the dashboards, never in Git or chat. Both keys are base64url strings: the public key is the browser's `applicationServerKey`, and the private key is its raw 32 bytes, which pywebpush reads directly.
 
 Check that `https://<service>.onrender.com/api/push/public-key` returns `"push_enabled": true`. If it says `false`, the API log has one `PUSH disabled` line with the reason (a key missing, no subject, or a public key that does not belong to the private key). Changing the keys invalidates every existing browser subscription, so generate them once and keep them.
+
+## 6. Report photo check on Render (OP-308)
+
+Community report photos are checked by both the ONNX road-condition model and Claude (lead decision, November 8). A report gets medium confidence only when both agree with the reported type; anything else is low, and the response says why (`photo.note`) and which checks answered (`photo.checked_by`). For a blocked path, which none of the model's six classes can show, Claude answers "Is the walking path in this photo blocked?" and the model only has to be able to read the photo, so **blocked confirmation rests on Claude alone**. The model was trained and tested on road-camera frames; its accuracy on phone photos is not measured.
+
+`render.yaml` installs `cloud/requirements-photo-check.txt` on top of `cloud/requirements.txt`: only `onnxruntime`, `Pillow` and `anthropic`, never PyTorch or OpenCV. Measured on November 8 for Linux x86_64 and Python 3.12: the `onnxruntime` 1.31.1 wheel is 23.8 MB (67 MB installed), and the three packages with their new dependencies add about 126 MiB installed. With the `v1-night` model and the Claude client loaded, the API's peak memory after startup and one model check was 321 MiB, against 255 MiB without them (measured on a Mac, so treat it as an estimate for the 512 MB free instance).
+
+The lead does these steps once.
+
+1. **Publish the model as a GitHub release** (as in [vision/README.md](../vision/README.md#publishing-the-weights)), from the laptop that holds the `v1-night` run. The repository is public, so Render downloads the assets without a token.
+
+   ```bash
+   RUN=/path/to/runs/v1-night   # the folder with model.onnx, labels.json and metrics.json
+   SHA=$(python -c "import json, sys; print(json.load(open(sys.argv[1]))['model_sha256'])" "$RUN/metrics.json")
+   shasum -a 256 "$RUN/model.onnx"; echo "$SHA"   # both must be 5b54b705...304b96
+   ```
+
+   Only if both lines show `5b54b705219138edea5b26c13f9c2a99390dde4f6058c6a822da879f59304b96`, publish:
+
+   ```bash
+   gh release create camera-model-night-v1 "$RUN/model.onnx" "$RUN/labels.json" \
+     --repo tatsatshah05/NatHacks2026 \
+     --title "Road-condition model v1-night" \
+     --notes "Trained with vision/train.py, seed 202. model.onnx SHA-256: $SHA. Metrics: vision/MODEL_CARD.md."
+   ```
+
+   Check the published asset: `curl -sL https://github.com/tatsatshah05/NatHacks2026/releases/download/camera-model-night-v1/model.onnx | shasum -a 256` prints the same SHA-256.
+
+2. **Set four variables** on the `openpath-api` service (Render dashboard, **Environment**). Never commit them.
+
+   | Key | Value |
+   | --- | --- |
+   | `ANTHROPIC_API_KEY` | An Anthropic API key for the team |
+   | `MODEL_URL` | `https://github.com/tatsatshah05/NatHacks2026/releases/download/camera-model-night-v1/model.onnx` |
+   | `MODEL_LABELS` | `https://github.com/tatsatshah05/NatHacks2026/releases/download/camera-model-night-v1/labels.json` |
+   | `MODEL_SHA256` | `5b54b705219138edea5b26c13f9c2a99390dde4f6058c6a822da879f59304b96` |
+
+   Optional: `REPORTS_AI_MODEL` (default `claude-haiku-5-5`) and `MODEL_MIN_SCORE` (default 0.5, the score at which the model card's agree-check results were measured). Do not set `MODEL_FILE` on Render.
+
+3. **Deploy.** The new build command reaches Render with `render.yaml` when this change is released into `main`. Check that **Settings → Build Command** reads `pip install -r cloud/requirements.txt -r cloud/requirements-photo-check.txt`; if it does not, run **Manual Sync** on the Blueprint. The order of steps 2 and 3 does not matter: without the packages, the API logs that a check is not available and keeps accepting reports at low confidence.
+
+4. **Check it.** The API configures no INFO logging, so Render's log shows only warnings. A correct setup starts with no `REPORT photo check` warning; each problem has its own line:
+   - `REPORT photo check: only ... is running; the decided setup is the ONNX model and Claude together (check ...)`: one check is missing, and the line names what to set.
+   - `REPORT photo check: the ONNX model is not available (ValueError)`: usually `MODEL_SHA256` does not match `model.onnx` or the `sha256` inside `labels.json`. The API refuses both rather than use the wrong model.
+   - `... not available (ModuleNotFoundError)`: the build did not install `cloud/requirements-photo-check.txt` (step 3).
+
+   To see the success line before deploying, run this on a laptop after `make setup`, with the same four values exported in the shell. It downloads the release assets and checks the SHA-256 but makes no Claude call:
+
+   ```bash
+   .venv/bin/python -c "import logging; logging.basicConfig(level=logging.INFO); from cloud.app.reports import build_photo_checker; build_photo_checker()"
+   # REPORT photo check: onnx:5b54b7052191 + claude:claude-haiku-5-5; medium confidence needs both to agree
+   ```
+
+**Privacy.** Each report photo is sent to the Anthropic API in memory for the Claude check and never stored by OpenPath (docs/DATA_SOURCES.md, Community Reports). Claude is sent only the photo and the question, never the note, the location or the device id.
+
+**Cost and speed.** Each report photo makes at most one Claude call, and none when the model already rules it out, with a 10 s timeout and one retry. After 3 API failures in a row the Claude check pauses for 5 minutes, and photos in that time get low confidence. `vision/ai_check.py` prices Haiku 5.5 at $0.10 per million input tokens and $0.50 per million output tokens; the cost per photo has not been measured yet.
 
 ## Current deployment (November 8, 2026)
 
