@@ -22,6 +22,11 @@
   min-width: 0;
 }
 
+/* Focus arrives here from "Show on the map"; the ring sits around the whole map. */
+.side:focus-visible {
+  outline-offset: 4px;
+}
+
 .mapLoading {
   align-items: center;
   border: 1px solid var(--line);
@@ -36,9 +41,9 @@
 
 @media (min-width: 900px) {
   .mapLoading {
-    height: calc(100vh - 140px);
+    height: calc(100vh - 330px);
     max-height: none;
-    min-height: 420px;
+    min-height: 380px;
   }
 }
 
@@ -49,8 +54,8 @@
 
 .report {
   border-top: 1px solid var(--line);
-  margin-top: 24px;
-  padding-top: 16px;
+  margin-top: 16px;
+  padding-top: 12px;
 }
 
 .reportTitle {
@@ -58,5 +63,5 @@
 }
 
 .report p {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }

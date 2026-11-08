@@ -17,7 +17,8 @@ type FailureProps = {
   headingLevel?: 2 | 3;
 };
 
-type Wording = { title: string; body: string; canDemo: boolean };
+// `canRetry`: the same request could work later. A refused request needs new places.
+type Wording = { title: string; body: string; canDemo: boolean; canRetry: boolean };
 
 export function failureWording(error: unknown): Wording {
   if (error instanceof ApiError) {
@@ -26,20 +27,23 @@ export function failureWording(error: unknown): Wording {
         return {
           title: "This device is offline.",
           body: "Routes need a connection. Connect to the internet, then try again.",
-          canDemo: true
+          canDemo: true,
+          canRetry: true
         };
       case "rejected":
         return {
           title: "These places cannot be routed.",
-          body: error.message.endsWith(".") ? error.message : `${error.message}.`,
-          canDemo: false
+          body: `${error.message.endsWith(".") ? error.message : `${error.message}.`} Change the place, then find routes again.`,
+          canDemo: false,
+          canRetry: false
         };
       case "unavailable":
         if (error.status === 503) {
           return {
             title: "The route service is not ready.",
             body: "It may be starting up. Try again in a minute.",
-            canDemo: true
+            canDemo: true,
+            canRetry: true
           };
         }
         break;
@@ -50,7 +54,8 @@ export function failureWording(error: unknown): Wording {
   return {
     title: "The route service did not answer.",
     body: "Check your connection and try again.",
-    canDemo: true
+    canDemo: true,
+    canRetry: true
   };
 }
 
@@ -62,14 +67,16 @@ export function RouteFailure({ error, onRetry, onDemo, headingLevel = 2 }: Failu
     <div className={styles.problem} role="alert">
       <Heading className={styles.title}>{wording.title}</Heading>
       <p>{wording.body}</p>
-      <div className={styles.actions}>
-        <Button onClick={onRetry}>Try again</Button>
-        {onDemo && wording.canDemo && (
-          <Button variant="secondary" onClick={onDemo}>
-            Show demo routes instead
-          </Button>
-        )}
-      </div>
+      {wording.canRetry && (
+        <div className={styles.actions}>
+          <Button onClick={onRetry}>Try again</Button>
+          {onDemo && wording.canDemo && (
+            <Button variant="secondary" onClick={onDemo}>
+              Show demo routes instead
+            </Button>
+          )}
+        </div>
+      )}
       {onDemo && wording.canDemo && (
         <p className={styles.note}>Demo routes are samples for trying the app. They are not real routes or current conditions.</p>
       )}

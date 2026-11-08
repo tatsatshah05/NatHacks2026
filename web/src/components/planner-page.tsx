@@ -118,7 +118,7 @@ export default function PlannerPage() {
       const response = await getRoutes(query, controller.signal);
       setResult({ query, response, now: new Date(), demo: false });
       setFailure(null);
-      if (quiet) setRefreshNote("Routes checked again just now.");
+      if (quiet) setRefreshNote("Routes checked again after the change.");
       // The URL now reopens these routes; replaceState keeps the history clean.
       window.history.replaceState(null, "", plannerHref(query, { saved: savedRef.current }));
     } catch (error) {
@@ -283,9 +283,14 @@ export default function PlannerPage() {
     return () => controller.abort();
   }, [result, selected]);
 
-  const selectRoute = useCallback((rank: number, reveal: boolean) => {
+  // "Show on the map": draw this route as the thick line and take the person to the
+  // map. The button they pressed becomes text, so focus moves to the map section.
+  const selectRoute = useCallback((rank: number) => {
     setSelectedRank(rank);
-    if (reveal) mapRef.current?.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+    const map = mapRef.current;
+    if (!map) return;
+    map.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+    map.focus({ preventScroll: true });
   }, []);
 
   const toggleRoute = useCallback((rank: number, open: boolean) => {
@@ -308,7 +313,7 @@ export default function PlannerPage() {
   const dataLabel = result?.demo
     ? "This is a demo route, not a real route or current conditions."
     : replay
-      ? "Replayed data, not current conditions."
+      ? "Replayed data."
       : null;
 
   let status = "";
@@ -320,9 +325,8 @@ export default function PlannerPage() {
     status = result.demo
       ? `${plural(routes.length, "demo route", "demo routes")} ${profilePhrase(result.query.profile)}. They are samples, not real routes or current conditions.`
       : `${plural(routes.length, "route", "routes")} ${profilePhrase(result.query.profile)}, best first.${replay ? " Replayed data, not current conditions." : ""}`;
-  } else if (result) {
-    status = "No route found.";
   }
+  // A failure or "no route" is announced by its own alert, so the status line stays empty.
 
   const notes = result ? tripNotes(result) : [];
 
@@ -386,7 +390,7 @@ export default function PlannerPage() {
               label="Include LRT trips"
               checked={includeLrt}
               onChange={chooseLrt}
-              help="Walk to a station, ride the train and walk on, when that is faster."
+              help="Walk, ride the LRT and walk on, when that is faster."
             />
             <Button type="submit" size="large" block>
               Find routes
@@ -447,7 +451,7 @@ export default function PlannerPage() {
         </div>
 
         <div className="page-side">
-          <section className={styles.side} aria-labelledby="planner-map-title" ref={mapRef}>
+          <section className={styles.side} aria-labelledby="planner-map-title" ref={mapRef} tabIndex={-1}>
             <h2 className="sr-only" id="planner-map-title">
               Map
             </h2>

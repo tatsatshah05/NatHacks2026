@@ -58,7 +58,7 @@ export default function PlaceInput({ field, label, value, selected, error, onQue
         help="Type an address, an LRT station or a place name, then choose a suggestion."
         helpHidden
         error={error}
-        note={selected ? `Selected: ${selected.name}, ${selected.description}` : undefined}
+        note={selected ? `Selected: ${[selected.name, selected.description].filter(Boolean).join(", ")}.` : undefined}
         inputProps={{
           ref: inputRef,
           value,

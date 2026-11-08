@@ -15,10 +15,10 @@
 // and the list still holds everything.
 
 import { MutableRefObject, useEffect, useRef, useState } from "react";
-import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, LngLatBoundsLike, Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { effectShape, hazardShapeSvg } from "./ui/hazard-shapes";
+import maplibregl from "@/lib/maplibre";
 import type { PlannerPlace, RouteOut } from "@/lib/planner-types";
 import styles from "./planner-map.module.css";
 
@@ -224,7 +224,9 @@ export default function PlannerMap({ routes, selectedRank, from, to, conditions,
       return;
     }
     const bounds = boundsOf(points);
-    if (bounds) map.fitBounds(bounds, { padding: 56, maxZoom: 16, animate, duration: animate ? 500 : 0 });
+    // More room at the bottom, where the attribution sits.
+    const padding = { top: 56, right: 64, bottom: 72, left: 48 };
+    if (bounds) map.fitBounds(bounds, { padding, maxZoom: 16, animate, duration: animate ? 500 : 0 });
   }, [routes, selectedRank, from, to]);
 
   // Start and end.

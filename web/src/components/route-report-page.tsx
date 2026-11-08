@@ -137,7 +137,6 @@ function RouteReport({ params }: { params: ReportParams }) {
         ) : !route ? (
           <div className="page report">
             <div className="page-main">
-              <StatusLine>No route found.</StatusLine>
               <NoRoute response={loaded.response} profile={params.profile} />
               <p>
                 <Link href={backHref}>Change the trip in the planner</Link>

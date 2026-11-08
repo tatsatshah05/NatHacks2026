@@ -323,7 +323,12 @@ export default function ReportButton({ getLocation, apiBase, clientId, onReporte
               options={TYPES.map((option) => ({
                 id: option.id,
                 label: option.label,
-                icon: <HazardShapeIcon shape={option.shape} size={24} />
+                // On its own card-coloured disc, so the shape keeps its contrast when the option is chosen.
+                icon: (
+                  <span className={styles.shapeDisc}>
+                    <HazardShapeIcon shape={option.shape} size={18} />
+                  </span>
+                )
               }))}
               value={type}
               onChange={(next) => {

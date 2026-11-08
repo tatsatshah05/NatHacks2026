@@ -15,11 +15,12 @@
   overflow: hidden;
 }
 
+/* Beside the plan, the map and the report section below it fit in one screen. */
 @media (min-width: 900px) {
   .canvas {
-    height: calc(100vh - 140px);
+    height: calc(100vh - 330px);
     max-height: none;
-    min-height: 420px;
+    min-height: 380px;
   }
 }
 

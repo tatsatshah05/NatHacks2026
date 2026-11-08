@@ -43,9 +43,14 @@ function tripSearch(query: PlannerQuery, { saved }: LinkOptions = {}): URLSearch
   return params;
 }
 
+// Commas are legal in a query string; keeping them makes "from=53.5,-113.4" readable.
+function encode(params: URLSearchParams): string {
+  return params.toString().replace(/%2C/gi, ",");
+}
+
 /** `/?from=…&to=…&profile=…`: the planner, which runs the search when it opens. */
 export function plannerHref(query: PlannerQuery, options: LinkOptions = {}): string {
-  return `/?${tripSearch(query, options).toString()}`;
+  return `/?${encode(tripSearch(query, options))}`;
 }
 
 /** `/route?…&route=2`: the full report for one route of the trip. */
@@ -53,7 +58,7 @@ export function reportHref(query: PlannerQuery, rank: number, options: LinkOptio
   const params = tripSearch(query, options);
   params.set("route", String(rank));
   if (options.demo) params.set("demo", "1");
-  return `/route?${params.toString()}`;
+  return `/route?${encode(params)}`;
 }
 
 /** The trip in a planner or report URL. Missing or broken points come back as null. */
@@ -85,12 +90,14 @@ export function parseReportParams(params: URLSearchParams): ReportParams | null 
   };
 }
 
-/** A place for a bare point, when the link carries no name. */
+/** A place from a link: its name, or the point itself when the link carries no name. */
 export function pointPlace(field: "from" | "to", lat: number, lng: number, name?: string): PlannerPlace {
+  const point = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
   return {
     id: `${field}-${lat.toFixed(6)},${lng.toFixed(6)}`,
     name: name || (field === "from" ? "Start point" : "Destination point"),
-    description: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+    // A named place needs no coordinates beside it; a bare point shows them.
+    description: name ? "" : point,
     coordinates: [lng, lat]
   };
 }

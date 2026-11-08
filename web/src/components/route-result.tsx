@@ -15,11 +15,11 @@ type Props = {
   reportLink: string;
   /** This route is the one drawn as the thick line on the map. */
   selected: boolean;
-  /** Draw this route as the thick line; `reveal` brings the map into view. */
-  onSelect: (rank: number, reveal: boolean) => void;
+  /** Draw this route as the thick line and go to the map. */
+  onSelect: (rank: number) => void;
   /** An alternate was opened or closed. */
   onToggle: (rank: number, open: boolean) => void;
-  /** "Replayed data, not current conditions." or the demo label; null when live. */
+  /** "Replayed data." or the demo label; null when live. */
   dataLabel: string | null;
   /** The route's "Save this route" button (OP-306), placed with the other actions. */
   saveAction?: ReactNode;
@@ -73,17 +73,18 @@ export default function RouteResult({
     </>
   );
 
-  const mapLine = (
+  // Which route the map draws thick, in words. Pressing the button moves focus to
+  // the map, so the button can give way to the sentence.
+  const mapLine = selected ? (
+    <p className="route-map-line route-shown">
+      <svg width="28" height="10" viewBox="0 0 28 10" aria-hidden="true" focusable="false">
+        <path d="M2 5h24" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+      </svg>
+      Shown on the map as the thick line.
+    </p>
+  ) : (
     <p className="route-map-line">
-      {selected ? (
-        <span className="route-shown">
-          <svg width="28" height="10" viewBox="0 0 28 10" aria-hidden="true" focusable="false">
-            <path d="M2 5h24" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-          </svg>
-          Shown on the map as the thick line.
-        </span>
-      ) : null}
-      <Button variant="text" onClick={() => onSelect(route.rank, true)}>
+      <Button variant="text" onClick={() => onSelect(route.rank)}>
         Show on the map<span className="sr-only">, route {route.rank}</span>
       </Button>
     </p>
