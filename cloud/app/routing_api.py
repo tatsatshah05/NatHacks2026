@@ -3,25 +3,36 @@
 Query: ``from=lat,lng`` ``to=lat,lng`` ``profile=wheelchair|walker_cane|low_vision|standard``.
 
 The app loads the walking network once at startup (``app.state.router``). Hazards
-come from ``app.state.hazard_provider``, which OP-206 sets to the matcher; until
-then routes ignore hazards. The Maps links (OP-209) pin our detours as Google waypoints.
+come from ``app.state.hazard_provider``: OP-205's ``CameraIceHazardProvider``, which
+adds camera ice risks on exact crossings to the OP-206 matcher's map (its ``base``).
+The Maps links (OP-209) pin our detours as Google waypoints.
+Each route carries a ``report`` (OP-208): every known item on it, within 50 m of it
+or avoided by it, grouped by category.
 """
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
+from .camera_ice_routing import CameraIceHazardProvider
 from .maps_links import (
     APPLE_MAPS_NOTE,
     apple_maps_url,
     detour_waypoints,
     google_maps_url,
 )
-from .routing import HazardMap, Router, RoutingError
+from .matching import HazardProvider
+from .obstructions_api import get_now
+from .report import ItemIndex, RouteReportOut, build_report
+from .routing import HazardMap, Route, Router, RoutingError
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["routing"])
 
@@ -48,6 +59,7 @@ class RouteOut(BaseModel):
     hazards_avoided: list[HazardOut]
     warnings: list[str]
     reason: str | None
+    report: RouteReportOut  # OP-208: on the route, within 50 m, and avoided
     google_maps_url: (
         str  # walking directions with up to 3 waypoints that pin our detours
     )
@@ -86,15 +98,61 @@ def get_router(request: Request) -> Router:
     return router_
 
 
-def get_hazards(request: Request) -> HazardMap:
+def get_hazards(
+    request: Request, now: Annotated[datetime, Depends(get_now)]
+) -> HazardMap:
+    """The current hazards, at the app's time (the replay clock when it is frozen)."""
     provider = getattr(request.app.state, "hazard_provider", None)
-    return provider(datetime.now(UTC)) if provider else {}
+    return provider(now) if provider else {}
+
+
+def get_report_items(
+    request: Request, _hazards: Annotated[HazardMap, Depends(get_hazards)]
+) -> list[ItemIndex]:
+    """The records behind the hazards, for the route report.
+
+    Depends on ``get_hazards`` so the providers have built their maps before they
+    are read. ``CameraIceHazardProvider`` contributes an index of its camera ice
+    risks (full ``Obstruction`` records, which never pass through the store) and
+    wraps the matcher as its ``base``, which contributes the store's items. The
+    classes are checked, not ``latest``: both have one, of different types. Any
+    other provider gives no records, so the report lists only the hazards routing met.
+    """
+    provider = getattr(request.app.state, "hazard_provider", None)
+    indexes: list[ItemIndex] = []
+    if isinstance(provider, CameraIceHazardProvider):
+        if provider.items is not None:
+            indexes.append(provider.items)  # first, so its camera records win
+        provider = provider.base
+    if isinstance(provider, HazardProvider):
+        # ``latest`` is read separately from ``get_hazards``, so a background rebuild
+        # finishing in between can pair a newer index with older hazards. That is
+        # harmless: a hazard missing from the index is listed from the hazard itself
+        # (``ReportRecord.of_hazard``), and a newer item is at worst listed as nearby.
+        latest = provider.latest
+        if latest is not None and latest.items is not None:
+            indexes.append(latest.items)
+    return indexes
+
+
+def route_report(route: Route, items: Sequence[ItemIndex]) -> RouteReportOut:
+    """The route's report; if building it fails, the hazards routing met, never a 500.
+
+    One odd item must never break routing (AGENTS.md, priority 1), so a failure is
+    logged and the report falls back to what the route itself carries.
+    """
+    try:
+        return RouteReportOut.of(build_report(route, items))
+    except Exception:
+        log.exception("REPORT failed; listing only the hazards this route met")
+        return RouteReportOut.of(build_report(route, ()))
 
 
 @router.get("/route", response_model=RouteResponse)
 def get_route(
     router_: Annotated[Router, Depends(get_router)],
     hazards: Annotated[HazardMap, Depends(get_hazards)],
+    items: Annotated[list[ItemIndex], Depends(get_report_items)],
     from_: Annotated[
         str, Query(alias="from", description="lat,lng", examples=["53.5444,-113.4909"])
     ],
@@ -147,6 +205,7 @@ def get_route(
                 ],
                 warnings=r.warnings,
                 reason=r.reason,
+                report=route_report(r, items),
                 google_maps_url=google_maps_url(
                     (from_lat, from_lng),
                     (to_lat, to_lng),
