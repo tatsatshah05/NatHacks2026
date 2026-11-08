@@ -1,7 +1,11 @@
 """The routing engine (OP-207): best route plus alternates, per mobility profile.
 
 How a route is built (PLAN.md section 8)
-    1. Snap the from and to points to the nearest network nodes.
+    1. Snap the from and to points to the nearest network nodes with a usable path.
+       If no route is found because an end sits in a pocket cut off from the rest
+       of the network for this profile (between stairs and a closure, say), move
+       that end to the nearest node of the main connected piece, within
+       ``snap.max_m``, and search again.
     2. Turn the current hazards into a weight per edge for the chosen profile:
        weight = length x multiplier, or 0 to remove the edge (blocked, or an
        effect the profile cannot pass, or stairs for wheelchair and walker).
@@ -25,11 +29,12 @@ Where hazards come from
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from itertools import pairwise
+from typing import Literal
 
 import numpy as np
-from scipy.sparse.csgraph import dijkstra
+from scipy.sparse.csgraph import connected_components, dijkstra
 
 from .network import EDGE_STEPS, WalkNetwork
 from .profiles import Profile, RoutingConfig
@@ -86,10 +91,47 @@ class RouteResult:
     destination: tuple[int, float]
     routes: list[Route]
     warnings: list[str] = field(default_factory=list)
+    # The plain shortest route's nodes (hazards ignored), so the Maps hand-off (OP-209)
+    # can pin the places where a route departs from it. None when unreachable.
+    plain_nodes: tuple[int, ...] | None = None
 
 
 class RoutingError(ValueError):
     """A request that cannot be served: unknown profile or a point too far from any path."""
+
+
+@dataclass(frozen=True)
+class _Snap:
+    """Where one end of a trip joins the network."""
+
+    which: Literal["start", "end"]
+    lat: float
+    lng: float
+    node: int
+    distance_m: float
+    # Why the node is not simply the nearest one: "blocked" (the nearest node has no
+    # usable path) or "cut_off" (its paths do not reach the rest of the network).
+    moved: Literal["blocked", "cut_off"] | None = None
+
+    def warning(self, warn_m: float) -> str | None:
+        verb = "begins" if self.which == "start" else "ends"
+        if self.moved == "blocked":
+            return (
+                f"The {self.which} point is inside a blocked stretch; the route {verb} "
+                f"{self.distance_m:.0f} m away at the nearest open path."
+            )
+        if self.moved == "cut_off":
+            return (
+                f"The {self.which} point is on paths cut off from the rest of the network "
+                f"for this profile; the route {verb} {self.distance_m:.0f} m away at the "
+                "nearest connected path."
+            )
+        if self.distance_m > warn_m:
+            return (
+                f"The {self.which} point is {self.distance_m:.0f} m from the nearest "
+                "walkable path."
+            )
+        return None
 
 
 # ------------------------------------------------------------------- weights
@@ -161,10 +203,29 @@ class Router:
         # otherwise a start inside a blocked stretch snaps to a node with no way out and
         # the whole trip fails even though an open path is a few metres away.
         weights = profile_weights(self.network, profile, hazards)
-        warnings: list[str] = []
-        origin = self._snap(from_lat, from_lng, "start", weights, warnings)
-        destination = self._snap(to_lat, to_lng, "end", weights, warnings)
-        if origin[0] == destination[0]:
+        start = self._snap(from_lat, from_lng, "start", weights)
+        end = self._snap(to_lat, to_lng, "end", weights)
+        found = (
+            self._search(weights, start.node, end.node)
+            if start.node != end.node
+            else []
+        )
+        if not found and start.node != end.node:
+            # An end may sit in a pocket of paths cut off from the rest of the network
+            # for this profile (between stairs and a closure, say): its node has usable
+            # paths, but none of them leads out. Move such an end to the nearest node
+            # that connects, and search again.
+            joined = self._join_main_piece(start, end, weights)
+            if joined is not None:
+                start, end = joined
+                if start.node != end.node:
+                    found = self._search(weights, start.node, end.node)
+
+        warn_m = self.config.snap.warn_m
+        warnings = [w for s in (start, end) if (w := s.warning(warn_m)) is not None]
+        origin = (start.node, start.distance_m)
+        destination = (end.node, end.distance_m)
+        if start.node == end.node:
             return RouteResult(
                 profile_key,
                 origin,
@@ -172,36 +233,16 @@ class Router:
                 [],
                 [*warnings, "The start and end are at the same place."],
             )
-        # The plain shortest route ignores hazards (but keeps the profile's stair rule),
-        # so "what did this route avoid?" and "why is it longer?" have a baseline.
-        plain_weights = profile_weights(self.network, profile, NO_HAZARDS)
-        plain = self._shortest(plain_weights, origin[0], destination[0])
-
-        # Each kept route is (node path, the exact edges the search used). Keeping the
-        # edges matters where two parallel edges join the same nodes: rebuilding them
-        # from the node path would pick the same edge every time and repeat a route.
-        found: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
-        penalised = weights.copy()
-        alt = self.config.alternates
-        for _ in range(alt.attempts):
-            path = self._shortest(penalised, origin[0], destination[0])
-            if path is None:
-                break
-            edges = self._edges_of(path, penalised)
-            if self._distinct(edges, [kept_edges for _, kept_edges in found]):
-                found.append((path, edges))
-                if len(found) >= alt.max_routes:
-                    break
-            # Penalise every edge on the stretches just used, parallel edges included,
-            # so the next search cannot come back along the same streets.
-            penalised[self._stretch_edges(path)] *= alt.penalty
-
         if not found:
             warnings.append(
                 f"No route is possible for the {profile.label} profile between these points."
             )
             return RouteResult(profile_key, origin, destination, [], warnings)
 
+        # The plain shortest route ignores hazards (but keeps the profile's stair rule),
+        # so "what did this route avoid?" and "why is it longer?" have a baseline.
+        plain_weights = profile_weights(self.network, profile, NO_HAZARDS)
+        plain = self._shortest(plain_weights, start.node, end.node)
         plain_edges = set(self._edges_of(plain, plain_weights)) if plain else set()
         routes = [
             self._describe(
@@ -209,7 +250,7 @@ class Router:
             )
             for path, edges in found
         ]
-        return RouteResult(profile_key, origin, destination, routes, warnings)
+        return RouteResult(profile_key, origin, destination, routes, warnings, plain)
 
     # -- pieces --------------------------------------------------------------
 
@@ -220,15 +261,16 @@ class Router:
         self,
         lat: float,
         lng: float,
-        which: str,
+        which: Literal["start", "end"],
         weights: np.ndarray,
-        warnings: list[str],
-    ) -> tuple[int, float]:
-        """Snap a coordinate to the nearest node that still connects to the network.
+    ) -> _Snap:
+        """Snap a coordinate to the nearest node with a usable path.
 
-        A node "connects" when at least one of its edges is usable for this profile
+        A node is usable when at least one of its edges is usable for this profile
         (weight above 0). Among the nearest candidates the first usable one wins; if
         none is usable, the nearest node is returned and the search reports no route.
+        Whether that node's paths reach the rest of the network is checked only if
+        the search fails (``_join_main_piece``).
         """
         nodes, distances = self.network.nearest_nodes(lat, lng, self.SNAP_CANDIDATES)
         nearest, nearest_m = int(nodes[0]), float(distances[0])
@@ -245,16 +287,81 @@ class Router:
             if len(edge_ids) and bool((weights[edge_ids] > 0).any()):
                 chosen, chosen_m = int(node), float(distance)
                 break
-        if chosen != nearest:
-            warnings.append(
-                f"The {which} point is inside a blocked stretch; the route {'begins' if which == 'start' else 'ends'} "
-                f"{chosen_m:.0f} m away at the nearest open path."
-            )
-        elif chosen_m > self.config.snap.warn_m:
-            warnings.append(
-                f"The {which} point is {chosen_m:.0f} m from the nearest walkable path."
-            )
-        return chosen, chosen_m
+        moved: Literal["blocked"] | None = "blocked" if chosen != nearest else None
+        return _Snap(which, lat, lng, chosen, chosen_m, moved)
+
+    def _join_main_piece(
+        self, start: _Snap, end: _Snap, weights: np.ndarray
+    ) -> tuple[_Snap, _Snap] | None:
+        """Move each end outside the main connected piece to its nearest node in it.
+
+        The main piece is the largest set of nodes this profile can travel between
+        right now (stairs and blocked paths removed). An end moves only within
+        ``snap.max_m``. Returns None when no end moved.
+
+        Runs only after a search has failed, so ordinary routes never pay for it
+        (about 12 ms on the city network).
+        """
+        _, labels = connected_components(
+            self.network.length_matrix(weights), directed=False
+        )
+        main = labels == np.bincount(labels).argmax()
+        joined: list[_Snap] = []
+        for snap in (start, end):
+            found = None if main[snap.node] else self._nearest_where(snap, main)
+            if found is None:
+                joined.append(snap)
+            else:
+                node, distance = found
+                joined.append(
+                    replace(snap, node=node, distance_m=distance, moved="cut_off")
+                )
+        if joined == [start, end]:
+            return None
+        return joined[0], joined[1]
+
+    def _nearest_where(
+        self, snap: _Snap, allowed: np.ndarray
+    ) -> tuple[int, float] | None:
+        """The node nearest the end's coordinate where ``allowed`` holds, within
+        ``snap.max_m``; the candidate list widens until one is found or the limit."""
+        limit = self.config.snap.max_m
+        k = self.SNAP_CANDIDATES
+        while True:
+            nodes, distances = self.network.nearest_nodes(snap.lat, snap.lng, k)
+            ok = allowed[nodes] & (distances <= limit)
+            if ok.any():
+                i = int(np.argmax(ok))  # nearest first, so the first allowed one
+                return int(nodes[i]), float(distances[i])
+            if len(nodes) < k or distances[-1] > limit:
+                return None
+            k *= 4
+
+    def _search(
+        self, weights: np.ndarray, src: int, dst: int
+    ) -> list[tuple[tuple[int, ...], tuple[int, ...]]]:
+        """The best route plus alternates by the penalty method, best first.
+
+        Each kept route is (node path, the exact edges the search used). Keeping the
+        edges matters where two parallel edges join the same nodes: rebuilding them
+        from the node path would pick the same edge every time and repeat a route.
+        """
+        found: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
+        penalised = weights.copy()
+        alt = self.config.alternates
+        for _ in range(alt.attempts):
+            path = self._shortest(penalised, src, dst)
+            if path is None:
+                break
+            edges = self._edges_of(path, penalised)
+            if self._distinct(edges, [kept_edges for _, kept_edges in found]):
+                found.append((path, edges))
+                if len(found) >= alt.max_routes:
+                    break
+            # Penalise every edge on the stretches just used, parallel edges included,
+            # so the next search cannot come back along the same streets.
+            penalised[self._stretch_edges(path)] *= alt.penalty
+        return found
 
     def _shortest(
         self, weights: np.ndarray, src: int, dst: int
