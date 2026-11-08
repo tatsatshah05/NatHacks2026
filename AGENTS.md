@@ -19,7 +19,8 @@ The project is being built at natHACKS 2026 (Edmonton) in 48 hours by Team Claud
 
 Update this section whenever the status changes.
 
-- **November 7, 2026:** planning is complete and there is no application code yet. Phase 1 starts with OP-101 (contracts) and OP-102 (skeleton), which create the folders described below.
+- **November 7, 2026:** Phase 1 is in progress. OP-104's walking network is merged through PR #97. OP-101 (contracts), OP-102 (skeleton) and OP-103 (scheduler) remain integration dependencies on this branch.
+- **OP-107 on this branch:** the construction adapter and recorded preview isolate malformed/amended rows and use only a short line near the official permit point. Broad corridors fall back to the point. Shared API/store/scheduler integration remains pending; see [docs/OP-107.md](docs/OP-107.md). OP-103 owns hourly cadence, retries and cooldowns; every adapter call performs one fetch, with no internal sleeps or poll gate.
 - **CI/CD is live and `main` is protected.** Every pull request needs the `CI passed` check and an approval from the scrum master. See [docs/CI_CD.md](docs/CI_CD.md).
 - **Old material:** the earlier hardware design (version 1, named PathSense) is archived in `docs/archive/v1-hardware/`. Ignore it for new work.
 
@@ -197,6 +198,18 @@ These live in the root Makefile and are available after OP-102.
 | `make types` | Regenerates `web/src/lib/api-types.ts` from `/openapi.json` |
 | `make record` | Records a replay snapshot of every source (no images) |
 | `make worker` | Runs the vision worker locally |
+
+OP-107 offers a recorded preview until the shared app is integrated:
+
+```bash
+python -m cloud.app.adapters.construction --fixtures cloud/tests/fixtures/construction --at 2026-11-07T19:00:00Z
+python -m pytest cloud/tests/test_construction.py cloud/tests/test_construction_review.py -q
+```
+
+Use `--live` instead of `--fixtures` for one official City API read, with optional
+`SOCRATA_APP_TOKEN` from the shell (`.env.example` contains its blank template).
+`--at` is replay-only and requires a timezone; `--local-timezone` defaults to
+`America/Edmonton`. This preview prints output and does not write to the store.
 
 ## Environment Variables
 

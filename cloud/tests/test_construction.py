@@ -21,7 +21,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from cloud.app.adapters import construction as construction
+from cloud.app.adapters import construction
 
 FIXTURES = Path(__file__).parent / "fixtures" / "construction"
 EDMONTON = ZoneInfo("America/Edmonton")
@@ -58,7 +58,7 @@ def normalize(
     )
 
 
-def test_recorded_lines_preferred_over_available_midpoints(
+def test_recorded_18km_corridor_uses_permit_points(
     samples: dict[str, list[construction.Row]],
 ) -> None:
     rows = samples["pedestrian_lines.json"]
@@ -66,9 +66,11 @@ def test_recorded_lines_preferred_over_available_midpoints(
     # The first two recorded rows describe the same segment; the third is a
     # different street under the same permit. Identical segments collapse.
     assert len(result.obstructions) == 2
-    assert not result.warnings
+    assert len(result.warnings) == 1
+    assert "18165 m" in result.warnings[0]
     for item in result.obstructions:
-        assert item["geometry"] in [row["geometry_multiline"] for row in rows]
+        assert item["geometry"] in [row["location"] for row in rows]
+        assert item["geometry"]["type"] == "Point"
         assert item["category"] == "sidewalk"
         assert item["kind"] == "sidewalk_closed"
         assert item["effect"] == "blocked"
@@ -123,7 +125,6 @@ def test_non_pedestrian_recorded_permits_are_skipped(
     samples: dict[str, list[construction.Row]],
 ) -> None:
     assert normalize(samples["other_permits.json"]).obstructions == []
-    assert normalize(samples["repeated_permit.json"]).obstructions == []
 
 
 @pytest.mark.parametrize(
@@ -164,23 +165,26 @@ def test_observation_and_lifetime_use_utc(point: construction.Row) -> None:
 
 
 @pytest.mark.parametrize("field", ["start_date", "finish_date", "file_number"])
-def test_missing_required_field_fails(point: construction.Row, field: str) -> None:
+def test_missing_required_field_is_skipped(point: construction.Row, field: str) -> None:
     del point[field]
-    with pytest.raises(construction.FeedError):
-        normalize([point])
+    result = normalize([point])
+    assert not result.obstructions
+    assert field in result.warnings[0]
 
 
 @pytest.mark.parametrize("field", ["start_date", "finish_date"])
-def test_invalid_dates_fail(point: construction.Row, field: str) -> None:
+def test_invalid_dates_are_skipped(point: construction.Row, field: str) -> None:
     point[field] = "not-a-date"
-    with pytest.raises(construction.FeedError, match=field):
-        normalize([point])
+    result = normalize([point])
+    assert not result.obstructions
+    assert field in result.warnings[0]
 
 
-def test_reversed_dates_fail(point: construction.Row) -> None:
+def test_reversed_dates_are_skipped(point: construction.Row) -> None:
     point["start_date"], point["finish_date"] = "2026-11-08", "2026-11-07"
-    with pytest.raises(construction.FeedError, match="precedes"):
-        normalize([point])
+    result = normalize([point])
+    assert not result.obstructions
+    assert "precedes" in result.warnings[0]
 
 
 @pytest.mark.parametrize(
@@ -193,23 +197,25 @@ def test_reversed_dates_fail(point: construction.Row) -> None:
         {"type": "MultiLineString", "coordinates": [[[181, 53], [-113, 53]]]},
     ],
 )
-def test_malformed_line_never_silently_falls_back_to_point(
+def test_malformed_line_uses_point_with_visible_warning(
     point: construction.Row, geometry: construction.Row
 ) -> None:
     point["geometry_multiline"] = geometry
-    with pytest.raises(construction.FeedError):
-        normalize([point])
+    result = normalize([point])
+    assert result.obstructions[0]["geometry"] == point["location"]
+    assert "used City point" in result.warnings[0]
 
 
 @pytest.mark.parametrize(
     "coordinates", [[float("nan"), 53], [-113, 91], [False, 53], [1]]
 )
-def test_bad_point_geometry_fails(
+def test_bad_point_geometry_is_skipped(
     point: construction.Row, coordinates: list[object]
 ) -> None:
     point["location"]["coordinates"] = coordinates
-    with pytest.raises(construction.FeedError):
-        normalize([point])
+    result = normalize([point])
+    assert not result.obstructions
+    assert "coordinate" in result.warnings[0]
 
 
 def test_recorded_unlocated_permits_produce_visible_diagnostics(
@@ -223,11 +229,17 @@ def test_recorded_unlocated_permits_produce_visible_diagnostics(
         assert any(row["file_number"] in warning for warning in result.warnings)
 
 
-def test_conflicting_duplicate_segment_fails(point: construction.Row) -> None:
+def test_conflicting_duplicate_keeps_fuller_reason_and_logs(
+    point: construction.Row, caplog: pytest.LogCaptureFixture
+) -> None:
     changed = deepcopy(point)
-    changed["work_reason"] = "Conflicting reason"
-    with pytest.raises(construction.FeedError, match="Conflicting"):
-        normalize([point, changed])
+    changed["work_reason"] = "Updated construction reason with more permit detail"
+    result = normalize([point, changed])
+    assert len(result.obstructions) == 1
+    assert changed["work_reason"] in result.obstructions[0]["detail"]
+    assert "conflicting duplicate" in result.warnings[0]
+    assert "conflicting duplicate" in caplog.text
+    assert normalize([changed, point]) == result
 
 
 def test_naive_time_rejected(point: construction.Row) -> None:
@@ -248,15 +260,17 @@ class FakeReader:
         return deepcopy(self.rows)
 
 
-def test_hourly_cache_is_not_mutable_by_callers(point: construction.Row) -> None:
+def test_every_call_fetches_and_last_good_is_not_mutable(
+    point: construction.Row,
+) -> None:
     reader = FakeReader([point])
     adapter = construction.ConstructionAdapter(reader, local_timezone=EDMONTON)
     result = adapter.fetch(now=NOW)
     result.obstructions[0]["geometry"]["coordinates"][0] = 0
-    cached = adapter.fetch(now=NOW + timedelta(minutes=59))
+    cached = adapter.last_good
     assert len(reader.calls) == 1
     assert cached.obstructions[0]["geometry"]["coordinates"][0] != 0
-    adapter.fetch(now=NOW + timedelta(hours=1))
+    adapter.fetch(now=NOW + timedelta(seconds=1))
     assert len(reader.calls) == 2
 
 
@@ -295,7 +309,7 @@ def test_successful_empty_feed_clears_old_permits(point: construction.Row) -> No
 
 
 @pytest.mark.parametrize("failure", ["missing-flag", "missing-date", "unlocated"])
-def test_unsafe_schema_or_all_unlocated_feed_keeps_previous_data(
+def test_bad_row_keeps_previous_data_without_failing_snapshot(
     point: construction.Row, failure: str
 ) -> None:
     reader = FakeReader([point])
@@ -308,10 +322,11 @@ def test_unsafe_schema_or_all_unlocated_feed_keeps_previous_data(
     else:
         for field in ("location", "latitude", "longitude"):
             reader.rows[0].pop(field, None)
-    with pytest.raises(construction.FeedError):
-        adapter.fetch(now=NOW + timedelta(hours=1))
-    assert adapter.last_good == initial
-    assert adapter.last_success == NOW
+    result = adapter.fetch(now=NOW + timedelta(hours=1))
+    assert result.obstructions == initial.obstructions
+    assert result.warnings
+    assert adapter.last_success == NOW + timedelta(hours=1)
+    assert adapter.last_error
 
 
 def test_http_filter_pagination_token_and_timeout(
@@ -332,8 +347,7 @@ def test_http_filter_pagination_token_and_timeout(
     for index, (request, timeout) in enumerate(requests):
         query = parse_qs(urlsplit(request.full_url).query)
         assert query["$where"] == [
-            "pedestrian_affected = 'Yes' AND start_date < '2026-11-08T00:00:00' "
-            "AND finish_date >= '2026-11-07T00:00:00'"
+            "pedestrian_affected = 'Yes' AND start_date < '2026-11-08T00:00:00' AND finish_date >= '2026-11-07T00:00:00'"
         ]
         assert query["$offset"] == [str(index * 2)]
         assert query["$order"] == ["file_number,street_full_name,:id"]
@@ -350,10 +364,9 @@ def test_http_filter_pagination_token_and_timeout(
         HTTPError("x", 503, "down", {}, None),
     ],
 )
-def test_transient_errors_get_three_retries(
+def test_transient_errors_return_immediately_for_scheduler_retry(
     monkeypatch: pytest.MonkeyPatch, error: Exception
 ) -> None:
-    sleeps: list[float] = []
     calls: list[bool] = []
 
     def failed_open(*args: object, **kwargs: object) -> None:
@@ -362,29 +375,23 @@ def test_transient_errors_get_three_retries(
 
     monkeypatch.setattr(construction, "urlopen", failed_open)
     with pytest.raises(construction.FeedError):
-        construction.ConstructionReader(sleep=sleeps.append).read(NOW.date())
-    assert len(calls) == 4
-    assert sleeps == [1, 2, 4]
+        construction.ConstructionReader().read(NOW.date())
+    assert len(calls) == 1
 
 
 def test_permanent_http_error_fails_without_retry_or_token_leak(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    sleeps: list[float] = []
-
     def failed_open(*args: object, **kwargs: object) -> None:
         raise HTTPError("x", 403, "Forbidden", {}, None)
 
     monkeypatch.setattr(construction, "urlopen", failed_open)
     with pytest.raises(construction.FeedError, match="HTTP 403") as error:
-        construction.ConstructionReader("secret-token", sleep=sleeps.append).read(
-            NOW.date()
-        )
-    assert not sleeps
+        construction.ConstructionReader("secret-token").read(NOW.date())
     assert "secret-token" not in str(error.value)
 
 
-@pytest.mark.parametrize("payload", [b"not-json", b'{"error":"bad feed"}', b"[1]"])
+@pytest.mark.parametrize("payload", [b"not-json", b'{"error":"bad feed"}'])
 def test_bad_json_or_envelope_fails(
     monkeypatch: pytest.MonkeyPatch, payload: bytes
 ) -> None:

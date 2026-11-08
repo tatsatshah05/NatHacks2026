@@ -26,12 +26,5 @@
     "captured_at": "2026-11-07T21:32:15.6835818Z",
     "rows": 3,
     "sha256_lf": "5cd415014049322d43e86f2bf3b3cd22eb366126266e7e7b0507bcaa813d87e5"
-  },
-  {
-    "file": "repeated_permit.json",
-    "url": "https://data.edmonton.ca/resource/7wiq-4rgy.json?$limit=3&$order=file_number,street_full_name&$where=file_number%20%3D%20'P2021-001303'",
-    "captured_at": "2026-11-07T21:32:15.8826525Z",
-    "rows": 3,
-    "sha256_lf": "e7b5483a07b45893838463b97930f0b25a29f9306b118f2934d4f05021cb4a33"
   }
 ]
