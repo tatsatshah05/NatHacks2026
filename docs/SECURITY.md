@@ -94,7 +94,7 @@ A header a route set itself wins.
 | `Content-Security-Policy` | `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org; font-src 'self'; connect-src 'self' https://tiles.openfreemap.org <API origin> <WebSocket origin>; worker-src 'self' blob:; child-src 'self' blob:; manifest-src 'self'` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `no-referrer` |
-| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(self)` (the planner and the Report button offer "Use my location"; the report photo is a file input, which needs no camera permission) |
+| `Permissions-Policy` | `camera=(self), microphone=(), geolocation=(self)` (the camera guide, OP-418, opens the rear camera on this origin only; the frame goes to our API and is never stored) (the planner and the Report button offer "Use my location"; the report photo is a file input, which needs no camera permission) |
 | `X-Frame-Options` | `DENY` |
 
 The API and WebSocket origins come from `NEXT_PUBLIC_API_URL`,
