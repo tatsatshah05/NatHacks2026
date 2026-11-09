@@ -756,6 +756,11 @@ _PLAIN_BY_TYPE = {
 _AHEAD_DEG = 45.0
 _BEHIND_DEG = 135.0
 _AT_DESTINATION_M = 5.0
+# An unnamed edge flagged as a crossing is worded as one only up to this length.
+# Longer ones are sidewalks merged with their crossings when the network was
+# built: on cloud/data/network.npz (f61ba53) the 22,444 unnamed crossing edges have
+# a median of 11 m, 90% are 50 m or under and 5% are over 96 m (some over 400 m).
+_CROSSING_MAX_M = 50.0
 
 
 @dataclass(frozen=True)
@@ -780,7 +785,10 @@ def _way(net: WalkNetwork, edge: int) -> _Way:
     flags = int(net.edge_flags[edge])
     stairs = bool(flags & EDGE_STEPS)
     elevator = bool(flags & EDGE_ELEVATOR)
-    crossing = bool(flags & EDGE_CROSSING)
+    crossing = (
+        bool(flags & EDGE_CROSSING)
+        and float(net.edge_length_m[edge]) <= _CROSSING_MAX_M
+    )
     name_index = int(net.edge_name[edge])
     if name_index >= 0:
         return _Way(net.names[name_index], True, stairs, elevator, crossing)
@@ -891,8 +899,8 @@ def _onto(previous: _Stretch, current: _Stretch) -> str:
         return "Take the stairs" + (f" on {way.label}" if way.named else "")
     if way.crossing and not way.named:
         # A named edge with the crossing flag is a sidewalk merged with its
-        # crossings (25 in the city, "Trans Canada Trail" among them), so only an
-        # unnamed crossing is worded as one.
+        # crossings (25 in the city, "Trans Canada Trail" among them), so only a
+        # short unnamed crossing is worded as one (_CROSSING_MAX_M).
         return "Cross the street"
     out, into = _last_bearing(previous.points), _first_bearing(current.points)
     if out is None or into is None:

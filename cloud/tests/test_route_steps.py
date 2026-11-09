@@ -92,7 +92,8 @@ def test_every_highway_type_has_plain_words(
 ) -> None:
     net = network(
         {0: at(0, 0), 1: at(1, 0)},
-        [RawEdge(0, 1, 100.0, highway=highway, footway=footway, osmid=1)],
+        # 20 m: short enough for a crossing to count as one (_CROSSING_MAX_M).
+        [RawEdge(0, 1, 20.0, highway=highway, footway=footway, osmid=1)],
     )
     (step,) = _steps(net, [0, 1], [0], speed_m_s=STANDARD_SPEED)
     assert step.text.startswith(f"Start on {expected} heading east")
@@ -397,6 +398,7 @@ def test_stairs_elevators_and_crossings_are_announced() -> None:
         4: at(3, 0),
         5: at(4, 0),
         6: at(5, 0),
+        7: at(6.2, 0),
     }
     net = network(
         places,
@@ -414,14 +416,26 @@ def test_stairs_elevators_and_crossings_are_announced() -> None:
                 name="184 Street NW",
                 osmid=5,
             ),
+            # Unnamed, flagged as a crossing, but 120 m long: a sidewalk merged
+            # with its crossings when the network was built, not a crossing.
+            RawEdge(
+                6,
+                7,
+                120.0,
+                highway="footway",
+                footway=["sidewalk", "crossing"],
+                osmid=6,
+            ),
         ],
     )
-    steps = _steps(net, range(6), range(5), speed_m_s=1.0)
+    steps = _steps(net, range(7), range(6), speed_m_s=1.0)
     assert [t.split(" for about")[0] for t in texts(steps)] == [
         "Start on Avenue A heading east",
         "Take the stairs on Avenue A",  # stairs never merge into the street's step
         "Cross the street",
         "Take the elevator",
         "Continue onto 184 Street NW",  # a named crossing edge is a merged way
+        "Continue onto the sidewalk",  # and so is a long unnamed one
     ]
     assert steps[1].edges == (1,) and steps[1].distance_m == 20.0
+    assert "Cross" not in steps[5].text
