@@ -23,7 +23,6 @@ into the 24-hour rate-limit log.
 | Route | Header | Check |
 | --- | --- | --- |
 | `POST /api/ingest/camera` | `X-Worker-Key` | `ingest_api.require_worker_key`: `secrets.compare_digest` on UTF-8 bytes (a non-ASCII header is a plain 401, never a 500). An unset or empty `WORKER_KEY` answers 503: the route is off, never open. |
-| `POST /api/guide/frame` (OP-418) | 30 frames a minute per client id and 600 a minute in total, in memory | its own limits, not `RATE_LIMIT_PER_MIN`: one frame every 2.5 s would exhaust the per-connection window on its own, and every phone behind one venue address shares that connection key; `rate_limit.OWN_LIMIT_ROUTES` lists the route so the audit test still guards every other write |
 | `POST /api/admin/override`, `DELETE /api/admin/override[/{source_ref}]` | `X-Admin-Key` | `admin_api.require_admin_key` (OP-406): the same pattern as the worker key (UTF-8 bytes, constant time; an unset or empty `ADMIN_KEY` answers 503, so the route is off, never open), followed by the keyed limit. Testing only: it stores one labelled test obstruction (`Test override: ...`, source `admin_override`, attribution `Test override, not real data`) that expires within an hour. Render generates `ADMIN_KEY`; the smoke tests never call it. |
 
 `scripts/dev.py` (`make dev`) removes both keys and every other secret from the
@@ -51,6 +50,7 @@ are OP-401's (`cloud/app/rate_limit.py`, a fixed 60 s window per client, in memo
 | `POST /api/saved-routes` | 10 saved routes | same |
 | `DELETE /api/saved-routes/{id}` | only the owner's | same |
 | `POST /api/ingest/camera` | n/a (the key) | 10 times `RATE_LIMIT_PER_MIN`, checked after the key, so a request without the key never uses the worker's share |
+| `POST /api/guide/frame` (OP-418) | 30 frames a minute per client id and 600 a minute in total, in memory | its own limits, not `RATE_LIMIT_PER_MIN`: one frame every 2.5 s would exhaust the per-connection window on its own, and every phone behind one venue address shares that connection key; `rate_limit.OWN_LIMIT_ROUTES` lists the route so the audit test still guards every other write |
 | every `GET`, `WS /ws` | none | never limited |
 
 The client is the first address in `X-Forwarded-For` when the header is present
