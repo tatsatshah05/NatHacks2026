@@ -125,6 +125,10 @@ WAIT_WARNING = (
     "Wait times are estimates from the ETS schedule (half the time between trains "
     "at this hour), not live arrivals."
 )
+BUS_WAIT_NOTE = (
+    "Estimate: half the scheduled time between buses at this hour, from the ETS "
+    "schedule. Not a live arrival time."
+)
 BUS_WAIT_WARNING = (
     "Wait times are estimates from the ETS schedule (half the time between buses "
     "at this hour), not live arrivals."
@@ -1546,7 +1550,7 @@ def legs_out(trip: LrtTrip) -> list[LegOut]:
                     minutes=round(ride.wait_s / 60, 1),
                     estimate=True,
                     headway_min=round(ride.headway_s / 60, 1),
-                    note=WAIT_NOTE,
+                    note=BUS_WAIT_NOTE if ride.vehicle == "bus" else WAIT_NOTE,
                 )
                 if ride
                 else None,

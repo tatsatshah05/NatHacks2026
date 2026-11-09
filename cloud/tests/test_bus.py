@@ -587,6 +587,7 @@ def test_walk_lrt_response_carries_a_bus_ride(router, store_with_outages) -> Non
         ride["line_colors"] == ["#005087"] and ride["stops"] == 2
     )  # pattern 2 skips B3
     assert ride["wait"]["estimate"] is True and ride["wait"]["minutes"] == 3.8
+    assert ride["wait"]["note"] == lrt.BUS_WAIT_NOTE  # "between buses", not trains
     assert ride["ride_min"] == 15.0
     walk_legs = [leg for leg in trip["legs"] if leg["kind"] == "walk"]
     assert all(
