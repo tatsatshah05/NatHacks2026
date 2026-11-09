@@ -22,6 +22,20 @@ function tripKind(page: Page, kind: Kind) {
   return page.getByRole("group", { name: TRIP_KIND }).getByRole("radio", { name: KIND[kind] });
 }
 
+/**
+ * Choose a kind of trip. Right after a page load the server's HTML is on screen before
+ * React has hydrated the control, and a click that early is undone when hydration
+ * restores the server's state; the page gives no signal when it is ready. So the choice
+ * is retried until it holds, as a person's second tap would.
+ */
+async function chooseTripKind(page: Page, kind: Kind): Promise<void> {
+  const radio = tripKind(page, kind);
+  await expect(async () => {
+    await radio.check();
+    await expect(radio).toBeChecked({ timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
+}
+
 /** The query of the GET /api/route request that `action` makes the page send. */
 async function routeQuery(page: Page, action: () => Promise<void>): Promise<URLSearchParams> {
   const [request] = await Promise.all([
@@ -47,7 +61,7 @@ test("plan a route from the place search to the route list", async ({ page }) =>
   // walking route's heading and its Save action, which a transit trip does not have, so
   // it chooses Walking first: that request carries no mode and no transit parameter.
   await expect(tripKind(page, "transit")).toBeChecked();
-  await tripKind(page, "walk").check();
+  await chooseTripKind(page, "walk");
   const query = await routeQuery(page, () => page.getByRole("button", { name: "Find routes" }).click());
   expect(query.get("mode")).toBeNull();
   expect(query.get("transit")).toBeNull();
@@ -87,7 +101,7 @@ test("the kind of trip is Walking and transit by default, remembers a change, an
   await page.goto("/");
   await expect(tripKind(page, "transit")).toBeChecked();
 
-  await tripKind(page, "only").check();
+  await chooseTripKind(page, "only");
   await expect(tripKind(page, "only")).toBeChecked();
   expect(await page.evaluate(() => window.localStorage.getItem("openpath.transit"))).toBe("only");
   await page.reload();
@@ -108,7 +122,7 @@ test("the kind of trip is Walking and transit by default, remembers a change, an
   await expect(tripKind(page, "only")).toBeChecked();
 
   // Walking is remembered too.
-  await tripKind(page, "walk").check();
+  await chooseTripKind(page, "walk");
   await page.goto("/");
   await expect(tripKind(page, "walk")).toBeChecked();
 
@@ -129,7 +143,7 @@ test("each kind of trip asks the API for the right routes and is kept in the add
   const find = () => page.getByRole("button", { name: "Find routes" }).click();
 
   // Walking: no mode and no transit parameter, as before OP-311.
-  await tripKind(page, "walk").check();
+  await chooseTripKind(page, "walk");
   let query = await routeQuery(page, find);
   expect(query.get("mode")).toBeNull();
   expect(query.get("transit")).toBeNull();
@@ -139,7 +153,7 @@ test("each kind of trip asks the API for the right routes and is kept in the add
 
   // Walking and transit: walk_lrt with transit=always, so the API shows the best bus or
   // LRT trip even when it is slower. The address carries mode alone, as it did before.
-  await tripKind(page, "transit").check();
+  await chooseTripKind(page, "transit");
   await expect(recommendedRoute(page)).toHaveCount(0);
   query = await routeQuery(page, find);
   expect(query.get("mode")).toBe("walk_lrt");
@@ -149,7 +163,7 @@ test("each kind of trip asks the API for the right routes and is kept in the add
   expect(addressQuery(page).get("transit")).toBeNull();
 
   // Transit only: walk_lrt with transit=only, and the address says so.
-  await tripKind(page, "only").check();
+  await chooseTripKind(page, "only");
   await expect(recommendedRoute(page)).toHaveCount(0);
   query = await routeQuery(page, find);
   expect(query.get("mode")).toBe("walk_lrt");
