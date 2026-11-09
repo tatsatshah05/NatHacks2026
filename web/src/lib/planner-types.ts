@@ -1,4 +1,4 @@
-import type { components } from "./api-types";
+import type { components, operations } from "./api-types";
 
 type Schemas = components["schemas"];
 
@@ -19,6 +19,8 @@ export type LegOut = Schemas["LegOut"];
 export type LrtTripOut = Schemas["LrtTripOut"];
 export type StationOut = Schemas["StationOut"];
 export type RouteMode = NonNullable<RouteResponse["mode"]>;
+// OP-420: the API's transit policy, read only with mode walk_lrt ("faster" is its default).
+export type RouteTransit = NonNullable<operations["get_route_api_route_get"]["parameters"]["query"]["transit"]>;
 
 // The profile ids of config/profiles.json and GET /api/route.
 export type TravelProfile = "wheelchair" | "walker_cane" | "low_vision" | "standard";
@@ -37,6 +39,11 @@ export type PlannerQuery = {
   profile: TravelProfile;
   /** "walk_lrt" asks GET /api/route for walk and LRT trips too (OP-311). */
   mode?: RouteMode;
+  /**
+   * With mode walk_lrt (OP-420): "always" shows the best bus or LRT trip even when it is
+   * slower than walking, "only" asks for transit trips alone. Set by lib/transit-choice.ts.
+   */
+  transit?: RouteTransit;
 };
 
 export const travelProfiles: ReadonlyArray<{
