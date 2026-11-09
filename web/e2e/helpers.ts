@@ -90,9 +90,9 @@ export async function blockMapTiles(page: Page): Promise<void> {
   await page.route(/openfreemap\.org/, (route) => route.abort());
 }
 
-/** The recommended route's heading: "12 min, 687 m, step-free". */
+/** The recommended route's heading: "12 min, 687 m, step-free" or "1 h 5 min, 4.2 km, …". */
 export function recommendedRoute(page: Page) {
-  return page.getByRole("heading", { level: 2, name: /^\d+ min, \d/ }).first();
+  return page.getByRole("heading", { level: 2, name: /^(\d+ h( \d+ min)?|\d+ min), \d/ }).first();
 }
 
 /** The recommended route's line: start, each condition and end, as a list. */
