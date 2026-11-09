@@ -8,7 +8,7 @@
 // with the reason beside it. No rule is excluded today.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
-import { TRIP, blockMapTiles, openPlannedTrip, reportUrl } from "./helpers";
+import { TRIP, blockMapTiles, fakeCamera, openPlannedTrip, openReport, reportUrl, startTrip } from "./helpers";
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 // Rule ids to skip, each with a comment saying why. Empty on purpose.
@@ -60,6 +60,52 @@ test.describe("accessibility", () => {
     await page.goto(reportUrl(TRIP));
     await expect(page.getByRole("heading", { level: 2, name: "Conditions for route 1" })).toBeVisible({ timeout: 30_000 });
     await checkAccessibility(page, testInfo, "route report");
+  });
+
+  // OP-419: the row with Start route and PIP beside it, before anything is pressed.
+  test("route report, Start and PIP row", async ({ page }, testInfo) => {
+    await openReport(page);
+    await expect(page.getByRole("button", { name: /^Start route( \d)?$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "PIP", exact: true })).toBeVisible();
+    await checkAccessibility(page, testInfo, "route report Start and PIP row");
+  });
+
+  // OP-419: the trip and the camera started together from the PIP button beside Start route.
+  test("route report, trip with PIP from the top row", async ({ page }, testInfo) => {
+    await fakeCamera(page);
+    await openReport(page);
+    await page.getByRole("button", { name: "PIP", exact: true }).click();
+    const trip = page.getByRole("region", { name: "Your trip" });
+    await expect(trip).toBeVisible();
+    await trip.getByRole("button", { name: "Start PIP", exact: true }).click();
+    await expect(trip.getByRole("button", { name: "Stop PIP", exact: true })).toBeVisible();
+    await expect(
+      trip.getByRole("status").filter({ hasText: /^(PIP is on|Camera guidance unavailable, reading route steps)$/ })
+    ).toBeVisible({ timeout: 20_000 });
+    await checkAccessibility(page, testInfo, "route report trip with PIP from the top row");
+  });
+
+  // OP-419: the report with the trip running (the current step, Stop, PIP's section).
+  test("route report, trip running", async ({ page }, testInfo) => {
+    await openReport(page);
+    const trip = await startTrip(page);
+    await expect(trip.getByRole("button", { name: "PIP", exact: true })).toBeVisible();
+    await checkAccessibility(page, testInfo, "route report trip");
+  });
+
+  // OP-419: with PIP on (the camera preview, its status and the transcript). The replay
+  // API answers 503, so the status is the fallback; the markup is the same as when it works.
+  test("route report, PIP on", async ({ page }, testInfo) => {
+    await fakeCamera(page);
+    await openReport(page);
+    const trip = await startTrip(page);
+    await trip.getByRole("button", { name: "PIP", exact: true }).click();
+    await trip.getByRole("button", { name: "Start PIP", exact: true }).click();
+    await expect(trip.getByRole("button", { name: "Stop PIP", exact: true })).toBeVisible();
+    await expect(
+      trip.getByRole("status").filter({ hasText: /^(PIP is on|Camera guidance unavailable, reading route steps)$/ })
+    ).toBeVisible({ timeout: 20_000 });
+    await checkAccessibility(page, testInfo, "route report PIP on");
   });
 
   test("alerts", async ({ page }, testInfo) => {

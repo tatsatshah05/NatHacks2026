@@ -8,6 +8,7 @@ import {
   TURN_M,
   arrivalSentence,
   bearingDeg,
+  currentSentence,
   distanceM,
   initialFollowState,
   lineLengthM,
@@ -16,6 +17,7 @@ import {
   pointAlong,
   routePositions,
   sideOfRoute,
+  startRouteLabel,
   stepEnds,
   stepSentence
 } from "./guide-route.ts";
@@ -113,6 +115,20 @@ test("stepSentence numbers the step and ends with one full stop", () => {
   assert.equal(arrivalSentence("MacEwan University"), "You're at the end of the route, MacEwan University.");
   assert.equal(offRouteSentence(null), "You seem to be leaving the route.");
   assert.equal(offRouteSentence("left"), "You seem to be leaving the route. The path is to your left.");
+});
+
+test("the trip's status line shows the current step, then the arrival (OP-419)", () => {
+  assert.equal(currentSentence(STEPS, 0, false, "MacEwan University"), "Step 1 of 2: Head east on Jasper Avenue for 300 m.");
+  assert.equal(currentSentence(STEPS, 1, false, "MacEwan University"), "Step 2 of 2: Turn left onto 101 Street for 200 m.");
+  assert.equal(currentSentence(STEPS, 1, true, "MacEwan University"), "You're at the end of the route, MacEwan University.");
+  assert.equal(currentSentence(STEPS, 7, false, "MacEwan University"), "");
+  assert.equal(currentSentence([], 0, false, "MacEwan University"), "");
+});
+
+test("Start route names the rank only when there are alternates (OP-419)", () => {
+  assert.equal(startRouteLabel(1, 1), "Start route");
+  assert.equal(startRouteLabel(1, 3), "Start route 1");
+  assert.equal(startRouteLabel(2, 2), "Start route 2");
 });
 
 test("the follower speaks the next step within 25 m of the turn, then the arrival", () => {
@@ -268,8 +284,9 @@ test("buildGuideContext stays inside every bound the API checks", () => {
   assert.deepEqual(bare.nearby, []);
 });
 
-test("frameSize is 640 wide in proportion and never upscales", () => {
-  assert.deepEqual(frameSize(1280, 720), { width: 640, height: 360 });
-  assert.deepEqual(frameSize(480, 640), { width: 480, height: 640 });
+test("frameSize is 480 wide in proportion and never upscales", () => {
+  assert.deepEqual(frameSize(1280, 720), { width: 480, height: 270 });
+  assert.deepEqual(frameSize(1280, 720, 640), { width: 640, height: 360 });
+  assert.deepEqual(frameSize(320, 240), { width: 320, height: 240 });
   assert.deepEqual(frameSize(0, 0), { width: 0, height: 0 });
 });

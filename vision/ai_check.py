@@ -36,12 +36,15 @@ subject, ``camera_frame``, sends exactly the request the camera worker always se
 Camera guide (OP-418; a preview)
 --------------------------------
 ``ClaudeCheck(model, subject="guide_frame")`` describes a phone camera frame for a
-blind or low-vision walker: ``describe(frame, context)`` returns ``AiGuide`` (one
-spoken sentence, hazards, landmarks, confidence) or None. Its system prompt
-(``GUIDE_RULES``) says it describes and never decides; ``cloud/app/guide.py`` filters
-the answer again. The API builds it with a 6 s timeout, no retry and a 2-minute pause
-after 3 failures (``max_retries``, ``failures_before_pause``, ``pause_s``) and reads
-``paused`` to answer 503 while the pause lasts.
+blind or low-vision walker as PIP, the guide's voice: ``describe(frame, context)``
+returns ``AiGuide`` (one short spoken sentence, at most two hazards, confidence) or
+None. The long rules live in the cached system prompt (``GUIDE_RULES``); the per-frame
+message is only the route context. PIP describes and never decides;
+``cloud/app/guide.py`` filters the answer again. The answer is small, so the call uses
+``GUIDE_MAX_TOKENS`` instead of the 2048 of the label calls. The API builds it with a
+6 s timeout, no retry and a 2-minute pause after 3 failures (``max_retries``,
+``failures_before_pause``, ``pause_s``) and reads ``paused`` to answer 503 while the
+pause lasts.
 """
 
 from __future__ import annotations
@@ -77,6 +80,7 @@ PRICES = {
 FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5"}
 
 TIMEOUT_S = 10.0  # per attempt; with one retry a failing frame costs about 20 s at most
+MAX_TOKENS = 2048  # the label calls; the camera guide uses GUIDE_MAX_TOKENS below
 MAX_RETRIES = 1
 FAILURES_BEFORE_PAUSE = 3
 PAUSE_S = 300.0
@@ -193,88 +197,99 @@ GUIDE_HAZARD_KINDS: tuple[str, ...] = (
 GUIDE_WHERES: tuple[str, ...] = ("left", "right", "ahead", "unknown")
 GUIDE_CONFIDENCES: tuple[str, ...] = ("low", "medium", "high")
 
+# The answer is what the web app speaks and vibrates on: the sentence, up to two hazards
+# (kind and where) and the confidence. "At most two" is a description, not a schema
+# constraint (structured outputs do not list array limits as supported); the API keeps
+# the first two. Landmarks and hazard text left the answer on November 9 to make it
+# shorter and quicker; the response fields stay, empty.
 GUIDE_SCHEMA = {
     "type": "object",
     "properties": {
         "say": {
             "type": "string",
-            "description": "One sentence to speak, at most 25 words and 160 characters; "
-            "empty when nothing is new or the frame is unusable.",
+            "description": "One short sentence to speak, usually 8 to 14 words and never "
+            "more than 20 (120 characters); empty when nothing changed since the last "
+            "sentence or the frame is unusable.",
         },
         "hazards": {
             "type": "array",
+            "description": "At most two things in the frame the walker should know "
+            "about, the most important first; empty when there is none.",
             "items": {
                 "type": "object",
                 "properties": {
                     "kind": {"type": "string", "enum": list(GUIDE_HAZARD_KINDS)},
                     "where": {"type": "string", "enum": list(GUIDE_WHERES)},
-                    "text": {
-                        "type": "string",
-                        "description": "One short plain phrase.",
-                    },
                 },
-                "required": ["kind", "where", "text"],
+                "required": ["kind", "where"],
                 "additionalProperties": False,
             },
         },
-        "landmarks": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "Readable signs, storefront names, doors, fixed things.",
-        },
         "confidence": {"type": "string", "enum": list(GUIDE_CONFIDENCES)},
     },
-    "required": ["say", "hazards", "landmarks", "confidence"],
+    "required": ["say", "hazards", "confidence"],
     "additionalProperties": False,
 }
 
+# The output cap for one guide answer. The largest answer the schema allows (a 20-word,
+# 120-character sentence, two hazards with the longest kinds, "medium") is 248
+# characters of compact JSON, 124 tokens at a pessimistic 2 characters per token
+# (measured offline on November 9, 2026; see cloud/tests/test_guide_api.py). The cap
+# also covers adaptive thinking, which Claude Haiku 5.5 runs by default and which
+# counts against max_tokens, so it is four times the answer: a cap is a ceiling, not a
+# target, and an answer cut off by it is lost (``stop_reason`` max_tokens, logged).
+GUIDE_MAX_TOKENS = 512
+
 GUIDE_RULES = """
-You are the camera guide of OpenPath, an accessible route planner in Edmonton. A blind or
-low-vision person is walking a planned route with a cane or a guide dog. Their phone's rear
-camera sends you one frame every few seconds, together with the route context as JSON: their
-mobility profile, the current and next step of the route, the distance to the next turn, the
-compass heading, how far they are from the route line, known barriers nearby and the last
-sentence you spoke. The route itself tells them where to turn. You describe what the camera
-shows. You never decide for them, and you do not replace the cane or the dog.
+You are PIP, the camera guide in OpenPath, an accessible route planner in Edmonton. You walk
+beside a blind or low-vision person as a calm, friendly companion. Their phone's rear camera
+sends you one frame every few seconds with the route context as JSON: their mobility profile,
+the current and next step, the distance to the turn, the compass heading, how far they are off
+the route line, known barriers nearby, and "previous", the last sentence you spoke. The route
+tells them where to turn. You tell them what the camera shows.
 
-You describe, you do not decide
-- Say what you see, in plain words: "I see", "there's", "looks like". Never tell the person to
-  go, stop, wait, cross or turn, and never judge whether anything is safe or clear. Never use
-  the words "safe", "safe to", "go now", "cross now" or "clear to". Never say "black ice"; when
-  you suspect ice, say "ice risk".
-- Do not invent turns or directions. You may only confirm the context you were given: when a
-  readable sign, a storefront or a landmark in the frame matches the next step or a nearby
-  item, say so, for example "That's the 104 Street sign; your route turns right here".
-- A cane or a guide dog finds the ground. You add what they cannot: signs, doors, vehicles,
-  people, bikes, construction, stairs, holes, water or ice risk, and the edge of the sidewalk.
+You describe, you do not decide. They decide. Never tell them to go, stop, wait, cross or
+turn, and never say that anything is safe or that they are clear to move. Never use the words
+"safe", "go now", "cross now" or "clear to". Never say "black ice": say the surface looks icy,
+or "ice risk". You do not replace a cane or a guide dog.
 
-The spoken sentence ("say")
-- One sentence of at most 25 words and 160 characters. Two short sentences only when a hazard
-  and a landmark both matter.
-- Present tense. Left, right and ahead are relative to the camera. Say "about N metres" only
-  when you are confident of the distance; otherwise leave the distance out.
-- Say only what is new compared with the last sentence spoken ("previous" in the context). If
-  nothing has changed, "say" is "".
-- If the frame is unusable (dark, blurred, the lens covered, pointing at the sky or at the
-  ground up close), "say" is "" and "confidence" is "low".
-- If "off_route_m" in the context is over 20, or the frame shows the person crossing the edge
-  of the sidewalk, say "You're drifting off the sidewalk to the left" (or "to the right"), or
-  "You're drifting off the route" when the camera cannot tell which side.
-- Lead with what matters most for this profile: for a wheelchair, steps, curbs without a ramp
-  and narrow gaps; for a walker or cane, steps, holes, ice risk and uneven ground; for low
-  vision, the same plus readable signs and doors.
+How you talk
+- Talk to them in the second person, in everyday words, like a friend walking beside them.
+- One short sentence, usually 8 to 14 words, never more than 20.
+- Lead with what they cannot see and need first: the surface right ahead (ice, snow, slush,
+  puddles, gravel, a lip or a curb cut), then things in the path (poles, bins, cars over the
+  sidewalk, people, bikes, dogs, construction), then doors, stairs, crossings and signals, then
+  landmarks.
+- Say where: left, right or ahead, as the camera sees it, with a rough distance in steps or
+  metres when you can tell.
+- For a wheelchair, curbs without a cut, steps and narrow gaps come first; for a walker or
+  cane, steps, holes, ice and uneven ground; for low vision, the same plus readable signs and
+  doors.
+- Confirm the route only when the frame shows it, for example a street sign that matches the
+  next step. Never invent a turn.
+- If "off_route_m" is over 20, or they are crossing the edge of the sidewalk, say which way
+  they are drifting.
+
+Examples
+- "Heads up, the sidewalk ahead looks icy and shiny, keep to the right."
+- "Clear path ahead, a lamp post on your left in about five steps."
+- "A car is parked across the sidewalk ahead, you will need to go around on the left."
+
+When to stay quiet
+- Nothing new compared with "previous": "say" is "". Repeat only when something changed.
+- The frame is unusable (dark, blurred, the lens covered, the sky or the ground up close):
+  "say" is "" and "confidence" is "low".
 
 The JSON object
-- "hazards": each thing in the frame the person should know about, with "kind" from this list
-  only: stairs_down, stairs_up, curb, off_sidewalk, vehicle, bike, person, animal, pole,
-  construction, hole, water_or_ice, door, crossing, sign, other; "where" one of left, right,
-  ahead, unknown; "text" one short plain phrase. An empty list when there is none.
-- "landmarks": readable signs, storefront names, doors and other fixed things that help the
-  person place themselves. An empty list when there is none.
-- "confidence": "high" when the frame is clear and you are sure of what you describe, "medium"
-  when part of it is uncertain, "low" when the frame is unusable or you would be guessing.
-- Judge what the pixels show, never what the weather, the place or the route suggests.
-Answer with the JSON object only.
+- "say": the sentence, or "".
+- "hazards": at most two things in the frame they should know about, the most important
+  first, each with "kind" from stairs_down, stairs_up, curb, off_sidewalk, vehicle, bike,
+  person, animal, pole, construction, hole, water_or_ice, door, crossing, sign, other, and
+  "where" one of left, right, ahead, unknown. [] when there is none.
+- "confidence": "high" when the frame is clear and you are sure, "medium" when part of it is
+  uncertain, "low" when the frame is unusable or you would be guessing.
+Judge what the pixels show, never what the weather, the place or the route suggests. Answer
+with the JSON object only.
 """
 
 # The report-photo label schema: the same classes, with the reason about the walking surface.
@@ -407,13 +422,12 @@ class AiBlocked:
 class AiGuide:
     """Claude's description of a walker's camera frame (OP-418), before the API's filter.
 
-    The four answer fields are passed on as the model gave them (``cloud/app/guide.py``
+    The three answer fields are passed on as the model gave them (``cloud/app/guide.py``
     checks their types and vocabulary), so a strange answer can never raise here.
     """
 
     say: Any
     hazards: Any
-    landmarks: Any
     confidence: Any
     usage: dict[str, int] = field(default_factory=dict)
     cost_usd: float = 0.0
@@ -473,7 +487,7 @@ class ClaudeCheck:
         """
         if self.subject != "guide_frame":
             raise ValueError("describe() is only for the camera guide subject")
-        asked = self._ask(frame, context, GUIDE_SCHEMA)
+        asked = self._ask(frame, context, GUIDE_SCHEMA, max_tokens=GUIDE_MAX_TOKENS)
         if asked is None:
             return None
         data, response, answered = asked
@@ -481,7 +495,6 @@ class ClaudeCheck:
         return AiGuide(
             data.get("say", ""),
             data.get("hazards", []),
-            data.get("landmarks", []),
             data.get("confidence", "low"),
             counts,
             cost,
@@ -532,7 +545,11 @@ class ClaudeCheck:
         )
 
     def _ask(
-        self, frame: bytes, question: str, schema: dict[str, Any]
+        self,
+        frame: bytes,
+        question: str,
+        schema: dict[str, Any],
+        max_tokens: int = MAX_TOKENS,
     ) -> tuple[dict[str, Any], Any, str] | None:
         """One structured call: (the JSON object, the response, the model that answered)."""
         if self._clock() < self._paused_until:
@@ -557,7 +574,7 @@ class ClaudeCheck:
             ]
             request: dict[str, Any] = {
                 "model": self.model,
-                "max_tokens": 2048,
+                "max_tokens": max_tokens,
                 "system": self.system,
                 "messages": [{"role": "user", "content": content}],
                 "output_config": {

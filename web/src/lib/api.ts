@@ -118,7 +118,11 @@ export async function getRoutes(query: PlannerQuery, signal?: AbortSignal): Prom
     profile: query.profile
   });
   const mode: RouteMode = query.mode ?? "walk";
-  if (mode === "walk_lrt") params.set("mode", mode);
+  if (mode === "walk_lrt") {
+    params.set("mode", mode);
+    // OP-420: the API reads `transit` only with walk_lrt, so it is sent only then.
+    if (query.transit) params.set("transit", query.transit);
+  }
   const data = (await getJson(`/api/route?${params.toString()}`, { signal, timeoutMs: 20000 })) as Partial<RouteResponse>;
   if (!data || !Array.isArray(data.routes) || !Array.isArray(data.warnings)) {
     throw new ApiError("invalid", "The route service returned an unexpected body.");

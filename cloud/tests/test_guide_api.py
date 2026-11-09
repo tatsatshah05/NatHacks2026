@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 import io
 import json
 import logging
+import math
 from types import SimpleNamespace
 from typing import Any
 
@@ -17,6 +19,8 @@ from cloud.app import guide, guide_api
 from cloud.app.guide import (
     HAZARD_KINDS,
     MAX_FRAME_BYTES,
+    MAX_SAY_CHARS,
+    MAX_SAY_WORDS,
     ClaudeGuideChecker,
     GuideAnswer,
     GuideContext,
@@ -25,6 +29,7 @@ from cloud.app.guide import (
     build_guide_checker,
     client_hash,
     context_for_model,
+    downscale_frame,
     filter_answer,
     truncate_say,
 )
@@ -32,30 +37,45 @@ from cloud.app.rate_limit import RateLimiter
 from vision.ai_check import (
     GUIDE_CONFIDENCES,
     GUIDE_HAZARD_KINDS,
+    GUIDE_MAX_TOKENS,
     GUIDE_SCHEMA,
     GUIDE_WHERES,
     ClaudeCheck,
 )
 
 CLIENT_ID = "3f9c2a7d1e8b4c6f9a0d2e4b6c8f1a3d"
+# What the model returns now: the sentence, up to two hazards (kind and where) and the
+# confidence. No landmarks and no hazard text (the response carries both, empty).
 GOOD_ANSWER: dict[str, Any] = {
-    "say": "I see a glass door about two metres ahead on your left.",
-    "hazards": [{"kind": "door", "where": "left", "text": "glass door ahead left"}],
-    "landmarks": ["104 Street sign"],
+    "say": "A glass door about two metres ahead on your left.",
+    "hazards": [{"kind": "door", "where": "left"}],
     "confidence": "high",
 }
+GOOD_HAZARDS = [{"kind": "door", "where": "left", "text": ""}]
+# The lead's example sentences from the prompt; every one must pass the filter.
+PIP_EXAMPLES = (
+    "Heads up, the sidewalk ahead looks icy and shiny, keep to the right.",
+    "Clear path ahead, a lamp post on your left in about five steps.",
+    "A car is parked across the sidewalk ahead, you will need to go around on the left.",
+)
 
 
-def jpeg(width: int = 32) -> bytes:
+def jpeg(width: int = 32, height: int = 24) -> bytes:
     buffer = io.BytesIO()
-    Image.new("RGB", (width, 24), (90, 90, 90)).save(buffer, format="JPEG")
+    Image.new("RGB", (width, height), (90, 90, 90)).save(buffer, format="JPEG")
     return buffer.getvalue()
 
 
-def png() -> bytes:
+def png(width: int = 32, height: int = 24) -> bytes:
     buffer = io.BytesIO()
-    Image.new("RGB", (32, 24), (90, 90, 90)).save(buffer, format="PNG")
+    Image.new("RGB", (width, height), (90, 90, 90)).save(buffer, format="PNG")
     return buffer.getvalue()
+
+
+def sent_image(messages: FakeMessages, index: int = -1) -> tuple[str, bytes]:
+    """The media type and the bytes of the image the fake API received."""
+    source = messages.requests[index]["messages"][0]["content"][0]["source"]
+    return source["media_type"], base64.standard_b64decode(source["data"])
 
 
 def context(**overrides: Any) -> dict[str, Any]:
@@ -219,8 +239,8 @@ def test_a_good_answer_gives_the_exact_response_shape() -> None:
         "mode",
     }
     assert body["say"] == GOOD_ANSWER["say"]
-    assert body["hazards"] == GOOD_ANSWER["hazards"]
-    assert body["landmarks"] == ["104 Street sign"]
+    assert body["hazards"] == GOOD_HAZARDS
+    assert body["landmarks"] == []  # the field stays; the model no longer fills it
     assert body["confidence"] == "high"
     assert body["checked_by"] == ["claude"]
     assert isinstance(body["latency_ms"], int) and body["latency_ms"] >= 0
@@ -236,13 +256,19 @@ def test_the_frame_the_context_and_previous_reach_the_model() -> None:
     assert post(TestClient(make_app(checker)), frame, ctx).status_code == 200
     request = messages.requests[0]
     assert request["model"] == "claude-haiku-5-5"
-    assert request["output_config"]["format"] == {
-        "type": "json_schema",
-        "schema": GUIDE_SCHEMA,
+    assert request["max_tokens"] == GUIDE_MAX_TOKENS
+    assert request["output_config"] == {
+        "effort": "low",
+        "format": {"type": "json_schema", "schema": GUIDE_SCHEMA},
     }
     system = request["system"][0]["text"]
+    assert request["system"][0]["cache_control"] == {"type": "ephemeral"}
+    assert system.startswith("You are PIP, the camera guide in OpenPath")
     assert "You describe, you do not decide" in system
     assert "ice risk" in system and '"previous"' in system
+    assert "usually 8 to 14 words, never more than 20" in system
+    for example in PIP_EXAMPLES:
+        assert example in system
     content = request["messages"][0]["content"]
     image, text = content[0], content[1]["text"]
     assert image["source"]["media_type"] == "image/jpeg"
@@ -252,6 +278,45 @@ def test_the_frame_the_context_and_previous_reach_the_model() -> None:
     assert "low_vision" in text and '"off_route_m":3.2' in text
     # The position and the client id are never sent to the model.
     assert "53.54" not in text and "113.50" not in text and CLIENT_ID not in text
+    # The rules live in the cached system prompt; the per-frame text is the context.
+    assert len(text) < 400 and "You describe" not in text
+
+
+def test_the_schema_asks_for_the_sentence_two_hazards_and_the_confidence() -> None:
+    assert GUIDE_SCHEMA["required"] == ["say", "hazards", "confidence"]
+    assert "landmarks" not in GUIDE_SCHEMA["properties"]
+    hazard = GUIDE_SCHEMA["properties"]["hazards"]["items"]
+    assert (
+        hazard["required"] == ["kind", "where"] and "text" not in hazard["properties"]
+    )
+    assert "At most two" in GUIDE_SCHEMA["properties"]["hazards"]["description"]
+    assert (
+        "never more than 20 (120 characters)"
+        in GUIDE_SCHEMA["properties"]["say"]["description"]
+    )
+
+
+def test_the_output_cap_fits_the_largest_answer_the_schema_allows() -> None:
+    """GUIDE_MAX_TOKENS was chosen from this answer: 20 words of 120 characters, the two
+    longest hazard kinds and "medium", measured offline at a pessimistic 2 characters
+    per token (the API's own tokenizer needs the network). The cap also has to cover
+    adaptive thinking, which Haiku 5.5 runs by default; it is a ceiling, not a target."""
+    say = " ".join(["xxxxx"] * 19 + ["xxxxxx"])
+    assert len(say.split()) == MAX_SAY_WORDS and len(say) == MAX_SAY_CHARS
+    largest = json.dumps(
+        {
+            "say": say,
+            "hazards": [
+                {"kind": "water_or_ice", "where": "unknown"},
+                {"kind": "construction", "where": "unknown"},
+            ],
+            "confidence": "medium",
+        },
+        separators=(",", ":"),
+    )
+    answer_tokens = math.ceil(len(largest) / 2)
+    assert answer_tokens <= 128 < GUIDE_MAX_TOKENS <= 4 * 128
+    assert GUIDE_MAX_TOKENS < 2048  # the label calls keep 2048
 
 
 def test_context_for_model_sends_only_the_agreed_fields() -> None:
@@ -265,17 +330,19 @@ def test_context_for_model_sends_only_the_agreed_fields() -> None:
 
 
 @pytest.mark.parametrize(
-    "say",
+    ("say", "phrase"),
     [
-        "It is safe to cross now.",
-        "The path looks Safe ahead.",
-        "Go now, the light is green.",
-        "You are clear to continue.",
-        "Looks like black ice ahead.",
-        "The crossing is unsafe.",
+        ("It is safe to cross now.", "safe to"),
+        ("The path looks Safe ahead.", "safe"),
+        ("Go now, the light is green.", "go now"),
+        ("You are clear to continue.", "clear to"),
+        ("Cross now while it is quiet.", "cross now"),
+        ("The crossing is unsafe.", "safe"),
     ],
 )
-def test_forbidden_phrases_are_filtered_and_logged(say: str, caplog: Any) -> None:
+def test_forbidden_phrases_are_filtered_and_logged(
+    say: str, phrase: str, caplog: Any
+) -> None:
     answer = dict(GOOD_ANSWER, say=say)
     checker, _ = claude(answer)
     with caplog.at_level(logging.WARNING, logger="openpath.guide"):
@@ -283,11 +350,70 @@ def test_forbidden_phrases_are_filtered_and_logged(say: str, caplog: Any) -> Non
     assert got.status_code == 200
     body = got.json()
     assert body["say"] == ""
-    assert body["hazards"] == GOOD_ANSWER["hazards"]  # kept
-    assert body["landmarks"] == GOOD_ANSWER["landmarks"]  # kept
+    assert body["hazards"] == GOOD_HAZARDS  # kept
     assert body["checked_by"] == ["claude"]
-    assert "WARN guide: filtered answer" in caplog.text
+    assert f"WARN guide: filtered answer ({phrase!r})" in caplog.text
     assert say not in caplog.text  # the sentence itself is never logged
+
+
+@pytest.mark.parametrize(
+    ("say", "expected"),
+    [
+        ("Looks like black ice ahead.", "Looks like ice ahead."),
+        ("Black ice on the left, shiny and dark.", "Ice on the left, shiny and dark."),
+        (
+            "That patch looks like Black Ice, keep to the right.",
+            "That patch looks like ice, keep to the right.",
+        ),
+    ],
+)
+def test_black_ice_is_rewritten_to_ice_not_dropped(
+    say: str, expected: str, caplog: Any
+) -> None:
+    """PIP never asserts black ice, but the warning is still worth hearing."""
+    checker, _ = claude(dict(GOOD_ANSWER, say=say))
+    with caplog.at_level(logging.WARNING, logger="openpath.guide"):
+        body = post(TestClient(make_app(checker))).json()
+    assert body["say"] == expected
+    assert body["hazards"] == GOOD_HAZARDS
+    assert "WARN guide: filtered answer ('black ice' rewritten)" in caplog.text
+    assert say not in caplog.text and expected not in caplog.text
+
+
+@pytest.mark.parametrize("say", PIP_EXAMPLES)
+def test_pips_example_sentences_pass_the_filter(say: str, caplog: Any) -> None:
+    """ "Clear path ahead" is a description: "clear to" is the forbidden phrase, not
+    the word "clear"."""
+    checker, _ = claude(dict(GOOD_ANSWER, say=say))
+    with caplog.at_level(logging.WARNING, logger="openpath.guide"):
+        body = post(TestClient(make_app(checker))).json()
+    assert body["say"] == say
+    assert len(say.split()) <= MAX_SAY_WORDS and len(say) <= MAX_SAY_CHARS
+    assert "WARN" not in caplog.text
+
+
+def test_a_sentence_that_repeats_previous_is_not_said_twice() -> None:
+    """PIP speaks again only when something changed; the hazards still come back so
+    the web app can keep vibrating on them."""
+    previous = "There's a bike rack on your right."
+    checker, _ = claude(dict(GOOD_ANSWER, say="there's a bike rack on your right"))
+    client = TestClient(make_app(checker))
+    body = post(client, ctx=context(previous=previous)).json()
+    assert body["say"] == "" and body["hazards"] == GOOD_HAZARDS
+    assert body["checked_by"] == ["claude"] and body["confidence"] == "high"
+    # The same sentence with nothing spoken before, or after another one, is said.
+    assert post(client, ctx=context(previous=None)).json()["say"] == (
+        "there's a bike rack on your right"
+    )
+    assert post(client, ctx=context(previous="A pole on your left.")).json()["say"] == (
+        "there's a bike rack on your right"
+    )
+    # The rewrite comes first, so "black ice" after "ice" is a repeat too.
+    say, hazards, confidence = filter_answer(
+        GuideAnswer("Looks like black ice ahead", [], "medium"),
+        previous="Looks like ice ahead.",
+    )
+    assert say == "" and hazards == [] and confidence == "medium"
 
 
 def test_an_answer_that_is_not_json_gives_an_empty_sentence() -> None:
@@ -313,35 +439,49 @@ def test_one_failed_call_gives_200_with_nothing_checked() -> None:
     assert body["confidence"] == "low"
 
 
-def test_the_sentence_is_cut_at_a_word_boundary() -> None:
+def test_twenty_words_pass_and_twenty_five_are_cut_at_a_word_boundary() -> None:
+    twenty = (
+        "Heads up, there is a low branch ahead at head height, "
+        "lean a little to the left as you pass."
+    )
+    assert len(twenty.split()) == 20 and len(twenty) <= MAX_SAY_CHARS
+    twenty_five = twenty + " The sidewalk narrows a little."
+    assert len(twenty_five.split()) == 25
+    assert truncate_say(twenty) == twenty
+    assert truncate_say(twenty_five) == twenty
+    checker, _ = claude(dict(GOOD_ANSWER, say=twenty_five))
+    assert post(TestClient(make_app(checker))).json()["say"] == twenty
+    # The character limit holds too, still at a word boundary.
+    wide = " ".join(["sidewalk"] * 20)  # 20 words, 179 characters
+    cut = truncate_say(wide)
+    assert len(cut) <= MAX_SAY_CHARS and cut.endswith("sidewalk")
+    assert cut == " ".join(["sidewalk"] * 13)
     long = " ".join(["word"] * 60)  # 299 characters
-    cut = truncate_say(long)
-    assert len(cut) <= 160 and not cut.endswith(" ") and cut.endswith("word")
+    assert truncate_say(long) == " ".join(["word"] * MAX_SAY_WORDS)
     assert truncate_say("short") == "short"
-    answer = GuideAnswer(say=long, hazards=[], landmarks=[], confidence="medium")
-    say, *_ = filter_answer(answer)
-    assert say == cut
+    say, *_ = filter_answer(GuideAnswer(say=long, hazards=[], confidence="medium"))
+    assert say == " ".join(["word"] * MAX_SAY_WORDS)
 
 
 def test_unknown_hazard_kinds_become_other_and_odd_values_are_dropped() -> None:
     answer = GuideAnswer(
-        say="I see stairs going down ahead.",
+        say="Stairs going down ahead.",
         hazards=[
+            "not a hazard",
             {"kind": "escalator", "where": "ahead", "text": "steps"},
             {"kind": "stairs_down", "where": "behind", "text": 12},
-            "not a hazard",
+            {"kind": "pole", "where": "left"},  # a third one is never passed on
         ],
-        landmarks=["Tim Hortons", 7, "  "],
         confidence="certain",
     )
-    say, hazards, landmarks, confidence = filter_answer(answer)
+    say, hazards, confidence = filter_answer(answer)
     assert [h.model_dump() for h in hazards] == [
         {"kind": "other", "where": "ahead", "text": "steps"},
         {"kind": "stairs_down", "where": "unknown", "text": ""},
     ]
-    assert landmarks == ["Tim Hortons"]
     assert confidence == "low"
-    assert say == "I see stairs going down ahead."
+    assert say == "Stairs going down ahead."
+    assert filter_answer(GuideAnswer("", "hazards?", "high"))[1] == []
 
 
 def test_the_vocabulary_agrees_between_the_api_and_the_prompt() -> None:
@@ -360,7 +500,7 @@ def test_without_a_checker_the_route_answers_503() -> None:
 
 
 def test_replay_mode_answers_503_before_anything_else() -> None:
-    checker = StubChecker(GuideAnswer("x", [], [], "high"))
+    checker = StubChecker(GuideAnswer("x", [], "high"))
     got = post(TestClient(make_app(checker, mode="replay")))
     assert got.status_code == 503
     assert got.json() == {"detail": "Camera guidance runs only in live mode."}
@@ -443,7 +583,7 @@ def test_the_full_app_answers_503_without_a_key_and_in_replay(monkeypatch: Any) 
 
 
 def test_a_frame_over_the_limit_is_refused_with_413_before_the_model() -> None:
-    checker = StubChecker(GuideAnswer("x", [], [], "high"))
+    checker = StubChecker(GuideAnswer("x", [], "high"))
     client = TestClient(make_app(checker))
     big = jpeg() + b"\0" * MAX_FRAME_BYTES  # a real JPEG header, too many bytes
     got = post(client, big)
@@ -453,7 +593,7 @@ def test_a_frame_over_the_limit_is_refused_with_413_before_the_model() -> None:
 
 
 def test_a_png_is_accepted_and_other_files_get_415() -> None:
-    checker = StubChecker(GuideAnswer("I see a door.", [], [], "medium"))
+    checker = StubChecker(GuideAnswer("A door ahead.", [], "medium"))
     client = TestClient(make_app(checker))
     assert post(client, png()).status_code == 200
     got = post(client, b"GIF89a not really an image")
@@ -463,6 +603,45 @@ def test_a_png_is_accepted_and_other_files_get_415() -> None:
         client.post("/api/guide/frame", json={"context": context()}).status_code == 415
     )
     assert checker.frames == [len(png())]
+
+
+def test_wide_frames_are_downscaled_to_480_px_before_the_model() -> None:
+    """The web sends 640 px frames today; the model gets 480 px wide, in memory."""
+    checker, messages = claude(GOOD_ANSWER)
+    client = TestClient(make_app(checker))
+    assert post(client, jpeg(1280, 720)).status_code == 200
+    media_type, sent = sent_image(messages)
+    assert media_type == "image/jpeg"
+    with Image.open(io.BytesIO(sent)) as image:
+        assert image.format == "JPEG" and image.size == (480, 270)
+    assert len(sent) < len(jpeg(1280, 720))
+    # A frame that is narrow enough is sent as it came, byte for byte.
+    small = jpeg(320, 240)
+    assert post(client, small).status_code == 200
+    assert sent_image(messages) == ("image/jpeg", small)
+    # A wide PNG becomes a 480 px JPEG; a portrait frame keeps its proportions.
+    assert post(client, png(1000, 600)).status_code == 200
+    media_type, sent = sent_image(messages)
+    with Image.open(io.BytesIO(sent)) as image:
+        assert media_type == "image/jpeg" and image.size == (480, 288)
+    assert post(client, jpeg(720, 1280)).status_code == 200
+    with Image.open(io.BytesIO(sent_image(messages)[1])) as image:
+        assert image.size == (480, 853)
+
+
+def test_downscale_frame_never_raises_and_keeps_what_it_cannot_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert (
+        downscale_frame(b"GIF89a not really an image") == b"GIF89a not really an image"
+    )
+    assert downscale_frame(b"") == b""
+    wide = jpeg(960, 540)
+    assert downscale_frame(wide, width_px=960) == wide
+    with Image.open(io.BytesIO(downscale_frame(wide, width_px=120))) as image:
+        assert image.size == (120, 68)
+    monkeypatch.setattr(guide, "Image", None)
+    assert downscale_frame(wide) == wide
 
 
 @pytest.mark.parametrize(
@@ -477,7 +656,7 @@ def test_a_png_is_accepted_and_other_files_get_415() -> None:
     ],
 )
 def test_a_bad_context_gives_422_with_the_field_named(ctx: Any, loc_tail: str) -> None:
-    checker = StubChecker(GuideAnswer("x", [], [], "high"))
+    checker = StubChecker(GuideAnswer("x", [], "high"))
     got = post(TestClient(make_app(checker)), ctx=ctx)
     assert got.status_code == 422, got.text
     locs = [tuple(item["loc"]) for item in got.json()["detail"]]
@@ -487,7 +666,7 @@ def test_a_bad_context_gives_422_with_the_field_named(ctx: Any, loc_tail: str) -
 
 
 def test_missing_or_malformed_parts_give_422() -> None:
-    client = TestClient(make_app(StubChecker(GuideAnswer("x", [], [], "high"))))
+    client = TestClient(make_app(StubChecker(GuideAnswer("x", [], "high"))))
     assert post(client, ctx="not json").status_code == 422
     assert post(client, ctx="[1, 2]").status_code == 422
     no_frame = client.post(
@@ -508,7 +687,7 @@ def test_thirty_frames_a_minute_per_client_then_429() -> None:
         RateLimiter(guide.PER_CLIENT_PER_MIN, clock=clock),
         RateLimiter(guide.TOTAL_PER_MIN, clock=clock),
     )
-    checker = StubChecker(GuideAnswer("I see a door.", [], [], "medium"))
+    checker = StubChecker(GuideAnswer("A door ahead.", [], "medium"))
     client = TestClient(make_app(checker, limits=limits))
     for _ in range(30):
         assert post(client).status_code == 200
@@ -529,7 +708,7 @@ def test_six_hundred_frames_a_minute_in_total_then_429() -> None:
         RateLimiter(guide.PER_CLIENT_PER_MIN, clock=clock),
         RateLimiter(guide.TOTAL_PER_MIN, clock=clock),
     )
-    checker = StubChecker(GuideAnswer("", [], [], "low"))
+    checker = StubChecker(GuideAnswer("", [], "low"))
     client = TestClient(make_app(checker, limits=limits))
     for n in range(600):
         ctx = context(client_id=f"client-{n // 30:04d}-" + "x" * 20)
@@ -542,7 +721,7 @@ def test_six_hundred_frames_a_minute_in_total_then_429() -> None:
 
 
 def test_the_limits_are_created_once_per_app() -> None:
-    app = make_app(StubChecker(GuideAnswer("", [], [], "low")))
+    app = make_app(StubChecker(GuideAnswer("", [], "low")))
     client = TestClient(app)
     assert post(client).status_code == 200
     first = app.state.guide_limits
@@ -569,18 +748,17 @@ def test_the_log_line_has_counts_and_a_hashed_client_id_only(caplog: Any) -> Non
     assert len(hashed) == 8 and hashed != CLIENT_ID[:8]
     assert line.startswith(f"GUIDE client={hashed} latency_ms=")
     assert f" hazards=1 say_chars={len(GOOD_ANSWER['say'])}" in line
+    assert line.endswith(" tokens_out=80 cache_read=1200")  # from response.usage
     assert CLIENT_ID not in caplog.text
     assert GOOD_ANSWER["say"] not in caplog.text
     # No frame bytes, in any form.
-    import base64
-
     assert base64.b64encode(frame).decode()[:24] not in caplog.text
     assert "\xff\xd8" not in caplog.text and "JFIF" not in caplog.text
 
 
 def test_latency_is_a_whole_number_of_milliseconds() -> None:
     clock = FakeClock()
-    checker = StubChecker(GuideAnswer("I see a pole.", [], [], "medium"))
+    checker = StubChecker(GuideAnswer("A pole on your left.", [], "medium"))
 
     def ticking() -> float:
         clock.now += 0.0123

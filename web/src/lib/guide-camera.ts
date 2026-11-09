@@ -5,8 +5,10 @@
 
 import { frameSize } from "./guide-context";
 
-export const FRAME_WIDTH_PX = 640;
-export const FRAME_JPEG_QUALITY = 0.7;
+// 480 px at quality 0.6 (lead feedback, November 9: PIP felt slow on a phone; smaller
+// frames upload faster and Claude reads a sidewalk scene as well at this size).
+export const FRAME_WIDTH_PX = 480;
+export const FRAME_JPEG_QUALITY = 0.6;
 
 export function canUseCamera(): boolean {
   try {
@@ -40,8 +42,9 @@ export function stopStream(stream: MediaStream | null): void {
 }
 
 /**
- * Draw the video's current frame at 640 px wide and encode it as a JPEG (quality
- * 0.7). Null while the video has no frame yet, or when the canvas cannot encode.
+ * Draw the video's current frame at FRAME_WIDTH_PX wide and encode it as a JPEG at
+ * FRAME_JPEG_QUALITY. Null while the video has no frame yet, or when the canvas cannot
+ * encode.
  */
 export function captureFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement): Promise<Blob | null> {
   const { width, height } = frameSize(video.videoWidth, video.videoHeight, FRAME_WIDTH_PX);

@@ -5,7 +5,7 @@
 // the component, to be fixed there with a proper label. A name built from visible
 // text plus a visually hidden span ("Save this route" + ", route 1") is computed as
 // "Save this route , route 1", so those patterns allow a space before the comma.
-import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 import type { components } from "../src/lib/api-types";
 
 type RouteResponse = components["schemas"]["RouteResponse"];
@@ -162,4 +162,76 @@ export function longestSegment(route: RouteOut): { type: "LineString"; coordinat
 
 export function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// ------------------------------------------------ the trip and PIP (OP-419, OP-418)
+
+/** The route report's Start button: "Start route", with the rank when there are alternates. */
+export const START_ROUTE = /^Start route( \d)?$/;
+
+export type Spoken = { spoken: string[] };
+
+/** Record what the page speaks, without a voice: headless Chromium cannot be heard. */
+export async function recordSpeech(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    (window as unknown as Spoken).spoken = [];
+    window.speechSynthesis.speak = (utterance: SpeechSynthesisUtterance) => {
+      (window as unknown as Spoken).spoken.push(utterance.text);
+    };
+  });
+}
+
+export function spokenSoFar(page: Page): Promise<string[]> {
+  return page.evaluate(() => (window as unknown as Spoken).spoken);
+}
+
+/** A rear camera that is refused: PIP says so and the steps go on. */
+export async function denyCamera(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const devices = (navigator.mediaDevices ?? {}) as MediaDevices;
+    Object.defineProperty(navigator, "mediaDevices", { value: devices, configurable: true });
+    devices.getUserMedia = () => Promise.reject(new DOMException("Permission denied", "NotAllowedError"));
+  });
+}
+
+/** A canvas stands in for the rear camera: its stream has real frames to draw. */
+export async function fakeCamera(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const devices = (navigator.mediaDevices ?? {}) as MediaDevices;
+    Object.defineProperty(navigator, "mediaDevices", { value: devices, configurable: true });
+    devices.getUserMedia = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 320;
+      canvas.height = 240;
+      const context = canvas.getContext("2d");
+      const paint = () => {
+        if (!context) return;
+        context.fillStyle = `hsl(${(Date.now() / 20) % 360} 40% 50%)`;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+      };
+      paint();
+      window.setInterval(paint, 100);
+      return Promise.resolve(canvas.captureStream(10));
+    };
+  });
+}
+
+/** Open the route report for one route of the trip and wait for its steps. */
+export async function openReport(page: Page, trip: Trip = TRIP, rank = 1): Promise<void> {
+  await blockMapTiles(page);
+  await page.goto(reportUrl(trip, rank));
+  await expect(page.getByRole("heading", { level: 2, name: `Steps for route ${rank}` })).toBeVisible({ timeout: 30_000 });
+}
+
+/** Press Start route and return the trip's region. */
+export async function startTrip(page: Page): Promise<Locator> {
+  await page.getByRole("button", { name: START_ROUTE }).click();
+  const trip = page.getByRole("region", { name: "Your trip" });
+  await expect(trip).toBeVisible();
+  return trip;
+}
+
+/** The trip's large status line: the current step, or the arrival. */
+export function currentStep(trip: Locator): Locator {
+  return trip.getByRole("status").filter({ hasText: /^(Step \d+ of \d+: |You're at the end of the route)/ });
 }

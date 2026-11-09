@@ -17,7 +17,6 @@ import { NoRoute, RouteFailure } from "./route-problem";
 import RouteResult from "./route-result";
 import SaveRouteButton from "./save-route-button";
 import Button from "./ui/button";
-import CheckField from "./ui/check-field";
 import CityWideConditions from "./ui/city-wide-conditions";
 import LazyMount from "./ui/lazy-mount";
 import Panel from "./ui/panel";
@@ -43,6 +42,15 @@ import {
 import { isCityWide, plural } from "@/lib/report-format";
 import { parseTripParams, plannerHref, reportHref } from "@/lib/route-link";
 import { prefersReducedMotion } from "@/lib/settings";
+import {
+  TRANSIT_DEFAULT,
+  TRANSIT_OPTIONS,
+  TransitChoice,
+  readTransitChoice,
+  saveTransitChoice,
+  transitChoiceOf,
+  transitRequest
+} from "@/lib/transit-choice";
 import styles from "./planner-page.module.css";
 
 // MapLibre is large and needs the browser; load it after the form is usable, and only
@@ -82,7 +90,10 @@ export default function PlannerPage() {
   const [queries, setQueries] = useState<ByField<string>>({ from: "", to: "" });
   const [errors, setErrors] = useState<ByField<string>>({ from: "", to: "" });
   const [profile, setProfile] = useState<TravelProfile>("wheelchair");
-  const [includeLrt, setIncludeLrt] = useState(false);
+  // Walking and transit by default (lead decision, November 9): transit is on in
+  // production and the demo trips ride it. The choice is kept on the device
+  // (lib/transit-choice.ts, OP-420).
+  const [transit, setTransit] = useState<TransitChoice>(TRANSIT_DEFAULT);
   const [locationMessage, setLocationMessage] = useState("");
   // The routes shown, the request in flight and the last failure. Any change to the
   // trip clears the routes, so what is shown always matches the form.
@@ -139,11 +150,17 @@ export default function PlannerPage() {
     const trip = parseTripParams(new URLSearchParams(window.location.search));
     savedRef.current = trip.saved;
     setProfile(trip.profile);
-    setIncludeLrt(trip.mode === "walk_lrt");
+    // A trip link decides the choice for itself (`mode=walk_lrt` is Walking and transit,
+    // with `transit=only` Transit only, otherwise Walking); a bare planner keeps the
+    // choice saved on this device, else the default.
+    if (trip.from && trip.to) setTransit(transitChoiceOf(trip));
+    else setTransit(readTransitChoice() ?? TRANSIT_DEFAULT);
     const chosen = { from: trip.from, to: trip.to };
     setPlaces(chosen);
     setQueries({ from: trip.from?.name ?? "", to: trip.to?.name ?? "" });
-    if (trip.from && trip.to) void search({ from: trip.from, to: trip.to, profile: trip.profile, mode: trip.mode });
+    if (trip.from && trip.to) {
+      void search({ from: trip.from, to: trip.to, profile: trip.profile, mode: trip.mode, transit: trip.transit });
+    }
     return () => requestRef.current?.abort();
   }, [search]);
 
@@ -176,8 +193,9 @@ export default function PlannerPage() {
     clearResults();
   }
 
-  function chooseLrt(next: boolean) {
-    setIncludeLrt(next);
+  function chooseTransit(next: TransitChoice) {
+    setTransit(next);
+    saveTransitChoice(next);
     clearResults();
   }
 
@@ -225,7 +243,7 @@ export default function PlannerPage() {
     }
     if (!places.from || !places.to) return;
     setErrors({ from: "", to: "" });
-    void search({ from: places.from, to: places.to, profile, mode: includeLrt ? "walk_lrt" : "walk" });
+    void search({ from: places.from, to: places.to, profile, ...transitRequest(transit) });
   }
 
   function showDemo(query: PlannerQuery) {
@@ -386,12 +404,13 @@ export default function PlannerPage() {
               value={profile}
               onChange={chooseProfile}
             />
-            <CheckField
-              id="include-lrt"
-              label="Include LRT and bus trips"
-              checked={includeLrt}
-              onChange={chooseLrt}
-              help="Walk, ride the LRT or a bus and walk on, when that is faster."
+            <SegmentedChoice
+              legend="What kind of trip?"
+              name="trip-kind"
+              layout="stack"
+              options={TRANSIT_OPTIONS}
+              value={transit}
+              onChange={chooseTransit}
             />
             <Button type="submit" size="large" block>
               Find routes
@@ -437,6 +456,11 @@ export default function PlannerPage() {
                       reportLink={reportHref(result.query, route.rank, {
                         saved: savedRef.current,
                         demo: result.demo
+                      })}
+                      startLink={reportHref(result.query, route.rank, {
+                        saved: savedRef.current,
+                        demo: result.demo,
+                        start: true
                       })}
                       selected={route.rank === selected?.rank}
                       onSelect={selectRoute}
@@ -488,17 +512,27 @@ export default function PlannerPage() {
   );
 }
 
-/** Notes about the whole trip: where the API moved a point, and whether a ride was used. */
+// The API's own words when Transit only had to fall back to walking routes
+// (routing_api.NO_TRANSIT_WARNING), so the note reads the same whichever side says it.
+const NO_TRANSIT_NOTE = "No bus or LRT trip was found for this journey; these are walking routes.";
+
+/**
+ * Notes about the whole trip: where the API moved a point, and why there is no ride.
+ * Under Transit only the API itself says when it fell back to walking routes; under
+ * Walking and transit the best trip is always shown when one exists, so walking routes
+ * alone mean none was found. Each note is shown once.
+ */
 function tripNotes({ query, response, demo }: Result): string[] {
   if (demo || !response.routes.length) return [];
   const notes = [...response.warnings];
   if (query.mode === "walk_lrt") {
-    const unavailable = "LRT and bus trips are not available right now. These are walking routes.";
-    if (response.mode !== "walk_lrt") notes.push(unavailable);
-    else if (!response.routes.some((route) => route.legs?.length)) {
-      if (!notes.some((note) => note.startsWith("Walk and LRT trips are unavailable"))) {
-        notes.push("No LRT or bus trip is faster than walking here, so these are walking routes.");
-      }
+    if (response.mode !== "walk_lrt") {
+      notes.push("LRT and bus trips are not available right now. These are walking routes.");
+    } else if (
+      !response.routes.some((route) => route.legs?.length) &&
+      !notes.some((note) => note === NO_TRANSIT_NOTE || note.startsWith("Walk and LRT trips are unavailable"))
+    ) {
+      notes.push(NO_TRANSIT_NOTE);
     }
   }
   return [...new Set(notes)];

@@ -42,12 +42,81 @@ export function canSpeak(): boolean {
   }
 }
 
+// Two channels (OP-419, lead feedback of November 9: PIP's voice lagged the camera).
+// `speak` is the main channel: route changes and route steps. It cancels everything
+// and is never cut short by PIP. `speakAside` is PIP's channel: one sentence at a
+// time, where a new sentence replaces its own older one that has not finished, and a
+// sentence that arrives while a step is being spoken waits for the step (only the
+// newest waiting sentence is kept) rather than cutting it.
+let mainUtterance: SpeechSynthesisUtterance | null = null;
+let asideUtterance: SpeechSynthesisUtterance | null = null;
+let asideWaiting: string | null = null;
+
+function utteranceFor(text: string): SpeechSynthesisUtterance {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "en-CA";
+  return utterance;
+}
+
+/** The main channel still has a sentence that has not finished. */
+function mainBusy(): boolean {
+  if (!mainUtterance) return false;
+  try {
+    const synth = window.speechSynthesis;
+    // `onend` can fail to fire in some browsers; the engine's own state is the truth.
+    return synth.speaking || synth.pending;
+  } catch {
+    return false;
+  }
+}
+
 /** Say `text` now, replacing anything still being spoken. Returns true when queued. */
 export function speak(text: string): boolean {
   if (!text || !canSpeak()) return false;
   try {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-CA";
+    const utterance = utteranceFor(text);
+    const done = () => {
+      if (mainUtterance !== utterance) return;
+      mainUtterance = null;
+      // PIP's newest sentence, held back while the step was spoken.
+      const waiting = asideWaiting;
+      asideWaiting = null;
+      if (waiting) speakAside(waiting);
+    };
+    utterance.onend = done;
+    utterance.onerror = done;
+    mainUtterance = utterance;
+    asideUtterance = null;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * PIP's channel: say `text` at once, replacing PIP's own older sentence if it has not
+ * finished, and never cutting a step sentence (then it waits, and the newest wins).
+ * Returns true when queued or kept waiting.
+ */
+export function speakAside(text: string): boolean {
+  if (!text || !canSpeak()) return false;
+  try {
+    if (mainBusy()) {
+      asideWaiting = text;
+      return true;
+    }
+    mainUtterance = null;
+    asideWaiting = null;
+    const utterance = utteranceFor(text);
+    const done = () => {
+      if (asideUtterance === utterance) asideUtterance = null;
+    };
+    utterance.onend = done;
+    utterance.onerror = done;
+    asideUtterance = utterance;
+    // Only PIP's own sentence can be in the queue here: steps cancel everything first.
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
     return true;
@@ -57,6 +126,9 @@ export function speak(text: string): boolean {
 }
 
 export function stopSpeaking(): void {
+  mainUtterance = null;
+  asideUtterance = null;
+  asideWaiting = null;
   try {
     if (canSpeak()) window.speechSynthesis.cancel();
   } catch {
