@@ -131,7 +131,7 @@ function RouteReport({ params }: { params: ReportParams }) {
           </h1>
           <p className="lead">
             Route report for {profileLabel(params.profile).toLowerCase()}
-            {params.mode === "walk_lrt" ? ", walking, LRT and bus" : ""}.
+            {params.transit === "only" ? ", transit only" : params.mode === "walk_lrt" ? ", walking, LRT and bus" : ""}.
           </p>
           {demo ? (
             <p className="note">

@@ -1664,6 +1664,8 @@ export interface operations {
                 profile?: string;
                 /** @description walk, or walk_lrt for walk and LRT trips (LRT_TRIPS on; with TRANSIT_BUS on, walk and bus trips too) */
                 mode?: "walk" | "walk_lrt";
+                /** @description Read only with mode=walk_lrt, ignored otherwise. faster (default): a bus or LRT trip appears only when it beats walking. always: the best trip is included even when it is slower, ranked after the walking routes that beat it. only: transit trips alone; when none exists, the walking routes come back with a warning. */
+                transit?: "faster" | "always" | "only";
             };
             header?: never;
             path?: never;
