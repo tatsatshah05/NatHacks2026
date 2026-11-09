@@ -68,6 +68,11 @@ class WeatherService:
         self.last_good: WeatherResponse | None = None
         self.last_success: datetime | None = None
         self.last_error: str | None = None
+        # Set by a refresh that succeeded on the station alone (Open-Meteo did not
+        # answer; see adapters/weather.py): the operator's message that the
+        # scheduler shows as ``last_error`` on /api/status while the source stays
+        # fresh. None after a refresh with both providers.
+        self.warning: str | None = None
         self._lock = asyncio.Lock()
 
     async def refresh(self) -> bool:
@@ -76,10 +81,14 @@ class WeatherService:
             try:
                 readings = dict(await self.fetch(self.clock()))
                 observed_at = readings.pop("observed_at")
+                # Present only when Open-Meteo did not answer: one sentence for the
+                # reason (what the result rests on) and the operator's message.
+                note = readings.pop("note", None)
+                warning = readings.pop("warning", None)
                 decision = evaluate_weather_watch(**readings)
                 snapshot = WeatherResponse(
                     active=decision.active,
-                    reason=decision.reason,
+                    reason=f"{decision.reason} {note}" if note else decision.reason,
                     air_c=readings["air_c"],
                     ground_c=readings["ground_c"],
                     dew_c=readings["dew_c"],
@@ -101,6 +110,7 @@ class WeatherService:
             self.last_good = snapshot
             self.last_success = self.clock()
             self.last_error = None
+            self.warning = warning
             if previous != snapshot.active:
                 before = (
                     "unknown"
