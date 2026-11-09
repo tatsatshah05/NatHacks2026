@@ -45,7 +45,13 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol, get_args
 
-from PIL import Image, UnidentifiedImageError
+try:
+    from PIL import Image, UnidentifiedImageError
+except (
+    ImportError
+):  # Pillow ships in cloud/requirements-photo-check.txt; without it the guide is off
+    Image = None  # type: ignore[assignment]
+    UnidentifiedImageError = OSError  # type: ignore[assignment,misc]
 from pydantic import BaseModel, ConfigDict, Field
 
 from .rate_limit import RateLimiter
@@ -195,8 +201,12 @@ class GuideFrameResponse(BaseModel):
 def frame_format(frame: bytes) -> FrameFormat | None:
     """``jpeg`` or ``png`` when Pillow reads the frame's header as one, else None.
 
-    ``Image.open`` reads only the header; the pixels are never decoded here.
+    ``Image.open`` reads only the header; the pixels are never decoded here. Without
+    Pillow every frame is unreadable, and ``build_guide_checker`` has already turned
+    the guide off.
     """
+    if Image is None:
+        return None
     try:
         with Image.open(io.BytesIO(frame)) as image:
             found = image.format
@@ -339,6 +349,12 @@ def build_guide_checker(env: Mapping[str, str] | None = None) -> GuideChecker | 
     env = os.environ if env is None else env
     if not env.get("ANTHROPIC_API_KEY"):
         log.info("GUIDE Claude is not configured; POST /api/guide/frame answers 503")
+        return None
+    if Image is None:
+        log.warning(
+            "GUIDE Pillow is not installed (cloud/requirements-photo-check.txt); "
+            "POST /api/guide/frame answers 503"
+        )
         return None
     try:
         from vision.ai_check import ClaudeCheck
