@@ -66,6 +66,19 @@ export function statusLabel(status: ItemStatus, distanceM: number | null): strin
   return `Avoided by this route${away}`;
 }
 
+/**
+ * A travel time in whole minutes: "12 min", "1 h", "1 h 18 min". Never less than a
+ * minute, so a short hop is not "0 min". Used for every ETA, ride and wait the pages show
+ * or speak, so an hour-long trip reads as hours rather than "78 min".
+ */
+export function formatMinutes(minutes: number): string {
+  const whole = Math.max(1, Math.round(minutes));
+  if (whole < 60) return `${whole} min`;
+  const hours = Math.floor(whole / 60);
+  const rest = whole % 60;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
 /** "3 min ago", "2 h 15 min ago"; `null` when the time is unknown or invalid. */
 export function formatAgo(iso: string | null | undefined, now: Date): string | null {
   if (!iso) return null;

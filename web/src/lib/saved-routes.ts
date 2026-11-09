@@ -1,5 +1,6 @@
 // Saved routes (OP-304 API, OP-306 client): save a trip, list them, remove one, and
 // the plain words for each route's status.
+import { formatMinutes } from "./report-format";
 import type { components } from "./api-types";
 import { ApiError, requestJson } from "./api-request";
 import { getAnonymousClientId } from "./client-id";
@@ -50,7 +51,7 @@ export function removeSavedRoute(route: SavedRoute): Promise<void> {
   return requestJson<void>(`/api/saved-routes/${route.id}?${query.toString()}`, { method: "DELETE" });
 }
 
-/** "Clear, about 12 min", "Changed: now 16 min (+4)", "No route right now". */
+/** "Clear, about 12 min", "Changed: now 1 h 16 min (+4)", "No route right now". */
 export function savedRouteStatusText(route: Pick<SavedRoute, "status" | "eta_min" | "baseline_eta_min">): string {
   const eta = route.eta_min === null ? null : Math.round(route.eta_min);
   if (route.status === "impossible") return "No route right now";
@@ -58,9 +59,9 @@ export function savedRouteStatusText(route: Pick<SavedRoute, "status" | "eta_min
     if (eta === null) return "Changed";
     // Whole minutes, as the push message counts them (cloud/app/push.py).
     const extra = route.baseline_eta_min === null ? 0 : eta - Math.round(route.baseline_eta_min);
-    return extra >= 1 ? `Changed: now ${eta} min (+${extra})` : `Changed: now ${eta} min`;
+    return extra >= 1 ? `Changed: now ${formatMinutes(eta)} (+${extra})` : `Changed: now ${formatMinutes(eta)}`;
   }
-  return eta === null ? "Clear" : `Clear, about ${eta} min`;
+  return eta === null ? "Clear" : `Clear, about ${formatMinutes(eta)}`;
 }
 
 /** What went wrong with a save, and what to do about it. */
