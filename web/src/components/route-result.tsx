@@ -13,6 +13,8 @@ type Props = {
   appleMapsNote: string;
   /** The route report's URL for this route. */
   reportLink: string;
+  /** The same report with `start=1`: it opens with Start route focused (OP-419). */
+  startLink: string;
   /** This route is the one drawn as the thick line on the map. */
   selected: boolean;
   /** Draw this route as the thick line and go to the map. */
@@ -35,6 +37,7 @@ export default function RouteResult({
   now,
   appleMapsNote,
   reportLink,
+  startLink,
   selected,
   onSelect,
   onToggle,
@@ -57,6 +60,10 @@ export default function RouteResult({
         </ul>
       )}
       <div className="route-actions">
+        {/* Start first (the primary action once routes exist), then the actions in their order. */}
+        <ButtonLink href={startLink}>
+          Start route<span className="sr-only"> {route.rank}</span>
+        </ButtonLink>
         <ButtonLink variant="secondary" href={reportLink}>
           View route report<span className="sr-only"> for route {route.rank}</span>
         </ButtonLink>

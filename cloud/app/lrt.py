@@ -6,6 +6,13 @@ flag on and ``mode=walk_lrt``, the best walk and LRT trip, when there is one and
 is faster than walking, comes first (rank 1) and the slowest walking route is dropped,
 so a response still has at most 3 routes, best first.
 
+OP-420 separates finding the trips from deciding which to keep. ``plan`` runs one
+search and applies a ``transit`` policy: ``faster`` (the default, the behaviour
+above), ``always`` (the best trip is kept even when it is slower than walking, and
+its reason says by how much) or ``only`` (up to three distinct trips, fastest first,
+and nothing is held back). Trips are found and described the same way under every
+policy; only the choice differs.
+
 The data
     ``cloud/data/lrt.json`` is built from the ETS GTFS schedule by
     ``scripts/build_lrt_graph.py`` (``make lrt``) and committed: stations, line
@@ -103,6 +110,9 @@ log = logging.getLogger(__name__)
 DEFAULT_LRT_PATH = Path(__file__).resolve().parents[1] / "data" / "lrt.json"
 DEFAULT_BUS_PATH = Path(__file__).resolve().parents[1] / "data" / "bus.json"
 Vehicle = Literal["lrt", "bus"]
+# OP-420: which trips ``plan`` keeps. ``faster``: only a trip that beats walking.
+# ``always``: the best trip, slower or not. ``only``: up to three distinct trips.
+TransitChoice = Literal["faster", "always", "only"]
 DEVICE_SOURCE = "city_lrt_devices"
 EDMONTON = ZoneInfo("America/Edmonton")
 
@@ -146,6 +156,9 @@ MAPS_NOTE = (
     "Google Maps and Apple Maps plan their own transit trip and may not use the same "
     "stations or elevators."
 )
+# OP-420: the clause a trip's reason ends with when it is not faster than walking,
+# which only transit=always or transit=only can show.
+ASKED_FOR_TRANSIT = "shown because you asked for transit"
 
 
 def enabled(raw: str | None) -> bool:
@@ -634,10 +647,17 @@ class LrtTrip:
 
 @dataclass
 class LrtPlan:
-    trip: LrtTrip | None
+    # The trips kept under the request's ``transit`` policy, fastest first: at most
+    # one for ``faster`` and ``always``, up to three distinct ones for ``only``.
+    trips: list[LrtTrip] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     # Stations within walking reach that this profile may not use now, with why.
     skipped: list[StationAccess] = field(default_factory=list)
+
+    @property
+    def trip(self) -> LrtTrip | None:
+        """The best trip kept, or None with the reasons in ``warnings``."""
+        return self.trips[0] if self.trips else None
 
 
 @dataclass(frozen=True)
@@ -649,6 +669,52 @@ class _Option:
     transfer: LrtTransfer | None
     walk_in_s: float
     walk_out_s: float
+
+    @property
+    def lines_key(self) -> tuple[tuple[str, ...], ...]:
+        """What a rider would call the same trip: the lines of each ride, in order.
+
+        Boarding the same bus two stops further along, or the same train at the
+        next station, is the same trip at a worse time, not an alternative.
+        """
+        return tuple(
+            tuple(sorted(line.id for line in ride.lines)) for ride in self.rides
+        )
+
+
+def distinct_options(options: Sequence[_Option], limit: int) -> list[_Option]:
+    """The fastest option for each ``lines_key``, in the order given, at most ``limit``."""
+    kept: list[_Option] = []
+    seen: set[tuple[tuple[str, ...], ...]] = set()
+    for option in options:
+        if option.lines_key in seen:
+            continue
+        seen.add(option.lines_key)
+        kept.append(option)
+        if len(kept) >= limit:
+            break
+    return kept
+
+
+def trip_reason(trip_name: str, total_min: float, walk_eta_min: float | None) -> str:
+    """Why this trip is offered, against the best walking route.
+
+    A trip faster than walking reads as it always has ("Walk and bus: about 6 min
+    faster than walking"). A trip that is not faster can only be shown under
+    ``transit=always`` or ``transit=only``, so it says so: "about 6 min slower than
+    walking; shown because you asked for transit", or "about the same time as
+    walking; ..." when the difference rounds to zero minutes.
+    """
+    if walk_eta_min is None:
+        return f"{trip_name}: no walking route was found"
+    if total_min < walk_eta_min:
+        return (
+            f"{trip_name}: about {walk_eta_min - total_min:.0f} min faster than walking"
+        )
+    slower = f"{total_min - walk_eta_min:.0f}"
+    if slower == "0":
+        return f"{trip_name}: about the same time as walking; {ASKED_FOR_TRANSIT}"
+    return f"{trip_name}: about {slower} min slower than walking; {ASKED_FOR_TRANSIT}"
 
 
 # ------------------------------------------------------------------- planner
@@ -753,8 +819,15 @@ class LrtPlanner:
         now: datetime,
         walk_eta_min: float | None,
         destination_point: tuple[float, float] | None = None,
+        transit: TransitChoice = "faster",
     ) -> LrtPlan:
-        """The best walk and LRT trip, or None with the reasons in ``warnings``.
+        """The walk and transit trips to keep, fastest first, with warnings.
+
+        One search finds every trip; ``transit`` says which to keep (OP-420):
+        ``faster`` keeps the best trip only when it beats ``walk_eta_min`` (else a
+        warning says walking is faster), ``always`` keeps the best trip whatever
+        its time, ``only`` keeps up to ``alternates.max_routes`` distinct trips.
+        ``plan.trip`` is the first kept, or None with the reasons in ``warnings``.
 
         ``outages`` None means device status could not be read at all.
         ``destination_point`` (lat, lng) is the requested end, so the last walking
@@ -776,7 +849,7 @@ class LrtPlanner:
             for sid, s in self.schedule.stations.items()
             if s.vehicle == "lrt"
         }
-        plan = LrtPlan(trip=None)
+        plan = LrtPlan()
         end = self.schedule.feed_end()
         local = now.astimezone(EDMONTON)
         if end is not None and local.date() > end + timedelta(days=FEED_GRACE_DAYS):
@@ -833,8 +906,71 @@ class LrtPlanner:
                     f"{profile.label} profile: {access[sid].reason}."
                 )
 
-        speed = profile.speed_m_s
-        best: _Option | None = None
+        options, had_service = self._search(
+            near_start, near_end, access, local, profile.speed_m_s
+        )
+        if not options:
+            if not had_service and any(a.usable for a in access.values()):
+                plan.warnings.append(
+                    "No LRT or bus trip fits: nothing serves the usable stations and "
+                    "stops near these points at this hour in the ETS schedule."
+                    if self.schedule.has_bus
+                    else "No LRT trip fits: no train serves the usable stations near "
+                    "these points at this hour in the ETS schedule."
+                )
+            return plan
+        # The policy (OP-420). ``faster`` holds the trip back unless it beats walking;
+        # ``always`` and ``only`` never hold a found trip back.
+        if (
+            transit == "faster"
+            and walk_eta_min is not None
+            and options[0].total_s / 60 >= walk_eta_min
+        ):
+            plan.warnings.append(
+                "Walking is faster than any walk and LRT or bus trip between these "
+                "points."
+                if self.schedule.has_bus
+                else "Walking is faster than any walk and LRT trip between these points."
+            )
+            return plan
+        if transit == "only":
+            chosen = distinct_options(options, self.router.config.alternates.max_routes)
+        else:
+            chosen = options[:1]
+        for option in chosen:
+            plan.trips.append(
+                self._describe(
+                    option,
+                    access,
+                    weights,
+                    hazards,
+                    profile,
+                    (origin_node, pred_start, near_start),
+                    (destination_node, pred_end, near_end),
+                    walk_eta_min,
+                    destination_point,
+                )
+            )
+        return plan
+
+    # -- search pieces -------------------------------------------------------
+
+    def _search(
+        self,
+        near_start: Mapping[str, tuple[int, float]],
+        near_end: Mapping[str, tuple[int, float]],
+        access: Mapping[str, StationAccess],
+        local: datetime,
+        speed: float,
+    ) -> tuple[list[_Option], bool]:
+        """Every trip between the stations in reach, fastest first, and whether any
+        line served a usable pair at all (False explains an empty list).
+
+        The same search under every ``transit`` policy (OP-420): LRT options first
+        (a direct ride or one transfer), then OP-417's walk, one bus ride, walk. The
+        sort is stable, so an LRT option that ties a bus option still comes first.
+        """
+        options: list[_Option] = []
         had_service = False
         lrt_start = {
             s: v
@@ -867,11 +1003,12 @@ class LrtPlanner:
                         + self._access_s(exit_)
                         + walk_out_s
                     )
-                    if best is None or total < best.total_s:
-                        best = _Option(
+                    options.append(
+                        _Option(
                             total, entry, exit_, rides, transfer, walk_in_s, walk_out_s
                         )
-        # OP-417: walk, one bus ride, walk. An LRT option that ties wins (it came first).
+                    )
+        # OP-417: walk, one bus ride, walk.
         for entry, exit_, walk_in_s, walk_out_s, ride in self._bus_rides(
             near_start, near_end, local, speed
         ):
@@ -884,42 +1021,11 @@ class LrtPlanner:
                 + self._access_s(exit_)
                 + walk_out_s
             )
-            if best is None or total < best.total_s:
-                best = _Option(
-                    total, entry, exit_, (ride,), None, walk_in_s, walk_out_s
-                )
-        if best is None:
-            if not had_service and any(a.usable for a in access.values()):
-                plan.warnings.append(
-                    "No LRT or bus trip fits: nothing serves the usable stations and "
-                    "stops near these points at this hour in the ETS schedule."
-                    if self.schedule.has_bus
-                    else "No LRT trip fits: no train serves the usable stations near "
-                    "these points at this hour in the ETS schedule."
-                )
-            return plan
-        if walk_eta_min is not None and best.total_s / 60 >= walk_eta_min:
-            plan.warnings.append(
-                "Walking is faster than any walk and LRT or bus trip between these "
-                "points."
-                if self.schedule.has_bus
-                else "Walking is faster than any walk and LRT trip between these points."
+            options.append(
+                _Option(total, entry, exit_, (ride,), None, walk_in_s, walk_out_s)
             )
-            return plan
-        plan.trip = self._describe(
-            best,
-            access,
-            weights,
-            hazards,
-            profile,
-            (origin_node, pred_start, near_start),
-            (destination_node, pred_end, near_end),
-            walk_eta_min,
-            destination_point,
-        )
-        return plan
-
-    # -- search pieces -------------------------------------------------------
+        options.sort(key=lambda option: option.total_s)  # stable: ties keep order
+        return options, had_service
 
     def _reach(self, cost: np.ndarray) -> dict[str, tuple[int, float]]:
         """Station -> (best entry node, walking cost to the station point).
@@ -1297,13 +1403,7 @@ class LrtPlanner:
         warnings += walk_in.warnings + walk_out.warnings
         total_min = option.total_s / 60
         trip_name = "Walk and bus" if vehicle == "bus" else "Walk and LRT"
-        if walk_eta_min is not None:
-            reason = (
-                f"{trip_name}: about {walk_eta_min - total_min:.0f} min faster "
-                "than walking"
-            )
-        else:
-            reason = f"{trip_name}: no walking route was found"
+        reason = trip_reason(trip_name, total_min, walk_eta_min)
         walk_m = legs[0].distance_m + legs[-1].distance_m
         distance_m = sum(leg.distance_m for leg in legs)
         hazards_on: list[EdgeHazard] = []

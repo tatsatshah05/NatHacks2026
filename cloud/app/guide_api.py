@@ -208,10 +208,11 @@ async def post_guide_frame(
 ) -> GuideFrameResponse:
     """Describe one camera frame for a blind or low-vision walker (preview).
 
-    Claude describes what is in front of the camera in one short sentence and lists
-    hazards and landmarks. It describes, it does not decide: it never gives turn
-    instructions beyond confirming the route context, and never says a path is safe.
-    The frame is processed in memory and discarded.
+    PIP, the guide's voice, says what is in front of the camera in one short plain
+    sentence (at most 20 words) and lists up to two hazards; ``landmarks`` is always
+    empty. It describes, it does not decide: it never gives turn instructions beyond
+    confirming the route context, and never says a path is safe. The frame is
+    processed in memory, downscaled to 480 px wide for the model, and discarded.
     """
     mode: guide.GuideMode = request.app.state.mode
     if mode == "replay":

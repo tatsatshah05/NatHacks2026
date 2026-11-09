@@ -2,18 +2,26 @@
 // same parameters, so a shared link opens the same routes:
 //
 //   from=lat,lng&from_name=…&to=lat,lng&to_name=…&profile=wheelchair
-//   [&mode=walk_lrt] [&saved=<id>]                      both pages
-//   [&route=2] [&demo=1]                                the report only
+//   [&mode=walk_lrt[&transit=only]] [&saved=<id>]       both pages
+//   [&route=2] [&demo=1] [&start=1]                     the report only
 //
 // GET /api/route takes the same lat,lng points. `saved` is a saved route's id (OP-306),
 // passed through untouched. `demo=1` marks a report of the labelled demo fallback.
-import { PlannerPlace, PlannerQuery, RouteMode, TravelProfile, isTravelProfile } from "./planner-types";
+// `start=1` (OP-419, the planner's Start action) asks the report to focus its Start
+// button and say so; it never starts the trip itself (speech, camera and location need
+// a tap on the new page). `mode=walk_lrt` alone is Walking and transit and asks the API
+// for `transit=always`; `transit=only` (OP-420) is Transit only; the link carries
+// `transit` only for that choice (lib/transit-choice.ts).
+import { PlannerPlace, PlannerQuery, RouteMode, RouteTransit, TravelProfile, isTravelProfile } from "./planner-types";
+import { transitChoiceOf, transitLinkParam, transitRequest } from "./transit-choice";
 
 export type TripParams = {
   from: PlannerPlace | null;
   to: PlannerPlace | null;
   profile: TravelProfile;
   mode: RouteMode;
+  /** The API's transit policy the link stands for; set with mode walk_lrt (OP-420). */
+  transit?: RouteTransit;
   saved: string | null;
 };
 
@@ -23,6 +31,8 @@ export type ReportParams = PlannerQuery & {
   saved: string | null;
   /** The planner fell back to demo routes; the report shows the same labelled demo. */
   demo: boolean;
+  /** Opened from the planner's Start action: focus Start route and announce it. */
+  start: boolean;
 };
 
 type LinkOptions = { saved?: string | null };
@@ -39,6 +49,8 @@ function tripSearch(query: PlannerQuery, { saved }: LinkOptions = {}): URLSearch
     profile: query.profile
   });
   if (query.mode === "walk_lrt") params.set("mode", "walk_lrt");
+  const transit = transitLinkParam(query);
+  if (transit) params.set("transit", transit);
   if (saved) params.set("saved", saved);
   return params;
 }
@@ -54,10 +66,15 @@ export function plannerHref(query: PlannerQuery, options: LinkOptions = {}): str
 }
 
 /** `/route?…&route=2`: the full report for one route of the trip. */
-export function reportHref(query: PlannerQuery, rank: number, options: LinkOptions & { demo?: boolean } = {}): string {
+export function reportHref(
+  query: PlannerQuery,
+  rank: number,
+  options: LinkOptions & { demo?: boolean; start?: boolean } = {}
+): string {
   const params = tripSearch(query, options);
   params.set("route", String(rank));
   if (options.demo) params.set("demo", "1");
+  if (options.start) params.set("start", "1");
   return `/route?${encode(params)}`;
 }
 
@@ -65,11 +82,16 @@ export function reportHref(query: PlannerQuery, rank: number, options: LinkOptio
 export function parseTripParams(params: URLSearchParams): TripParams {
   const profileParam = params.get("profile");
   const saved = (params.get("saved") ?? "").trim().slice(0, SAVED_MAX);
+  // The link's mode and transit name a choice; the request for that choice is what runs.
+  const { mode, transit } = transitRequest(
+    transitChoiceOf({ mode: params.get("mode"), transit: params.get("transit") })
+  );
   return {
     from: place("from", params),
     to: place("to", params),
     profile: isTravelProfile(profileParam) ? profileParam : "wheelchair",
-    mode: params.get("mode") === "walk_lrt" ? "walk_lrt" : "walk",
+    mode,
+    transit,
     saved: saved || null
   };
 }
@@ -84,9 +106,11 @@ export function parseReportParams(params: URLSearchParams): ReportParams | null 
     to: trip.to,
     profile: trip.profile,
     mode: trip.mode,
+    transit: trip.transit,
     saved: trip.saved,
     rank: Number.isInteger(rank) && rank >= 1 && rank <= 3 ? rank : 1,
-    demo: params.get("demo") === "1"
+    demo: params.get("demo") === "1",
+    start: params.get("start") === "1"
   };
 }
 

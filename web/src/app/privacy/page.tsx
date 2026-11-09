@@ -152,14 +152,16 @@ export default function PrivacyPage() {
             could be identified, or a readable licence plate, is deleted, not labelled.
           </p>
           <p>
-            <strong>The camera guide</strong> (a preview on the route report) sends what your rear camera sees every few
-            seconds while it runs, with your current and next route step, how far the next turn is, your heading, the
-            barriers near you and the last sentence it spoke, to Anthropic, so Claude can describe the view in one
-            sentence. Your position and your anonymous id go only to the OpenPath server, which never passes them to
-            Anthropic: the id is counted in memory for one minute to limit frames per device, and the position is not
-            kept. Each frame is held in memory for one request and dropped; nothing is stored on the server, in the
-            database or in a log. People may appear in the view. Press Stop in the guide to end it at any time; that
-            releases the camera and the position watch.
+            <strong>PIP, the camera guide</strong> (a preview, turned on inside a started trip on the route report)
+            sends what your rear camera sees every few seconds while it runs, with your current and next route step,
+            how far the next turn is, your heading, the barriers near you and the last sentence it spoke, to Anthropic,
+            so Claude can describe the view in one sentence. Your position and your anonymous id go only to the OpenPath
+            server, which never passes them to Anthropic: the id is counted in memory for one minute to limit frames per
+            device, and the position is not kept. Each frame is held in memory for one request and dropped; nothing is
+            stored on the server, in the database or in a log. People may appear in the view. Press Stop PIP at any
+            time to turn the camera off; Stop ends the trip and releases the camera and the position watch. While PIP
+            is off, a trip sends nothing to the server: your position is used on your device alone to read out the
+            steps.
           </p>
 
           <h2>How to delete your data</h2>

@@ -3,12 +3,13 @@
 // The route report (OP-211, live since OP-301). It reads the trip from the URL (the
 // same parameters as the planner, lib/route-link.ts), asks GET /api/route and
 // GET /api/status, and shows one route in full. `demo=1` shows the labelled demo the
-// planner offers when the route service cannot be reached.
+// planner offers when the route service cannot be reached. `start=1` (the planner's
+// Start action, OP-419) focuses the Start route button and says so; nothing starts.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import GuidePanel from "./guide/guide-panel";
+import TripPanel from "./guide/trip-panel";
 import ReportConditions, { conditionCount, conditionsSummary } from "./report-conditions";
 import { NoRoute, RouteFailure } from "./route-problem";
 import SourceFreshness, { freshnessSummary } from "./source-freshness";
@@ -42,6 +43,7 @@ export default function RouteReportPage() {
     const trip = new URLSearchParams(key);
     trip.delete("route");
     trip.delete("demo");
+    trip.delete("start");
     return trip.toString();
   }, [key]);
   if (!params) return <NoTrip />;
@@ -75,6 +77,8 @@ function RouteReport({ params }: { params: ReportParams }) {
   const [now, setNow] = useState<Date>(() => new Date());
   const [rank, setRank] = useState(params.rank);
   const [announcement, setAnnouncement] = useState("");
+  // `?start=1`: the first route shown focuses Start route; choosing another route ends that.
+  const [ready, setReady] = useState(params.start);
   const mode = useDataMode();
 
   useEffect(() => {
@@ -127,7 +131,7 @@ function RouteReport({ params }: { params: ReportParams }) {
           </h1>
           <p className="lead">
             Route report for {profileLabel(params.profile).toLowerCase()}
-            {params.mode === "walk_lrt" ? ", walking, LRT and bus" : ""}.
+            {params.transit === "only" ? ", transit only" : params.mode === "walk_lrt" ? ", walking, LRT and bus" : ""}.
           </p>
           {demo ? (
             <p className="note">
@@ -167,8 +171,10 @@ function RouteReport({ params }: { params: ReportParams }) {
             params={params}
             now={now}
             announcement={announcement}
+            ready={ready}
             onChoose={(next) => {
               setRank(next.rank);
+              setReady(false);
               window.history.replaceState(
                 null,
                 "",
@@ -198,12 +204,15 @@ type BodyProps = {
   params: ReportParams;
   now: Date;
   announcement: string;
+  /** Focus Start route and say "Ready to start" (the planner's Start action). */
+  ready: boolean;
   onChoose: (route: RouteOut) => void;
 };
 
-// Sections in the order of web/ACCESSIBILITY.md: summary and freshness, route choice
-// and its line, numbered steps, grouped conditions and sources, then the Maps hand-off.
-function ReportBody({ loaded, route, params, now, announcement, onChoose }: BodyProps) {
+// Sections in the order of web/ACCESSIBILITY.md: summary and freshness, then Start (the
+// trip, OP-419), route choice and its line, numbered steps, grouped conditions and
+// sources, then the Maps hand-off.
+function ReportBody({ loaded, route, params, now, announcement, ready, onChoose }: BodyProps) {
   const { response, status } = loaded;
   const warnings = [...new Set([...response.warnings, ...route.warnings])];
   const empty = conditionCount(route.report.groups) === 0;
@@ -234,6 +243,16 @@ function ReportBody({ loaded, route, params, now, announcement, onChoose }: Body
             </ul>
           )}
         </Panel>
+
+        {/* The trip is on one route: choosing another one remounts the panel, so a running trip ends. */}
+        <TripPanel
+          key={route.rank}
+          route={route}
+          routeCount={routes.length}
+          profile={params.profile}
+          destination={params.to.name}
+          ready={ready}
+        />
 
         <Panel aria-labelledby="options-title">
           <h2 id="options-title">Choose a route</h2>
@@ -312,8 +331,6 @@ function ReportBody({ loaded, route, params, now, announcement, onChoose }: Body
           </div>
           <p className="route-note note">{route.lrt?.maps_note ?? response.apple_maps_note}</p>
         </Panel>
-
-        <GuidePanel route={route} profile={params.profile} destination={params.to.name} />
       </div>
     </div>
   );

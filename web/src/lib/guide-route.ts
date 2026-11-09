@@ -202,6 +202,25 @@ export function offRouteSentence(side: Side | null): string {
   return side ? `${base} The path is to your ${side}.` : base;
 }
 
+/**
+ * What the trip's large status line shows (OP-419): the current step, or the arrival
+ * once the end is reached. "" when the route has no step at that index.
+ */
+export function currentSentence(
+  steps: ReadonlyArray<Step>,
+  index: number,
+  arrived: boolean,
+  destination: string
+): string {
+  if (arrived) return arrivalSentence(destination);
+  return stepSentence(steps, index);
+}
+
+/** The Start button's label: the rank is said only when there are alternates. */
+export function startRouteLabel(rank: number, routeCount: number): string {
+  return routeCount > 1 ? `Start route ${rank}` : "Start route";
+}
+
 export class RouteFollower {
   readonly line: LatLng[];
   readonly steps: ReadonlyArray<Step>;
