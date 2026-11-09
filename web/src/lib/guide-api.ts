@@ -15,17 +15,30 @@ export type GuideHazard = components["schemas"]["GuideHazard"];
 /** Claude answers in a few seconds; past this the frame is stale anyway. */
 export const FRAME_TIMEOUT_MS = 15_000;
 
-/** The request failed: `status` is the HTTP status, or 0 when nothing answered. */
+/**
+ * The request failed: `status` is the HTTP status, or 0 when nothing answered.
+ * `retryAfterMs` is the API's `Retry-After` on a 429 (seconds, as the rate limiter
+ * sends it), or null when the header is missing or not readable from the browser.
+ */
 export class GuideError extends Error {
   readonly status: number;
   readonly detail: string | null;
+  readonly retryAfterMs: number | null;
 
-  constructor(status: number, detail: string | null) {
+  constructor(status: number, detail: string | null, retryAfterMs: number | null = null) {
     super(detail ?? (status ? `The guide returned error ${status}.` : "The guide got no answer."));
     this.name = "GuideError";
     this.status = status;
     this.detail = detail;
+    this.retryAfterMs = retryAfterMs;
   }
+}
+
+/** `Retry-After` in milliseconds, from a whole number of seconds; null otherwise. */
+export function retryAfterMs(header: string | null): number | null {
+  if (header === null) return null;
+  const seconds = Number(header.trim());
+  return Number.isFinite(seconds) && seconds >= 0 ? Math.round(seconds * 1000) : null;
 }
 
 async function detailOf(response: Response): Promise<string | null> {
@@ -63,7 +76,15 @@ export async function postGuideFrame(frame: Blob, context: GuideContext, signal?
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new GuideError(0, null);
   }
-  if (!response.ok) throw new GuideError(response.status, await detailOf(response));
+  if (!response.ok) {
+    let after: number | null = null;
+    try {
+      after = retryAfterMs(response.headers.get("Retry-After"));
+    } catch {
+      // The header is not readable; the caller's default wait applies.
+    }
+    throw new GuideError(response.status, await detailOf(response), after);
+  }
   let data: unknown;
   try {
     data = await response.json();

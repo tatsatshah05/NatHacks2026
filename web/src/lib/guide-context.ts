@@ -113,8 +113,8 @@ export function appendTranscript<T>(lines: ReadonlyArray<T>, line: T, limit = TR
   return [...lines, line].slice(-limit);
 }
 
-/** The JPEG the guide sends: 640 px wide, the height in proportion, never upscaled. */
-export function frameSize(videoWidth: number, videoHeight: number, targetWidth = 640): { width: number; height: number } {
+/** The JPEG PIP sends: 480 px wide (lib/guide-camera.ts), the height in proportion, never upscaled. */
+export function frameSize(videoWidth: number, videoHeight: number, targetWidth = 480): { width: number; height: number } {
   if (videoWidth <= 0 || videoHeight <= 0) return { width: 0, height: 0 };
   const width = Math.min(targetWidth, videoWidth);
   return { width, height: Math.max(1, Math.round((videoHeight * width) / videoWidth)) };
