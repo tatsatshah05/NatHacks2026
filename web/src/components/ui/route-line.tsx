@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { LegOut, ReportItem, RouteOut, StationOut, TravelProfile } from "@/lib/planner-types";
-import { formatDistance, isCityWide, plural } from "@/lib/report-format";
+import { formatDistance, formatMinutes, isCityWide, plural } from "@/lib/report-format";
 import { HazardShapeIcon, effectShape, effectText } from "./hazard-mark";
 import TimeAgo from "./time-ago";
 
@@ -86,7 +86,7 @@ export function RouteHeading({ route, routeCount, profile, headingId, headingLev
   return (
     <>
       <Heading className="route-heading" id={headingId}>
-        <span className="route-eta">{Math.round(route.eta_min)} min</span>,{" "}
+        <span className="route-eta">{formatMinutes(route.eta_min)}</span>,{" "}
         {route.lrt ? `${formatDistance(route.lrt.walk_distance_m)} on foot` : formatDistance(route.distance_m)}
         {extra ? (
           <>
@@ -195,7 +195,7 @@ export function RouteStops({ route, from, to, now, reveal = false, compact = fal
 
 // ------------------------------- walk and LRT trips (OP-311), bus rides (OP-417)
 
-const minutes = (value: number) => `${Math.max(1, Math.round(value))} min`;
+const minutes = formatMinutes;
 
 function vehicleOf(leg: LegOut): Vehicle {
   return leg.vehicle ?? "lrt";

@@ -70,7 +70,7 @@ test("plan a route from the place search to the route list", async ({ page }) =>
   await expect(page.getByRole("status").filter({ hasText: /\d+ routes? for a wheelchair/ })).toBeVisible();
 
   // The recommended route has an ETA in minutes and a distance, and is step-free.
-  await expect(recommendedRoute(page)).toHaveText(/^\d+ min, \d+(\.\d+)? (m|km), step-free$/);
+  await expect(recommendedRoute(page)).toHaveText(/^(\d+ h( \d+ min)?|\d+ min), \d+(\.\d+)? (m|km), step-free$/);
 
   // The route is also text: the line lists the start, every condition and the end.
   const line = routeLine(page);

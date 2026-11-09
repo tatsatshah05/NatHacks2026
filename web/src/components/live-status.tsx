@@ -15,7 +15,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { announceChange, canSpeak, useSpeakPreference } from "@/lib/announce";
 import type { LiveStatus as Status, LiveUpdates } from "@/lib/live";
-import { formatDistance } from "@/lib/report-format";
+import { formatDistance, formatMinutes } from "@/lib/report-format";
 import CheckField from "./ui/check-field";
 import styles from "./live-status.module.css";
 
@@ -105,7 +105,7 @@ export function RouteChangeAnnouncer({ live }: { live: LiveUpdates }) {
       </p>
       {message && summary && summary.possible && (
         <p className={styles.detail}>
-          The best route now takes about {Math.round(summary.eta_min)} min over {formatDistance(summary.distance_m)}.
+          The best route now takes about {formatMinutes(summary.eta_min)} over {formatDistance(summary.distance_m)}.
         </p>
       )}
     </div>
