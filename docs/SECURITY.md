@@ -44,7 +44,7 @@ are OP-401's (`cloud/app/rate_limit.py`, a fixed 60 s window per client, in memo
 
 | Route | Per `client_id` | Per connection and minute |
 | --- | --- | --- |
-| `POST /api/reports` | 5 an hour (200 an hour in total), in the database, survives restarts | `RATE_LIMIT_PER_MIN` (default 30) |
+| `POST /api/reports` | 5 an hour (200 an hour in total), in the database, survives restarts | `RATE_LIMIT_PER_MIN` (default 30) The one exception is `POST /api/guide/frame` (OP-418), which keeps its own limits of 30 frames a minute per client id and 600 in total, because one frame every 2.5 seconds would exhaust the per-connection window on its own and every phone behind one venue address shares that connection key; `rate_limit.OWN_LIMIT_ROUTES` lists it so the audit test still guards every other write. |
 | `POST /api/push/subscribe` | 5 subscriptions | same |
 | `POST /api/push/test` | none (503 without VAPID keys) | same |
 | `POST /api/saved-routes` | 10 saved routes | same |
