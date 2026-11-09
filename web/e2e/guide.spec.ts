@@ -6,7 +6,8 @@ import { TRIP, blockMapTiles, reportUrl } from "./helpers";
 
 const PROMISE = "Guide describes what the camera sees. It does not replace a cane or a guide dog.";
 const NOTICE =
-  "Your camera's view is sent to Anthropic to be described and is not stored. People may appear in it. Press Stop at any time.";
+  "Your camera's view and your current route step are sent to Anthropic to be described and are not stored. " +
+  "Your position stays with OpenPath and is not sent to Anthropic. People may appear in the view. Press Stop at any time.";
 const CAMERA_DENIED = "Camera not available. I'll read the route steps.";
 const SENTENCE = "I see a glass door about two metres ahead on your left.";
 

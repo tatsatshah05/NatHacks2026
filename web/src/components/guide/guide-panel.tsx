@@ -22,8 +22,12 @@ import styles from "./guide-panel.module.css";
 
 export const GUIDE_TITLE = "Camera guide (preview)";
 export const GUIDE_PROMISE = "Guide describes what the camera sees. It does not replace a cane or a guide dog.";
+// What the API forwards to Anthropic is the frame, the profile, the steps, the distances,
+// the heading, the nearby barriers and the last sentence; the position and the anonymous
+// id stay with OpenPath (cloud/app/guide.py, pinned by a backend test).
 export const GUIDE_NOTICE =
-  "Your camera's view is sent to Anthropic to be described and is not stored. People may appear in it. Press Stop at any time.";
+  "Your camera's view and your current route step are sent to Anthropic to be described and are not stored. " +
+  "Your position stays with OpenPath and is not sent to Anthropic. People may appear in the view. Press Stop at any time.";
 
 const STATUS: Record<CameraState, string> = {
   off: "",
