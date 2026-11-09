@@ -86,6 +86,10 @@ class Source:
     # OP-407: reads the adapter's RowQuality report after a fetch; None for a
     # source with no row parsing (the weather watch, fakes in tests).
     quality: Callable[[], QualityReport] | None = None
+    # Read after a successful fetch: a message when the fetch succeeded on reduced
+    # data (the weather watch without Open-Meteo), shown as ``last_error`` on
+    # /api/status while the source stays fresh; None when the fetch was complete.
+    warning: Callable[[], str | None] | None = None
 
 
 class SourceStatus(BaseModel):
@@ -96,6 +100,8 @@ class SourceStatus(BaseModel):
     url: str | None = None
     last_attempt: datetime | None = None
     last_success: datetime | None = None
+    # The last run's failure; after a success, the source's warning if the fetch
+    # succeeded on reduced data (``Source.warning``), else None.
     last_error: str | None = None
     consecutive_failures: int = 0
     item_count: int = 0  # items stored after the last successful fetch
@@ -342,7 +348,7 @@ class Scheduler:
                 status.count_change = change
         was_stale, had_failures = status.stale, status.consecutive_failures
         status.last_success = now
-        status.last_error = None
+        status.last_error = self._warning(source)
         status.consecutive_failures = 0
         status.skipped_items = skipped
         status.stale = False
@@ -356,6 +362,16 @@ class Scheduler:
             skipped,
             status.rejected_rows,
         )
+
+    def _warning(self, source: Source) -> str | None:
+        """The source's reduced-data message after a success; a reader that raises is logged."""
+        if source.warning is None:
+            return None
+        try:
+            return source.warning()
+        except Exception:  # a warning reader can never fail a fetch
+            log.exception("WARNING %s reader unavailable", source.name)
+            return None
 
     def _record_quality(self, source: Source, status: SourceStatus) -> None:
         """Copy the adapter's row-quality report onto the status (OP-407).
