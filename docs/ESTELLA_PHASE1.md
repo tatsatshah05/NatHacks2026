@@ -97,7 +97,14 @@ configuration error. A web client must visibly label replayed data.
 
 Timeouts and 5xx responses are retried three times after 1, 2 and 4 seconds.
 Other failures are reported immediately. Each HTTP request has a 10-second
-limit. If one provider fails, unfinished peer work is cancelled and awaited.
+limit. If Environment Canada fails, unfinished Open-Meteo work is cancelled and
+awaited and the refresh fails. Open-Meteo is optional since the fix of
+November 8, 2026 (`cloud/tests/test_weather_open_meteo_429.py`): its failure
+never fails the refresh; a 429 starts a backoff (`Retry-After`, else 10 minutes
+doubling to 60) and the watch runs on the station alone, with the history from
+the last good Open-Meteo data under 24 hours old or from the station's own
+12-hour log, and the ground temperature unknown. The `reason` then says what
+the result rests on, and the service's `warning` carries the operator's message.
 ECCC observations tolerate five seconds of clock skew. Both query bounds and
 validation use that tolerance; old observations are still rejected after two hours.
 

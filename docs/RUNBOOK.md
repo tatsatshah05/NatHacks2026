@@ -24,7 +24,7 @@ Each line starts with `ok`, `warn` or `FAIL` and names one dependency; the scrip
 | Line | It checks | If it fails, read |
 | --- | --- | --- |
 | `API /health` | 200, a 40-character commit, the expected mode | 2.1, 2.10 |
-| `API /api/status` | the scheduler is running and no source is stale | 2.2, 2.8 |
+| `API /api/status` | the scheduler is running and no source is stale | 2.2, 2.8, 2.12 |
 | `API /api/cameras` | a reading less than 600 s old (a warning in replay mode) | 2.3 |
 | `API /api/route <profile>` | one fixed downtown trip per profile gives a route with its report | 2.2, 2.8 |
 | `API /api/search?q=churchill` | place search returns results | 2.10 |
@@ -223,6 +223,20 @@ Useful searches: `CHANGE` (every state change), `SOURCE` (scheduler runs: `SOURC
 3. Lint: run `make lint`, then `make format`; CI pins ruff 0.17.4, so use `pip install ruff==0.17.4`.
 4. Fix it with a `fix:` pull request into `main` (CI_CD.md allows urgent `fix:` work there), reviewed like any other. Never weaken a test to make it pass. The admin bypass is only for emergencies and only after `CI passed` is green.
 5. If production itself is broken meanwhile, roll back (2.10) while the fix goes through.
+
+### 2.12 Weather watch unknown or Open-Meteo 429
+
+**Symptom.** `/api/weather` answers `"active": null` with "Weather data is not available yet.", or `/api/status` shows `weather_watch` with a `last_error` that starts `open_meteo: HTTP 429`. While the watch is unknown, a wet camera reading cannot become ice risk and the planner says the weather watch is off.
+
+**Confirm.** `curl -s https://openpath-api-w6ql.onrender.com/api/weather` and `curl -s https://openpath-api-w6ql.onrender.com/api/status | python3 -m json.tool | grep -A 12 weather_watch`. In the log, `WARN weather open_meteo: 429, next try at <UTC time> (<Open-Meteo's reason>)` marks each backoff, `CHANGE weather open_meteo: back` the recovery, and `SOURCE weather_watch failed (<n>/3)` lines mean Environment Canada itself failed. On November 8, 2026 the adapter's exact request got 200 from a laptop (`X-RateLimit-Limit: 600` per 60 s window) while Render got 429 on every attempt, so the limit applies to Render's shared outbound address, not to our request.
+
+**What the app does (since the fix of November 8).** Open-Meteo is optional. With `stale: false` and an `open_meteo:` message in `last_error`, the watch is running on Environment Canada alone: air and dew point are current, `ground_c` is null, and the `reason` says how many of the last 12 hours the history covers. After a 429 the adapter waits `Retry-After`, or 10 minutes doubling to 60, then tries again; the next 200 restores the full rule. `weather_watch` goes stale only when Environment Canada fails 3 times in a row, as for every source (2.2).
+
+**Fix.**
+
+1. `stale: false` with an `open_meteo:` message: nothing to do. The message names the next try; wait for the `CHANGE weather open_meteo: back` line.
+2. Hours of 429 without recovery: Open-Meteo's free tier is limiting Render's address. Its commercial API needs a key and another host, which is a code change and a decision for the lead; the watch keeps running without it.
+3. `"active": null` with `stale: true`: Environment Canada is failing. Open `https://api.weather.gc.ca/collections/swob-realtime/items?f=json&msc_id-value=3012209&limit=1` in a browser; if it is down there is nothing to fix on our side. The last good watch is kept until a refresh succeeds, and the replay fallback (2.2) serves the recorded weather.
 
 ## 3. Backups
 
