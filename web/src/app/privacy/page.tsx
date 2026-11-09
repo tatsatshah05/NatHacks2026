@@ -151,6 +151,13 @@ export default function PrivacyPage() {
             lead&rsquo;s laptop, are never published, and are all deleted after the event. Any frame showing a person who
             could be identified, or a readable licence plate, is deleted, not labelled.
           </p>
+          <p>
+            <strong>The camera guide</strong> (a preview on the route report) sends what your rear camera sees every few
+            seconds while it runs, together with your position, your current step and the barriers near you, to Anthropic,
+            so Claude can describe the frame in one sentence. Each frame is held in memory for one request and dropped;
+            nothing is stored on the server, in the database or in a log. People may appear in the frames. Press Stop in
+            the guide to end it at any time; that releases the camera and the position watch.
+          </p>
 
           <h2>How to delete your data</h2>
           <ul>

@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import GuidePanel from "./guide/guide-panel";
 import ReportConditions, { conditionCount, conditionsSummary } from "./report-conditions";
 import { NoRoute, RouteFailure } from "./route-problem";
 import SourceFreshness, { freshnessSummary } from "./source-freshness";
@@ -311,6 +312,8 @@ function ReportBody({ loaded, route, params, now, announcement, onChoose }: Body
           </div>
           <p className="route-note note">{route.lrt?.maps_note ?? response.apple_maps_note}</p>
         </Panel>
+
+        <GuidePanel route={route} profile={params.profile} destination={params.to.name} />
       </div>
     </div>
   );
