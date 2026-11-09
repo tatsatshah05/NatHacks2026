@@ -26,7 +26,7 @@ import { getRoutes, getStatus, isAbort } from "@/lib/api";
 import { useDataMode } from "@/lib/data-mode";
 import { getMockRouteResponse, getMockStatus } from "@/lib/mock-routes";
 import { RouteOut, RouteResponse, StatusResponse, profileLabel } from "@/lib/planner-types";
-import { formatDistance, plural } from "@/lib/report-format";
+import { formatDistance, formatMinutes, plural } from "@/lib/report-format";
 import { ReportParams, parseReportParams, plannerHref, reportHref } from "@/lib/route-link";
 
 type Loaded = { response: RouteResponse; status: StatusResponse | null; demo: boolean };
@@ -181,7 +181,7 @@ function RouteReport({ params }: { params: ReportParams }) {
                 reportHref(params, next.rank, { saved: params.saved, demo: loaded.demo })
               );
               setAnnouncement(
-                `Showing route ${next.rank}: ${Math.round(next.eta_min)} min, ${formatDistance(next.distance_m)}. ` +
+                `Showing route ${next.rank}: ${formatMinutes(next.eta_min)}, ${formatDistance(next.distance_m)}. ` +
                   conditionsSummary(next.report) +
                   "."
               );
@@ -220,7 +220,7 @@ function ReportBody({ loaded, route, params, now, announcement, ready, onChoose 
   const noun = loaded.demo ? ["demo route", "demo routes"] : ["route", "routes"];
   const options = routes.map((option) => ({
     id: String(option.rank),
-    label: `Route ${option.rank}${option.rank === 1 ? ", recommended" : ""}: ${Math.round(option.eta_min)} min, ${
+    label: `Route ${option.rank}${option.rank === 1 ? ", recommended" : ""}: ${formatMinutes(option.eta_min)}, ${
       option.lrt ? `${formatDistance(option.lrt.walk_distance_m)} on foot` : formatDistance(option.distance_m)
     }`,
     description: `${option.reason ? `${option.reason}. ` : ""}${conditionsSummary(option.report)}.`
