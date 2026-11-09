@@ -32,6 +32,16 @@ its own system prompt (``REPORT_PHOTO_RULES``), labels with the same six classes
 adds ``blocked()``, a yes/no/unclear answer to "Is the walking path in this photo
 blocked?", because no road-condition class can confirm a blocked path. The default
 subject, ``camera_frame``, sends exactly the request the camera worker always sent.
+
+Camera guide (OP-418; a preview)
+--------------------------------
+``ClaudeCheck(model, subject="guide_frame")`` describes a phone camera frame for a
+blind or low-vision walker: ``describe(frame, context)`` returns ``AiGuide`` (one
+spoken sentence, hazards, landmarks, confidence) or None. Its system prompt
+(``GUIDE_RULES``) says it describes and never decides; ``cloud/app/guide.py`` filters
+the answer again. The API builds it with a 6 s timeout, no retry and a 2-minute pause
+after 3 failures (``max_retries``, ``failures_before_pause``, ``pause_s``) and reads
+``paused`` to answer 503 while the pause lasts.
 """
 
 from __future__ import annotations
@@ -155,9 +165,117 @@ def parse_incident(value: Any) -> Incident | None:
     return Incident(seen, " ".join(detail.split())[:INCIDENT_DETAIL_MAX])
 
 
-# What ClaudeCheck looks at: a road-camera frame (the worker) or a report photo (the API).
-Subject = Literal["camera_frame", "report_photo"]
-SUBJECTS: tuple[Subject, ...] = ("camera_frame", "report_photo")
+# What ClaudeCheck looks at: a road-camera frame (the worker), a report photo (the API)
+# or a walker's phone camera frame (the camera guide, OP-418).
+Subject = Literal["camera_frame", "report_photo", "guide_frame"]
+SUBJECTS: tuple[Subject, ...] = ("camera_frame", "report_photo", "guide_frame")
+
+# The camera guide's vocabulary (OP-418). cloud/app/guide.py keeps the same tuples for
+# its response models; a test checks that the two agree.
+GUIDE_HAZARD_KINDS: tuple[str, ...] = (
+    "stairs_down",
+    "stairs_up",
+    "curb",
+    "off_sidewalk",
+    "vehicle",
+    "bike",
+    "person",
+    "animal",
+    "pole",
+    "construction",
+    "hole",
+    "water_or_ice",
+    "door",
+    "crossing",
+    "sign",
+    "other",
+)
+GUIDE_WHERES: tuple[str, ...] = ("left", "right", "ahead", "unknown")
+GUIDE_CONFIDENCES: tuple[str, ...] = ("low", "medium", "high")
+
+GUIDE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "say": {
+            "type": "string",
+            "description": "One sentence to speak, at most 25 words and 160 characters; "
+            "empty when nothing is new or the frame is unusable.",
+        },
+        "hazards": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "kind": {"type": "string", "enum": list(GUIDE_HAZARD_KINDS)},
+                    "where": {"type": "string", "enum": list(GUIDE_WHERES)},
+                    "text": {
+                        "type": "string",
+                        "description": "One short plain phrase.",
+                    },
+                },
+                "required": ["kind", "where", "text"],
+                "additionalProperties": False,
+            },
+        },
+        "landmarks": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Readable signs, storefront names, doors, fixed things.",
+        },
+        "confidence": {"type": "string", "enum": list(GUIDE_CONFIDENCES)},
+    },
+    "required": ["say", "hazards", "landmarks", "confidence"],
+    "additionalProperties": False,
+}
+
+GUIDE_RULES = """
+You are the camera guide of OpenPath, an accessible route planner in Edmonton. A blind or
+low-vision person is walking a planned route with a cane or a guide dog. Their phone's rear
+camera sends you one frame every few seconds, together with the route context as JSON: their
+mobility profile, the current and next step of the route, the distance to the next turn, the
+compass heading, how far they are from the route line, known barriers nearby and the last
+sentence you spoke. The route itself tells them where to turn. You describe what the camera
+shows. You never decide for them, and you do not replace the cane or the dog.
+
+You describe, you do not decide
+- Say what you see, in plain words: "I see", "there's", "looks like". Never tell the person to
+  go, stop, wait, cross or turn, and never judge whether anything is safe or clear. Never use
+  the words "safe", "safe to", "go now", "cross now" or "clear to". Never say "black ice"; when
+  you suspect ice, say "ice risk".
+- Do not invent turns or directions. You may only confirm the context you were given: when a
+  readable sign, a storefront or a landmark in the frame matches the next step or a nearby
+  item, say so, for example "That's the 104 Street sign; your route turns right here".
+- A cane or a guide dog finds the ground. You add what they cannot: signs, doors, vehicles,
+  people, bikes, construction, stairs, holes, water or ice risk, and the edge of the sidewalk.
+
+The spoken sentence ("say")
+- One sentence of at most 25 words and 160 characters. Two short sentences only when a hazard
+  and a landmark both matter.
+- Present tense. Left, right and ahead are relative to the camera. Say "about N metres" only
+  when you are confident of the distance; otherwise leave the distance out.
+- Say only what is new compared with the last sentence spoken ("previous" in the context). If
+  nothing has changed, "say" is "".
+- If the frame is unusable (dark, blurred, the lens covered, pointing at the sky or at the
+  ground up close), "say" is "" and "confidence" is "low".
+- If "off_route_m" in the context is over 20, or the frame shows the person crossing the edge
+  of the sidewalk, say "You're drifting off the sidewalk to the left" (or "to the right"), or
+  "You're drifting off the route" when the camera cannot tell which side.
+- Lead with what matters most for this profile: for a wheelchair, steps, curbs without a ramp
+  and narrow gaps; for a walker or cane, steps, holes, ice risk and uneven ground; for low
+  vision, the same plus readable signs and doors.
+
+The JSON object
+- "hazards": each thing in the frame the person should know about, with "kind" from this list
+  only: stairs_down, stairs_up, curb, off_sidewalk, vehicle, bike, person, animal, pole,
+  construction, hole, water_or_ice, door, crossing, sign, other; "where" one of left, right,
+  ahead, unknown; "text" one short plain phrase. An empty list when there is none.
+- "landmarks": readable signs, storefront names, doors and other fixed things that help the
+  person place themselves. An empty list when there is none.
+- "confidence": "high" when the frame is clear and you are sure of what you describe, "medium"
+  when part of it is uncertain, "low" when the frame is unusable or you would be guessing.
+- Judge what the pixels show, never what the weather, the place or the route suggests.
+Answer with the JSON object only.
+"""
 
 # The report-photo label schema: the same classes, with the reason about the walking surface.
 REPORT_LABEL_SCHEMA = {
@@ -240,6 +358,18 @@ def _report_photo_prompt() -> str:
     return REPORT_PHOTO_RULES.strip()
 
 
+def _guide_prompt() -> str:
+    """The system prompt for the camera guide (subject ``guide_frame``, OP-418)."""
+    return GUIDE_RULES.strip()
+
+
+_PROMPTS: dict[Subject, Callable[[], str]] = {
+    "camera_frame": _system_prompt,
+    "report_photo": _report_photo_prompt,
+    "guide_frame": _guide_prompt,
+}
+
+
 def _prices(answered: str, requested: str) -> tuple[float, float, float]:
     """Prices of the model that answered; the requested model's if it is not in the table."""
     for name, prices in PRICES.items():
@@ -273,6 +403,23 @@ class AiBlocked:
     model: str = ""
 
 
+@dataclass
+class AiGuide:
+    """Claude's description of a walker's camera frame (OP-418), before the API's filter.
+
+    The four answer fields are passed on as the model gave them (``cloud/app/guide.py``
+    checks their types and vocabulary), so a strange answer can never raise here.
+    """
+
+    say: Any
+    hazards: Any
+    landmarks: Any
+    confidence: Any
+    usage: dict[str, int] = field(default_factory=dict)
+    cost_usd: float = 0.0
+    model: str = ""
+
+
 class ClaudeCheck:
     """One Claude call per frame; returns None on any failure (the caller posts unknown)."""
 
@@ -283,32 +430,70 @@ class ClaudeCheck:
         timeout_s: float = TIMEOUT_S,
         clock: Callable[[], float] = time.monotonic,
         subject: Subject = "camera_frame",
+        *,
+        max_retries: int = MAX_RETRIES,
+        failures_before_pause: int = FAILURES_BEFORE_PAUSE,
+        pause_s: float = PAUSE_S,
     ) -> None:
         if model not in PRICES:
             raise ValueError(f"Unsupported model for the AI check: {model}")
         if subject not in SUBJECTS:
             raise ValueError(f"Unsupported subject for the AI check: {subject}")
+        if failures_before_pause < 1 or pause_s <= 0 or max_retries < 0:
+            raise ValueError("The pause and retry settings must be positive")
         self.model = model
         self.subject = subject
         self.client = client or anthropic.Anthropic(
-            timeout=timeout_s, max_retries=MAX_RETRIES
-        )
-        prompt = (
-            _system_prompt() if subject == "camera_frame" else _report_photo_prompt()
+            timeout=timeout_s, max_retries=max_retries
         )
         self.system = [
             {
                 "type": "text",
-                "text": prompt,
+                "text": _PROMPTS[subject](),
                 "cache_control": {"type": "ephemeral"},
             }
         ]
+        self.failures_before_pause = failures_before_pause
+        self.pause_s = pause_s
         self._clock = clock
         self._failures = 0  # API failures in a row; any answer from the API resets it
         self._paused_until = 0.0
 
+    @property
+    def paused(self) -> bool:
+        """True while the check is paused after repeated API failures (no call is made)."""
+        return self._clock() < self._paused_until
+
+    def describe(self, frame: bytes, context: str) -> AiGuide | None:
+        """The camera guide's answer for a walker's frame (OP-418), or None on any failure.
+
+        ``context`` is the user message that goes with the frame: the route context
+        as text, ending with the question. ``cloud/app/guide.py`` builds it and filters
+        the answer.
+        """
+        if self.subject != "guide_frame":
+            raise ValueError("describe() is only for the camera guide subject")
+        asked = self._ask(frame, context, GUIDE_SCHEMA)
+        if asked is None:
+            return None
+        data, response, answered = asked
+        counts, cost = self._measure(response, answered)
+        return AiGuide(
+            data.get("say", ""),
+            data.get("hazards", []),
+            data.get("landmarks", []),
+            data.get("confidence", "low"),
+            counts,
+            cost,
+            answered,
+        )
+
     def label(self, frame: bytes) -> AiLabel | None:
         """One of LABELS for the frame or photo, or None on any failure."""
+        if self.subject == "guide_frame":
+            raise ValueError(
+                "The camera guide describes frames; it does not label them"
+            )
         if self.subject == "camera_frame":
             asked = self._ask(frame, "Label this frame.", SCHEMA)
         else:
@@ -434,13 +619,13 @@ class ClaudeCheck:
 
     def _failed(self) -> None:
         self._failures += 1
-        if self._failures >= FAILURES_BEFORE_PAUSE:
+        if self._failures >= self.failures_before_pause:
             # The count stays at the threshold until the API answers again, so one more
             # failure after the pause starts the next pause straight away.
-            self._paused_until = self._clock() + PAUSE_S
+            self._paused_until = self._clock() + self.pause_s
             log.warning(
                 "AI check paused for %.0f s after %d API failures in a row",
-                PAUSE_S,
+                self.pause_s,
                 self._failures,
             )
 

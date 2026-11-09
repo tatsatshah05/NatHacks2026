@@ -50,6 +50,7 @@ are OP-401's (`cloud/app/rate_limit.py`, a fixed 60 s window per client, in memo
 | `POST /api/saved-routes` | 10 saved routes | same |
 | `DELETE /api/saved-routes/{id}` | only the owner's | same |
 | `POST /api/ingest/camera` | n/a (the key) | 10 times `RATE_LIMIT_PER_MIN`, checked after the key, so a request without the key never uses the worker's share |
+| `POST /api/guide/frame` (OP-418) | 30 frames a minute per client id and 600 a minute in total, in memory | its own limits, not `RATE_LIMIT_PER_MIN`: one frame every 2.5 s would exhaust the per-connection window on its own, and every phone behind one venue address shares that connection key; `rate_limit.OWN_LIMIT_ROUTES` lists the route so the audit test still guards every other write |
 | every `GET`, `WS /ws` | none | never limited |
 
 The client is the first address in `X-Forwarded-For` when the header is present
@@ -94,7 +95,7 @@ A header a route set itself wins.
 | `Content-Security-Policy` | `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org; font-src 'self'; connect-src 'self' https://tiles.openfreemap.org <API origin> <WebSocket origin>; worker-src 'self' blob:; child-src 'self' blob:; manifest-src 'self'` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `no-referrer` |
-| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(self)` (the planner and the Report button offer "Use my location"; the report photo is a file input, which needs no camera permission) |
+| `Permissions-Policy` | `camera=(self), microphone=(), geolocation=(self)` (the camera guide, OP-418, opens the rear camera on this origin only; the frame goes to our API and is never stored) (the planner and the Report button offer "Use my location"; the report photo is a file input, which needs no camera permission) |
 | `X-Frame-Options` | `DENY` |
 
 The API and WebSocket origins come from `NEXT_PUBLIC_API_URL`,
