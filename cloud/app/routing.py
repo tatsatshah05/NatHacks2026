@@ -38,6 +38,7 @@ Where the time goes (OP-404, measured on the city network)
 from __future__ import annotations
 
 import logging
+import math
 import threading
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
@@ -48,7 +49,14 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components, dijkstra
 
-from .network import EDGE_STEPS, WalkNetwork
+from .network import (
+    EARTH_RADIUS_M,
+    EDGE_CROSSING,
+    EDGE_ELEVATOR,
+    EDGE_SIDEWALK,
+    EDGE_STEPS,
+    WalkNetwork,
+)
 from .profiles import Profile, RoutingConfig
 from .schemas import Confidence, Effect
 
@@ -77,7 +85,7 @@ NO_HAZARDS: HazardMap = {}
 
 @dataclass(frozen=True)
 class Step:
-    """One line of text directions: follow one named way for some distance."""
+    """One line of text directions: one stretch of one way, in plain words (``_steps``)."""
 
     text: str
     distance_m: float
@@ -411,7 +419,14 @@ class Router:
         plain_edges = set(self._edges_of(plain, plain_weights)) if plain else set()
         routes = [
             self._describe(
-                path, edges, weights, profile, hazards, plain_edges, plain_weights
+                path,
+                edges,
+                weights,
+                profile,
+                hazards,
+                plain_edges,
+                plain_weights,
+                (to_lat, to_lng),
             )
             for path, edges in found
         ]
@@ -600,6 +615,7 @@ class Router:
         hazards: HazardMap,
         plain_edges: set[int],
         plain_weights: np.ndarray,
+        destination: tuple[float, float] | None = None,
     ) -> Route:
         net = self.network
         lengths = net.edge_length_m[list(edges)].astype(float)
@@ -608,7 +624,14 @@ class Router:
         eta_min = float(weights[list(edges)].sum() / profile.speed_m_s / 60.0)
 
         coords = _polyline(net, path, edges)
-        steps = _steps(net, edges)
+        steps = _steps(
+            net,
+            path,
+            edges,
+            speed_m_s=profile.speed_m_s,
+            hazards=hazards,
+            destination=destination,
+        )
 
         on_route: list[EdgeHazard] = []
         seen: set[str] = set()
@@ -681,29 +704,323 @@ def _polyline(
     return out
 
 
-def _steps(net: WalkNetwork, edges: Sequence[int]) -> list[Step]:
-    """Merge consecutive edges with the same label into one text step."""
-    steps: list[Step] = []
-    for edge in edges:
-        label = net.edge_label(edge)
+# ---------------------------------------------------------------- text steps
+#
+# A step covers one stretch of one way (consecutive edges with the same label), as
+# before; its text is now a sentence in plain words. No OpenStreetMap tag ever
+# reaches the user: an unnamed way is called by what it is ("the sidewalk", "the
+# laneway"), a named one by its name. The first step says where to start and which
+# way to face, every later step says how to turn onto the next way, the time comes
+# from the profile's walking speed, a barrier on the stretch adds a short note, and
+# the last step says where the destination is. The same helper writes the walk legs
+# of walk and LRT trips (lrt.py), so a walking step reads the same everywhere.
+
+_COMPASS = (
+    "north",
+    "north-east",
+    "east",
+    "south-east",
+    "south",
+    "south-west",
+    "west",
+    "north-west",
+)
+
+# OpenStreetMap highway types that are streets for a pedestrian, as plain words.
+_STREET_TYPES = frozenset(
+    {
+        "residential",
+        "unclassified",
+        "tertiary",
+        "secondary",
+        "primary",
+        "trunk",
+        "living_street",
+        "tertiary_link",
+        "secondary_link",
+        "primary_link",
+        "trunk_link",
+    }
+)
+_PLAIN_BY_TYPE = {
+    "pedestrian": "the pedestrian street",
+    "service": "the laneway",
+    "steps": "the stairs",
+    "elevator": "the elevator",
+    "corridor": "the indoor corridor",
+    "cycleway": "the shared path",
+    "track": "the trail",
+}
+# Where the destination is at the end of the last step, by the turn from the final
+# heading to the destination point: up to this many degrees either side is "ahead".
+_AHEAD_DEG = 45.0
+_BEHIND_DEG = 135.0
+_AT_DESTINATION_M = 5.0
+# An unnamed edge flagged as a crossing is worded as one only up to this length.
+# Longer ones are sidewalks merged with their crossings when the network was
+# built: on cloud/data/network.npz (f61ba53) the 22,444 unnamed crossing edges have
+# a median of 11 m, 90% are 50 m or under and 5% are over 96 m (some over 400 m).
+_CROSSING_MAX_M = 50.0
+
+
+@dataclass(frozen=True)
+class _Way:
+    """What one edge is called in directions, and how a step onto it is worded."""
+
+    label: str  # "104 Street NW", or a plain phrase such as "the sidewalk"
+    named: bool
+    stairs: bool
+    elevator: bool
+    crossing: bool
+
+    @property
+    def merge_key(self) -> tuple[str, bool, bool]:
+        # Consecutive edges with the same label make one step; stairs and elevators
+        # stay their own step so they are always announced.
+        return (self.label, self.stairs, self.elevator)
+
+
+def _way(net: WalkNetwork, edge: int) -> _Way:
+    """The way an edge belongs to: its name, else plain words by type and flags."""
+    flags = int(net.edge_flags[edge])
+    stairs = bool(flags & EDGE_STEPS)
+    elevator = bool(flags & EDGE_ELEVATOR)
+    crossing = (
+        bool(flags & EDGE_CROSSING)
+        and float(net.edge_length_m[edge]) <= _CROSSING_MAX_M
+    )
+    name_index = int(net.edge_name[edge])
+    if name_index >= 0:
+        return _Way(net.names[name_index], True, stairs, elevator, crossing)
+    highway = net.highway_types[int(net.edge_highway[edge])]
+    if elevator:
+        label = "the elevator"
+    elif stairs:
+        label = "the stairs"
+    elif crossing:
+        label = "the crossing"
+    elif highway == "footway" and flags & EDGE_SIDEWALK:
+        label = "the sidewalk"
+    elif highway in _STREET_TYPES:
+        label = "the street"
+    else:
+        label = _PLAIN_BY_TYPE.get(highway, "the path")
+    return _Way(label, False, stairs, elevator, crossing)
+
+
+@dataclass
+class _Stretch:
+    """Consecutive edges of one way, in travel order."""
+
+    way: _Way
+    edges: list[int]
+    length_m: float
+    points: list[tuple[float, float]]  # (lng, lat) in travel order, no repeats
+
+
+def _stretches(
+    net: WalkNetwork, path: Sequence[int], edges: Sequence[int]
+) -> list[_Stretch]:
+    out: list[_Stretch] = []
+    for u, edge in zip(path, edges, strict=False):
+        way = _way(net, edge)
+        pts = net.edge_coords(edge)
+        if int(net.edge_u[edge]) != u:  # stored u -> v; we travel v -> u
+            pts = pts[::-1]
+        points = [(float(lng), float(lat)) for lng, lat in pts.tolist()]
         length = float(net.edge_length_m[edge])
-        if (
-            steps
-            and steps[-1].text.startswith(f"Follow {label} ")
-            or (steps and _label_of(steps[-1]) == label)
-        ):
-            last = steps[-1]
-            total = last.distance_m + length
-            steps[-1] = Step(_step_text(label, total), total, (*last.edges, edge))
+        if out and out[-1].way.merge_key == way.merge_key:
+            last = out[-1]
+            last.edges.append(edge)
+            last.length_m += length
+            _extend_points(last.points, points)
         else:
-            steps.append(Step(_step_text(label, length), length, (edge,)))
+            stretch = _Stretch(way, [edge], length, [])
+            _extend_points(stretch.points, points)
+            out.append(stretch)
+    return out
+
+
+def _extend_points(
+    points: list[tuple[float, float]], more: Iterable[tuple[float, float]]
+) -> None:
+    for point in more:
+        if not points or points[-1] != point:
+            points.append(point)
+
+
+def _bearing_deg(a: tuple[float, float], b: tuple[float, float]) -> float:
+    """Initial bearing from a to b, each (lng, lat), in degrees clockwise from north."""
+    lng1, lat1 = math.radians(a[0]), math.radians(a[1])
+    lng2, lat2 = math.radians(b[0]), math.radians(b[1])
+    d_lng = lng2 - lng1
+    x = math.sin(d_lng) * math.cos(lat2)
+    y = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(
+        d_lng
+    )
+    return math.degrees(math.atan2(x, y)) % 360.0
+
+
+def _turn_deg(from_bearing: float, to_bearing: float) -> float:
+    """The change of heading in (-180, 180]: negative turns left, positive right."""
+    return (to_bearing - from_bearing + 180.0) % 360.0 - 180.0
+
+
+def _first_bearing(points: Sequence[tuple[float, float]]) -> float | None:
+    return _bearing_deg(points[0], points[1]) if len(points) >= 2 else None
+
+
+def _last_bearing(points: Sequence[tuple[float, float]]) -> float | None:
+    return _bearing_deg(points[-2], points[-1]) if len(points) >= 2 else None
+
+
+def _compass(bearing_deg: float) -> str:
+    return _COMPASS[int((bearing_deg + 22.5) // 45) % 8]
+
+
+def _turn_phrase(turn_deg: float, label: str) -> str:
+    size = abs(turn_deg)
+    side = "left" if turn_deg < 0 else "right"
+    if size < 30:
+        return f"Continue onto {label}"
+    if size < 60:
+        return f"Bear {side} onto {label}"
+    if size <= 135:
+        return f"Turn {side} onto {label}"
+    return f"Turn sharply {side} onto {label}"
+
+
+def _onto(previous: _Stretch, current: _Stretch) -> str:
+    """How a step begins when the route moves from one stretch onto the next."""
+    way = current.way
+    if way.elevator:
+        return "Take the elevator" + (f" at {way.label}" if way.named else "")
+    if way.stairs:
+        return "Take the stairs" + (f" on {way.label}" if way.named else "")
+    if way.crossing and not way.named:
+        # A named edge with the crossing flag is a sidewalk merged with its
+        # crossings (25 in the city, "Trans Canada Trail" among them), so only a
+        # short unnamed crossing is worded as one (_CROSSING_MAX_M).
+        return "Cross the street"
+    out, into = _last_bearing(previous.points), _first_bearing(current.points)
+    if out is None or into is None:
+        return f"Continue onto {way.label}"
+    return _turn_phrase(_turn_deg(out, into), way.label)
+
+
+def _round_metres(distance_m: float) -> int:
+    """Nearest 10 m from 10 m up, else the nearest metre (as the map's labels)."""
+    return round(distance_m / 10.0) * 10 if distance_m >= 10 else round(distance_m)
+
+
+def _duration_phrase(length_m: float, speed_m_s: float) -> str:
+    """ "for about 2 minutes (150 m)"; under 30 s only the distance is said."""
+    metres = _round_metres(length_m)
+    seconds = length_m / speed_m_s if speed_m_s > 0 else 0.0
+    if seconds < 30:
+        return f"for about {metres} m"
+    minutes = seconds / 60.0
+    if minutes < 1.5:
+        return f"for about a minute ({metres} m)"
+    return f"for about {int(minutes + 0.5)} minutes ({metres} m)"
+
+
+def _reported_by(item_id: str) -> str:
+    source = item_id.partition(":")[0]
+    if source.startswith("city_"):
+        return " by the City"
+    if source.startswith("community_report"):
+        return " by the community"
+    return ""
+
+
+def _barrier_notes(hazards_here: Iterable[EdgeHazard]) -> list[str]:
+    """One short note per barrier on a stretch. Blocked ones never appear: the route
+    does not use those edges. Always "ice risk", never "black ice"."""
+    notes: list[str] = []
+    seen: set[str] = set()
+    for hazard in hazards_here:
+        if hazard.item_id in seen or hazard.effect == Effect.BLOCKED:
+            continue
+        seen.add(hazard.item_id)
+        if hazard.effect == Effect.SNOW:
+            notes.append("Snow reported here" + _reported_by(hazard.item_id))
+        elif hazard.effect == Effect.ICE_RISK:
+            notes.append("Ice risk reported here")
+        elif hazard.title and "caution" in hazard.title.lower():
+            notes.append(hazard.title)  # "Trail caution: Gold Bar Park"
+        elif hazard.title:
+            notes.append(f"Caution: {hazard.title}")
+        else:
+            notes.append("Caution reported here")
+    return notes
+
+
+def _destination_side(
+    points: Sequence[tuple[float, float]], destination: tuple[float, float] | None
+) -> str:
+    """ "ahead", "on your left", "on your right" or "behind you", from the final
+    heading and the destination point (lat, lng); "ahead" when nothing says otherwise."""
+    if destination is None or len(points) < 2:
+        return "ahead"
+    last = points[-1]
+    point = (destination[1], destination[0])  # to (lng, lat)
+    lat_m = math.radians(point[1] - last[1]) * EARTH_RADIUS_M
+    lng_m = (
+        math.radians(point[0] - last[0])
+        * EARTH_RADIUS_M
+        * math.cos(math.radians(last[1]))
+    )
+    if math.hypot(lat_m, lng_m) < _AT_DESTINATION_M:
+        return "ahead"
+    turn = _turn_deg(_bearing_deg(points[-2], last), _bearing_deg(last, point))
+    if abs(turn) < _AHEAD_DEG:
+        return "ahead"
+    if abs(turn) > _BEHIND_DEG:
+        return "behind you"
+    return "on your left" if turn < 0 else "on your right"
+
+
+def _steps(
+    net: WalkNetwork,
+    path: Sequence[int],
+    edges: Sequence[int],
+    *,
+    speed_m_s: float,
+    hazards: HazardMap = NO_HAZARDS,
+    destination: tuple[float, float] | None = None,
+    destination_name: str = "Your destination",
+) -> list[Step]:
+    """Text directions for ``edges`` travelled along ``path``, one step per stretch.
+
+    "Start on 104 Street NW heading north-east for about 2 minutes (150 m)." then
+    "Turn left onto the sidewalk for about a minute (80 m). Snow reported here by
+    the community." and finally "... Your destination is on your right."
+    ``destination`` is the requested end point (lat, lng), used only to say which
+    side it is on; ``destination_name`` names it (a station for a walk-in leg).
+    ``distance_m`` and ``edges`` of each step are exact.
+    """
+    stretches = _stretches(net, path, edges)
+    if not stretches:
+        return []
+    route_points: list[tuple[float, float]] = []
+    for stretch in stretches:
+        _extend_points(route_points, stretch.points)
+    steps: list[Step] = []
+    for i, stretch in enumerate(stretches):
+        if i == 0:
+            heading = _first_bearing(route_points)
+            sentence = f"Start on {stretch.way.label}"
+            if heading is not None:
+                sentence += f" heading {_compass(heading)}"
+        else:
+            sentence = _onto(stretches[i - 1], stretch)
+        sentence += " " + _duration_phrase(stretch.length_m, speed_m_s)
+        parts = [sentence + "."]
+        on_stretch = (h for edge in stretch.edges for h in hazards.get(edge, ()))
+        parts.extend(note + "." for note in _barrier_notes(on_stretch))
+        if i == len(stretches) - 1:
+            side = _destination_side(route_points, destination)
+            parts.append(f"{destination_name} is {side}.")
+        steps.append(Step(" ".join(parts), stretch.length_m, tuple(stretch.edges)))
     return steps
-
-
-def _label_of(step: Step) -> str:
-    return step.text.removeprefix("Follow ").rsplit(" for ", 1)[0]
-
-
-def _step_text(label: str, distance_m: float) -> str:
-    metres = round(distance_m / 10.0) * 10 if distance_m >= 10 else round(distance_m)
-    return f"Follow {label} for {metres} m"

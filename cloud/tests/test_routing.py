@@ -192,7 +192,14 @@ def test_shortest_route_and_eta(router) -> None:
         [LNG0, LAT0], abs=1e-5
     )  # float32 polyline
     assert best.hazards_on_route == [] and best.reason is None
-    assert all(s.text.startswith("Follow ") for s in best.steps)
+    # Plain words: the first step starts the trip, every later one turns onto a
+    # named way, and the last says where the destination is.
+    assert best.steps[0].text.startswith("Start on ")
+    assert all(
+        s.text.startswith(("Continue onto ", "Bear ", "Turn ")) for s in best.steps[1:]
+    )
+    assert best.steps[-1].text.endswith("Your destination is ahead.")
+    assert not any("footway" in s.text for s in best.steps)
     assert sum(s.distance_m for s in best.steps) == pytest.approx(400)
 
 
@@ -318,7 +325,14 @@ def test_same_place_and_far_points(router) -> None:
 
 def test_steps_merge_consecutive_edges(router) -> None:
     best = router.route(*latlng(1), *latlng(3), "standard").routes[0]
-    assert [s.text for s in best.steps] == ["Follow Avenue A for 200 m"]
+    # Two 100 m edges of Avenue A make one step; 200 m at 1.3 m/s is about 3 minutes.
+    assert [s.text for s in best.steps] == [
+        (
+            "Start on Avenue A heading east for about 3 minutes (200 m). "
+            "Your destination is ahead."
+        )
+    ]
+    assert best.steps[0].distance_m == 200 and len(best.steps[0].edges) == 2
 
 
 # -------------------------------------------------- review regressions (Estella)

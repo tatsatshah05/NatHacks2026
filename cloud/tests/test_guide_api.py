@@ -626,3 +626,15 @@ def test_the_openapi_schema_names_the_models_and_the_context() -> None:
     assert set(form["properties"]) == {"frame", "context"}
     assert "$defs" not in form and "$ref" not in json.dumps(form)
     assert form["properties"]["context"]["properties"]["nearby"]["maxItems"] == 5
+
+
+def test_without_pillow_the_guide_is_off_and_the_api_still_imports(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The end-to-end job installs only cloud/requirements.txt, where Pillow is not;
+    the API must start and the guide must answer 503 instead of failing at import."""
+    from cloud.app import guide
+
+    monkeypatch.setattr(guide, "Image", None)
+    assert guide.build_guide_checker({"ANTHROPIC_API_KEY": "test-key"}) is None
+    assert guide.frame_format(b"\xff\xd8\xff\xe0") is None
