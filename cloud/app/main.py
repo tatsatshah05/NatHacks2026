@@ -345,6 +345,8 @@ def create_app() -> FastAPI:
         allow_origin_regex=origin_regex,
         allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
+        # The browser may read Retry-After on a 429, so PIP can wait the right time (OP-419).
+        expose_headers=["Retry-After"],
     )
     # Added last, so it is outermost and decorates CORS preflight answers too (OP-401).
     app.add_middleware(SecurityHeadersMiddleware)
