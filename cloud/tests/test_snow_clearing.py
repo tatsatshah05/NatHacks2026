@@ -47,16 +47,14 @@ def test_recorded_na_feed_produces_no_items(na_rows):
     assert adapter().normalize(na_rows, NOW) == []
 
 
-def test_actual_missing_status_records_are_skipped_and_logged(caplog):
+def test_actual_statusless_area_records_are_not_rejected(caplog):
+    # Recorded area records with no status at all: not roads, not rows gone
+    # wrong. Nothing is rejected and no SKIP line is logged for them.
     rows = json.loads((FIXTURES / "missing_status.json").read_text())
-    assert adapter().normalize(rows, NOW) == []
-    skips = [
-        record.getMessage()
-        for record in caplog.records
-        if record.getMessage().startswith("SKIP ")
-    ]
-    assert len(skips) == len(rows)
-    assert any("4ne Area 407" in message for message in skips)
+    service = adapter()
+    assert service.normalize(rows, NOW) == []
+    assert service.quality.report().rejected_rows == 0
+    assert not [r for r in caplog.records if r.getMessage().startswith("SKIP ")]
 
 
 def test_live_shaped_inactive_refresh_succeeds_despite_area_rows(na_rows, caplog):
@@ -69,18 +67,65 @@ def test_live_shaped_inactive_refresh_succeeds_despite_area_rows(na_rows, caplog
         assert service.last_error is None
         assert service.last_success == NOW
         assert service.last_good == []
+        assert service.quality.report().rejected_rows == 0
     assert "REFRESH city_snow_clearing success items=0" in caplog.text
 
 
-@pytest.mark.parametrize(
-    "field,value",
-    [("route_stat", None), ("seg_stat", None), ("route_stat", ""), ("seg_stat", 42)],
-)
-def test_statusless_row_does_not_block_valid_road(completed, field, value, caplog):
-    bad = {**completed, "route_id": "bad-status-road", field: value}
-    items = verified_adapter().normalize([bad, completed], NOW)
+def test_todays_live_feed_shape_reports_nothing_rejected(na_rows):
+    # The live feed on November 8, 2026, as the lead counted it: 2,240 rows, 222
+    # of them area records with a null route_stat and the rest 'NA'. The request
+    # leaves the null rows out, and any that still arrive are not rejected rows.
+    template = dict(na_rows[0])
+    rows = [
+        {**template, "route_id": f"na-road-{i}", "fid": str(i)} for i in range(2018)
+    ]
+    rows += [
+        {"route_id": f"area-{i}", "serv_ach": "FALSE", "serv_hrs": "0"}
+        for i in range(222)
+    ]
+    assert len(rows) == 2240
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        offset = int(request.url.params["$offset"])
+        limit = int(request.url.params["$limit"])
+        return httpx.Response(200, json=rows[offset : offset + limit])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        service = SnowClearingAdapter(client)
+        assert service.fetch(NOW) == []
+        assert service.last_error is None
+        report = service.quality.report()
+    assert report.rejected_rows == 0
+    assert report.last_validation_error is None
+    where = requests[0].url.params["$where"]
+    assert "route_stat IS NOT NULL" in where
+    assert "seg_stat IS NOT NULL" in where
+    assert "upper(route_stat) != 'NA'" in where
+
+
+@pytest.mark.parametrize("field", ["route_stat", "seg_stat"])
+def test_null_status_row_is_an_area_record_not_a_rejection(completed, field, caplog):
+    area = {**completed, "route_id": "area-record", field: None}
+    service = verified_adapter()
+    items = service.normalize([area, completed], NOW)
     assert len(items) == 1
     assert items[0]["source_ref"] == completed["route_id"]
+    assert service.quality.report().rejected_rows == 0
+    assert "row=area-record" not in caplog.text
+
+
+@pytest.mark.parametrize("field,value", [("route_stat", ""), ("seg_stat", 42)])
+def test_malformed_status_row_is_rejected_and_does_not_block_valid_road(
+    completed, field, value, caplog
+):
+    bad = {**completed, "route_id": "bad-status-road", field: value}
+    service = verified_adapter()
+    items = service.normalize([bad, completed], NOW)
+    assert len(items) == 1
+    assert items[0]["source_ref"] == completed["route_id"]
+    assert service.quality.report().rejected_rows == 1
     assert "row=bad-status-road" in caplog.text
 
 

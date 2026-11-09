@@ -1,5 +1,6 @@
 import type { SourceStatus as Source, StatusResponse } from "@/lib/city";
 import { formatAgo, plural, sourceLabel } from "@/lib/report-format";
+import { sourceErrorSentence } from "@/lib/source-error";
 import Panel from "../ui/panel";
 import StatusLine from "../ui/status-line";
 import TimeAgo from "../ui/time-ago";
@@ -11,7 +12,10 @@ type Props = {
   now: Date;
 };
 
-/** Every scheduled source: fresh or out of date, how old, and its last error in words. */
+/**
+ * Every scheduled source: fresh or out of date, how old, and its last error as one
+ * plain sentence (lib/source-error.ts), never the raw exception text.
+ */
 export default function SourceStatusPanel({ status, error, now }: Props) {
   const sources = status?.sources ?? [];
   return (
@@ -72,6 +76,9 @@ function SourceRow({ source, now }: { source: Source; now: Date }) {
   if (source.last_success && !source.stale) state = "fresh";
   else if (source.last_success || source.consecutive_failures > 0) state = "stale";
   else state = "waiting";
+  // The last error in one sentence: what went wrong and that the data is kept. The
+  // raw text (class name, URL, the MDN link) stays in the API response only.
+  const problem = state === "fresh" ? null : sourceErrorSentence(source.last_error);
   return (
     <li className={state === "stale" ? styles.sourceStale : undefined}>
       <p className={styles.sourceName}>
@@ -92,9 +99,7 @@ function SourceRow({ source, now }: { source: Source; now: Date }) {
         </p>
       )}
       {state === "waiting" && <p className={styles.meta}>Waiting for the first read.</p>}
-      {source.last_error && state !== "fresh" && (
-        <p className={styles.meta}>Last error: {source.last_error}</p>
-      )}
+      {problem && <p className={styles.meta}>{problem}</p>}
       {source.skipped_items > 0 && (
         <p className={styles.meta}>
           {plural(source.skipped_items, "item", "items")} in the last read could not be used and{" "}

@@ -266,8 +266,10 @@ a.mapHint {
   min-height: 44px;
 }
 
-/* Camera markers: a squared-off tag with the glyph and the reading in words, so a
-   camera never looks like one of the round barrier markers. Pointer only. */
+/* Camera markers: a squared-off tag with the glyph and, once the map is close enough
+   (LABEL_ZOOM in city-map.tsx), the reading in one word, so a camera never looks like
+   one of the round barrier markers. City-wide it is the glyph alone on a 44 px tag.
+   Pointer only. */
 .cameraMarker {
   align-items: center;
   background: var(--card);
@@ -278,8 +280,10 @@ a.mapHint {
   display: inline-flex;
   font-weight: 700;
   gap: 6px;
+  justify-content: center;
   line-height: 1.2;
   min-height: 44px;
+  min-width: 44px;
   padding: 4px 10px 4px 8px;
   white-space: nowrap;
 }
@@ -287,6 +291,17 @@ a.mapHint {
   outline: 3px solid var(--action);
   outline-offset: 2px;
   z-index: 2;
+}
+.cameraWord {
+  display: none;
+}
+.labelsOn .cameraWord {
+  display: inline;
+}
+/* City-wide, the barrier discs are a little smaller, so they cover less of each other. */
+.cityMapFrame:not(.labelsOn) :global(.map-marker) {
+  height: 36px;
+  width: 36px;
 }
 
 /* Panels after the list. */
