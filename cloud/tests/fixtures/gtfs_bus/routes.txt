@@ -1,0 +1,4 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color
+511,1,511,"Mill Woods - Downtown",,3,,005087,FFFFFF
+654,1,654,"Strathcona - Belgravia - Windsor Park",,3,,005087,FFFFFF
+920X,1,920X,"Lewis Farms - University Express",,3,,F37727,000000

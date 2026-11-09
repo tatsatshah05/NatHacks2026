@@ -4,8 +4,8 @@
 // on the high-contrast style when that setting is on (OP-307, wired in OP-410).
 //
 // - The selected route is the thick line (6 px, the route colour, on a casing); the
-//   other routes are thin muted lines. A walk and LRT trip draws its rides as a double
-//   line, as on the route line beside it.
+//   other routes are thin muted lines. A walk and LRT or bus trip draws its rides as a
+//   double line, as on the route line beside it.
 // - Start and end are filled circles with a "Start" / "End" tag.
 // - Conditions on the selected route use the HazardMark shapes. They are pointer
 //   shortcuts only: hidden from assistive technology and out of the tab order. A click
@@ -24,7 +24,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { effectShape, hazardShapeSvg } from "./ui/hazard-shapes";
 import { type LinePalette, useMapSurface } from "@/lib/map-surface";
 import maplibregl from "@/lib/maplibre";
-import type { PlannerPlace, RouteOut } from "@/lib/planner-types";
+import type { LegOut, PlannerPlace, RouteOut } from "@/lib/planner-types";
 import { prefersReducedMotion, useReducedMotion } from "@/lib/settings";
 import styles from "./planner-map.module.css";
 
@@ -146,9 +146,16 @@ function addRouteLayers(map: MapLibreMap, lines: LinePalette, data: GeoJSON.Feat
     source: "routes",
     filter: ["all", ["==", ["get", "selected"], true], ["==", ["get", "ride"], true]],
     layout,
-    // Two 3 px rails with a 5 px gap: the double line of an LRT ride.
+    // Two 3 px rails with a 5 px gap: the double line of an LRT or bus ride.
     paint: { "line-color": lines.route, "line-width": 3, "line-gap-width": 5 }
   });
+}
+
+/** What the double line stands for on the selected route: "LRT ride", "bus ride" or both. */
+function rideLabel(legs: LegOut[] | null | undefined): string {
+  const vehicles = new Set((legs ?? []).filter((leg) => leg.kind === "ride").map((leg) => leg.vehicle ?? "lrt"));
+  if (vehicles.has("lrt") && vehicles.has("bus")) return "LRT and bus rides";
+  return vehicles.has("bus") ? "bus ride" : "LRT ride";
 }
 
 export default function PlannerMap({ routes, selectedRank, from, to, conditions, onCondition, centreRef }: Props) {
@@ -316,7 +323,7 @@ export default function PlannerMap({ routes, selectedRank, from, to, conditions,
               <svg className={styles.swatch} style={swatch} width="36" height="16" viewBox="0 0 36 16" aria-hidden="true" focusable="false">
                 <path d="M6 4h24M6 12h24" stroke={lines.route} strokeWidth="3" strokeLinecap="round" />
               </svg>
-              Double line: LRT ride
+              Double line: {rideLabel(selected.legs)}
             </li>
           )}
           {routes.length > 1 && (

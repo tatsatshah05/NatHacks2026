@@ -1,0 +1,3770 @@
+{
+ "wheelchair": {
+  "profile": "wheelchair",
+  "origin_snap_m": 0.0,
+  "destination_snap_m": 0.0,
+  "routes": [
+   {
+    "rank": 1,
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       -113.5,
+       53.5
+      ],
+      [
+       -113.4985,
+       53.50018
+      ],
+      [
+       -113.4775,
+       53.50018
+      ],
+      [
+       -113.455,
+       53.50018
+      ],
+      [
+       -113.4115,
+       53.50018
+      ],
+      [
+       -113.41,
+       53.5
+      ]
+     ]
+    },
+    "distance_m": 5956.6,
+    "eta_min": 27.4,
+    "steps": [
+     {
+      "text": "Enter S1 Station. Use an entrance with a working elevator: South.",
+      "distance_m": 101.2
+     },
+     {
+      "text": "Ride the Red Line toward X from S1 to X: 2 stops, 4 min scheduled. Wait about 5 min (estimate from the schedule, not a live arrival).",
+      "distance_m": 2877.1
+     },
+     {
+      "text": "Change trains at X Station.",
+      "distance_m": 0.0
+     },
+     {
+      "text": "Ride the Blue Line toward S3 from X to S3: 1 stop, 3 min scheduled. Wait about 5 min (estimate from the schedule, not a live arrival).",
+      "distance_m": 2877.1
+     },
+     {
+      "text": "Leave S3 Station. Elevators in service at the last check: Platform.",
+      "distance_m": 101.2
+     }
+    ],
+    "hazards_on_route": [],
+    "hazards_avoided": [],
+    "warnings": [
+     "Wait times are estimates from the ETS schedule (half the time between trains at this hour), not live arrivals.",
+     "Station elevators are not yet matched to the map, so the walk ends at the station's location; follow the station signs to an elevator."
+    ],
+    "reason": "Walk and LRT: about 72 min faster than walking",
+    "report": {
+     "on_route": 2,
+     "nearby": 0,
+     "avoided": 0,
+     "groups": [
+      {
+       "category": "indoor",
+       "label": "Indoor",
+       "items": [
+        {
+         "id": "city_lrt_devices:11",
+         "status": "on_route",
+         "distance_m": null,
+         "kind": "elevator_out",
+         "effect": "blocked",
+         "confidence": "high",
+         "title": "Elevator out of service",
+         "detail": "S1, North",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "At S1 Station, which this trip uses. Use an entrance with a working elevator: South."
+        },
+        {
+         "id": "city_lrt_devices:31",
+         "status": "on_route",
+         "distance_m": null,
+         "kind": "escalator_out",
+         "effect": "caution",
+         "confidence": "high",
+         "title": "Escalator out of service",
+         "detail": "S3, Platform",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "At S3 Station, which this trip uses. Elevators in service at the last check: Platform."
+        }
+       ]
+      },
+      {
+       "category": "sidewalk",
+       "label": "Sidewalks and paths",
+       "items": []
+      },
+      {
+       "category": "road",
+       "label": "Roads and crossings",
+       "items": []
+      },
+      {
+       "category": "weather",
+       "label": "Weather and ice",
+       "items": []
+      }
+     ]
+    },
+    "google_maps_url": "https://www.google.com/maps/dir/?api=1&origin=53.500000%2C-113.500000&destination=53.500000%2C-113.410000&travelmode=transit",
+    "apple_maps_url": "https://maps.apple.com/?saddr=53.500000%2C-113.500000&daddr=53.500000%2C-113.410000&dirflg=r",
+    "mode": "walk_lrt",
+    "legs": [
+     {
+      "kind": "walk",
+      "from_name": "Start",
+      "to_name": "S1 Station",
+      "distance_m": 101.2,
+      "duration_min": 1.7,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.5,
+         53.5
+        ],
+        [
+         -113.4985,
+         53.50018
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     },
+     {
+      "kind": "ride",
+      "from_name": "S1 Station",
+      "to_name": "X Station",
+      "distance_m": 2877.1,
+      "duration_min": 9.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.4985,
+         53.50018
+        ],
+        [
+         -113.4775,
+         53.50018
+        ],
+        [
+         -113.455,
+         53.50018
+        ]
+       ]
+      },
+      "lines": [
+       "Red Line"
+      ],
+      "line_colors": [
+       "#FF0000"
+      ],
+      "headsigns": [
+       "X"
+      ],
+      "stops": 2,
+      "ride_min": 4.0,
+      "wait": {
+       "minutes": 5.0,
+       "estimate": true,
+       "headway_min": 10.0,
+       "note": "Estimate: half the scheduled time between trains at this hour, from the ETS schedule. Not a live arrival time."
+      }
+     },
+     {
+      "kind": "transfer",
+      "from_name": "X Station",
+      "to_name": "X Station",
+      "distance_m": 0.0,
+      "duration_min": 3.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.455,
+         53.50018
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     },
+     {
+      "kind": "ride",
+      "from_name": "X Station",
+      "to_name": "S3 Station",
+      "distance_m": 2877.1,
+      "duration_min": 8.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.455,
+         53.50018
+        ],
+        [
+         -113.4115,
+         53.50018
+        ]
+       ]
+      },
+      "lines": [
+       "Blue Line"
+      ],
+      "line_colors": [
+       "#0000FF"
+      ],
+      "headsigns": [
+       "S3"
+      ],
+      "stops": 1,
+      "ride_min": 3.0,
+      "wait": {
+       "minutes": 5.0,
+       "estimate": true,
+       "headway_min": 10.0,
+       "note": "Estimate: half the scheduled time between trains at this hour, from the ETS schedule. Not a live arrival time."
+      }
+     },
+     {
+      "kind": "walk",
+      "from_name": "S3 Station",
+      "to_name": "Destination",
+      "distance_m": 101.2,
+      "duration_min": 1.7,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.4115,
+         53.50018
+        ],
+        [
+         -113.41,
+         53.5
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     }
+    ],
+    "lrt": {
+     "stations": [
+      {
+       "id": "S1",
+       "name": "S1 Station",
+       "access": "elevator",
+       "usable": true,
+       "note": "Use an entrance with a working elevator: South.",
+       "devices": [
+        {
+         "device_id": "10",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        },
+        {
+         "device_id": "11",
+         "kind": "elevator",
+         "location": "North",
+         "role": "entrance",
+         "status": "out_of_service"
+        },
+        {
+         "device_id": "12",
+         "kind": "elevator",
+         "location": "South",
+         "role": "entrance",
+         "status": "in_service"
+        },
+        {
+         "device_id": "13",
+         "kind": "escalator",
+         "location": "North",
+         "role": null,
+         "status": "in_service"
+        }
+       ]
+      },
+      {
+       "id": "X",
+       "name": "X Station",
+       "access": "elevator",
+       "usable": true,
+       "note": "Elevators in service at the last check: Platform.",
+       "devices": [
+        {
+         "device_id": "40",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        }
+       ]
+      },
+      {
+       "id": "S3",
+       "name": "S3 Station",
+       "access": "elevator",
+       "usable": true,
+       "note": "Elevators in service at the last check: Platform.",
+       "devices": [
+        {
+         "device_id": "30",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        },
+        {
+         "device_id": "31",
+         "kind": "escalator",
+         "location": "Platform",
+         "role": null,
+         "status": "out_of_service"
+        }
+       ]
+      }
+     ],
+     "walk_distance_m": 202.4,
+     "wait_is_estimate": true,
+     "schedule": "synthetic",
+     "attribution": "Schedule: Edmonton Transit Service, City of Edmonton Open Data",
+     "maps_note": "Google Maps and Apple Maps plan their own transit trip and may not use the same stations or elevators."
+    }
+   },
+   {
+    "rank": 2,
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       -113.5,
+       53.5
+      ],
+      [
+       -113.498497,
+       53.5
+      ],
+      [
+       -113.498497,
+       53.5
+      ],
+      [
+       -113.497002,
+       53.5
+      ],
+      [
+       -113.497002,
+       53.5
+      ],
+      [
+       -113.495499,
+       53.5
+      ],
+      [
+       -113.495499,
+       53.5
+      ],
+      [
+       -113.494003,
+       53.5
+      ],
+      [
+       -113.494003,
+       53.5
+      ],
+      [
+       -113.4925,
+       53.5
+      ],
+      [
+       -113.4925,
+       53.5
+      ],
+      [
+       -113.490997,
+       53.5
+      ],
+      [
+       -113.490997,
+       53.5
+      ],
+      [
+       -113.489502,
+       53.5
+      ],
+      [
+       -113.489502,
+       53.5
+      ],
+      [
+       -113.487999,
+       53.5
+      ],
+      [
+       -113.487999,
+       53.5
+      ],
+      [
+       -113.486504,
+       53.5
+      ],
+      [
+       -113.486504,
+       53.5
+      ],
+      [
+       -113.485001,
+       53.5
+      ],
+      [
+       -113.485001,
+       53.5
+      ],
+      [
+       -113.483498,
+       53.5
+      ],
+      [
+       -113.483498,
+       53.5
+      ],
+      [
+       -113.482002,
+       53.5
+      ],
+      [
+       -113.482002,
+       53.5
+      ],
+      [
+       -113.480499,
+       53.5
+      ],
+      [
+       -113.480499,
+       53.5
+      ],
+      [
+       -113.478996,
+       53.5
+      ],
+      [
+       -113.478996,
+       53.5
+      ],
+      [
+       -113.477501,
+       53.5
+      ],
+      [
+       -113.477501,
+       53.5
+      ],
+      [
+       -113.475998,
+       53.5
+      ],
+      [
+       -113.475998,
+       53.5
+      ],
+      [
+       -113.474503,
+       53.5
+      ],
+      [
+       -113.474503,
+       53.5
+      ],
+      [
+       -113.473,
+       53.5
+      ],
+      [
+       -113.473,
+       53.5
+      ],
+      [
+       -113.471497,
+       53.5
+      ],
+      [
+       -113.471497,
+       53.5
+      ],
+      [
+       -113.470001,
+       53.5
+      ],
+      [
+       -113.470001,
+       53.5
+      ],
+      [
+       -113.468498,
+       53.5
+      ],
+      [
+       -113.468498,
+       53.5
+      ],
+      [
+       -113.467003,
+       53.5
+      ],
+      [
+       -113.467003,
+       53.5
+      ],
+      [
+       -113.4655,
+       53.5
+      ],
+      [
+       -113.4655,
+       53.5
+      ],
+      [
+       -113.463997,
+       53.5
+      ],
+      [
+       -113.463997,
+       53.5
+      ],
+      [
+       -113.462502,
+       53.5
+      ],
+      [
+       -113.462502,
+       53.5
+      ],
+      [
+       -113.460999,
+       53.5
+      ],
+      [
+       -113.460999,
+       53.5
+      ],
+      [
+       -113.459503,
+       53.5
+      ],
+      [
+       -113.459503,
+       53.5
+      ],
+      [
+       -113.458,
+       53.5
+      ],
+      [
+       -113.458,
+       53.5
+      ],
+      [
+       -113.456497,
+       53.5
+      ],
+      [
+       -113.456497,
+       53.5
+      ],
+      [
+       -113.455002,
+       53.5
+      ],
+      [
+       -113.455002,
+       53.5
+      ],
+      [
+       -113.453499,
+       53.5
+      ],
+      [
+       -113.453499,
+       53.5
+      ],
+      [
+       -113.452003,
+       53.5
+      ],
+      [
+       -113.452003,
+       53.5
+      ],
+      [
+       -113.4505,
+       53.5
+      ],
+      [
+       -113.4505,
+       53.5
+      ],
+      [
+       -113.448997,
+       53.5
+      ],
+      [
+       -113.448997,
+       53.5
+      ],
+      [
+       -113.447502,
+       53.5
+      ],
+      [
+       -113.447502,
+       53.5
+      ],
+      [
+       -113.445999,
+       53.5
+      ],
+      [
+       -113.445999,
+       53.5
+      ],
+      [
+       -113.444504,
+       53.5
+      ],
+      [
+       -113.444504,
+       53.5
+      ],
+      [
+       -113.443001,
+       53.5
+      ],
+      [
+       -113.443001,
+       53.5
+      ],
+      [
+       -113.441498,
+       53.5
+      ],
+      [
+       -113.441498,
+       53.5
+      ],
+      [
+       -113.440002,
+       53.5
+      ],
+      [
+       -113.440002,
+       53.5
+      ],
+      [
+       -113.438499,
+       53.5
+      ],
+      [
+       -113.438499,
+       53.5
+      ],
+      [
+       -113.436996,
+       53.5
+      ],
+      [
+       -113.436996,
+       53.5
+      ],
+      [
+       -113.435501,
+       53.5
+      ],
+      [
+       -113.435501,
+       53.5
+      ],
+      [
+       -113.433998,
+       53.5
+      ],
+      [
+       -113.433998,
+       53.5
+      ],
+      [
+       -113.432503,
+       53.5
+      ],
+      [
+       -113.432503,
+       53.5
+      ],
+      [
+       -113.431,
+       53.5
+      ],
+      [
+       -113.431,
+       53.5
+      ],
+      [
+       -113.429497,
+       53.5
+      ],
+      [
+       -113.429497,
+       53.5
+      ],
+      [
+       -113.428001,
+       53.5
+      ],
+      [
+       -113.428001,
+       53.5
+      ],
+      [
+       -113.426498,
+       53.5
+      ],
+      [
+       -113.426498,
+       53.5
+      ],
+      [
+       -113.425003,
+       53.5
+      ],
+      [
+       -113.425003,
+       53.5
+      ],
+      [
+       -113.4235,
+       53.5
+      ],
+      [
+       -113.4235,
+       53.5
+      ],
+      [
+       -113.421997,
+       53.5
+      ],
+      [
+       -113.421997,
+       53.5
+      ],
+      [
+       -113.420502,
+       53.5
+      ],
+      [
+       -113.420502,
+       53.5
+      ],
+      [
+       -113.418999,
+       53.5
+      ],
+      [
+       -113.418999,
+       53.5
+      ],
+      [
+       -113.417503,
+       53.5
+      ],
+      [
+       -113.417503,
+       53.5
+      ],
+      [
+       -113.416,
+       53.5
+      ],
+      [
+       -113.416,
+       53.5
+      ],
+      [
+       -113.414497,
+       53.5
+      ],
+      [
+       -113.414497,
+       53.5
+      ],
+      [
+       -113.413002,
+       53.5
+      ],
+      [
+       -113.413002,
+       53.5
+      ],
+      [
+       -113.411499,
+       53.5
+      ],
+      [
+       -113.411499,
+       53.5
+      ],
+      [
+       -113.410004,
+       53.5
+      ]
+     ]
+    },
+    "distance_m": 5958.0,
+    "eta_min": 99.3,
+    "steps": [
+     {
+      "text": "Follow Main Street for 5960 m",
+      "distance_m": 5958.0
+     }
+    ],
+    "hazards_on_route": [],
+    "hazards_avoided": [],
+    "warnings": [],
+    "reason": null,
+    "report": {
+     "on_route": 0,
+     "nearby": 2,
+     "avoided": 0,
+     "groups": [
+      {
+       "category": "indoor",
+       "label": "Indoor",
+       "items": [
+        {
+         "id": "city_lrt_devices:11",
+         "status": "nearby",
+         "distance_m": 20.0,
+         "kind": "elevator_out",
+         "effect": "blocked",
+         "confidence": "high",
+         "title": "Elevator out of service",
+         "detail": "S1, North",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "Reported for the whole station: the exact elevator or escalator is not mapped, so routes cannot avoid it."
+        },
+        {
+         "id": "city_lrt_devices:31",
+         "status": "nearby",
+         "distance_m": 20.0,
+         "kind": "escalator_out",
+         "effect": "caution",
+         "confidence": "high",
+         "title": "Escalator out of service",
+         "detail": "S3, Platform",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "Reported for the whole station: the exact elevator or escalator is not mapped, so routes cannot avoid it."
+        }
+       ]
+      },
+      {
+       "category": "sidewalk",
+       "label": "Sidewalks and paths",
+       "items": []
+      },
+      {
+       "category": "road",
+       "label": "Roads and crossings",
+       "items": []
+      },
+      {
+       "category": "weather",
+       "label": "Weather and ice",
+       "items": []
+      }
+     ]
+    },
+    "google_maps_url": "https://www.google.com/maps/dir/?api=1&origin=53.500000%2C-113.500000&destination=53.500000%2C-113.410000&travelmode=walking",
+    "apple_maps_url": "https://maps.apple.com/?saddr=53.500000%2C-113.500000&daddr=53.500000%2C-113.410000&dirflg=w",
+    "mode": "walk"
+   }
+  ],
+  "warnings": [],
+  "apple_maps_note": "Apple Maps may not keep this detour; check the route it shows before you set off.",
+  "mode": "walk_lrt"
+ },
+ "walker_cane": {
+  "profile": "walker_cane",
+  "origin_snap_m": 0.0,
+  "destination_snap_m": 0.0,
+  "routes": [
+   {
+    "rank": 1,
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       -113.5,
+       53.5
+      ],
+      [
+       -113.4985,
+       53.50018
+      ],
+      [
+       -113.4775,
+       53.50018
+      ],
+      [
+       -113.455,
+       53.50018
+      ],
+      [
+       -113.4115,
+       53.50018
+      ],
+      [
+       -113.41,
+       53.5
+      ]
+     ]
+    },
+    "distance_m": 5956.6,
+    "eta_min": 27.7,
+    "steps": [
+     {
+      "text": "Enter S1 Station. Use an entrance with a working elevator: South.",
+      "distance_m": 101.2
+     },
+     {
+      "text": "Ride the Red Line toward X from S1 to X: 2 stops, 4 min scheduled. Wait about 5 min (estimate from the schedule, not a live arrival).",
+      "distance_m": 2877.1
+     },
+     {
+      "text": "Change trains at X Station.",
+      "distance_m": 0.0
+     },
+     {
+      "text": "Ride the Blue Line toward S3 from X to S3: 1 stop, 3 min scheduled. Wait about 5 min (estimate from the schedule, not a live arrival).",
+      "distance_m": 2877.1
+     },
+     {
+      "text": "Leave S3 Station. Elevators in service at the last check: Platform.",
+      "distance_m": 101.2
+     }
+    ],
+    "hazards_on_route": [],
+    "hazards_avoided": [],
+    "warnings": [
+     "Wait times are estimates from the ETS schedule (half the time between trains at this hour), not live arrivals.",
+     "Station elevators are not yet matched to the map, so the walk ends at the station's location; follow the station signs to an elevator."
+    ],
+    "reason": "Walk and LRT: about 83 min faster than walking",
+    "report": {
+     "on_route": 2,
+     "nearby": 0,
+     "avoided": 0,
+     "groups": [
+      {
+       "category": "indoor",
+       "label": "Indoor",
+       "items": [
+        {
+         "id": "city_lrt_devices:11",
+         "status": "on_route",
+         "distance_m": null,
+         "kind": "elevator_out",
+         "effect": "blocked",
+         "confidence": "high",
+         "title": "Elevator out of service",
+         "detail": "S1, North",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "At S1 Station, which this trip uses. Use an entrance with a working elevator: South."
+        },
+        {
+         "id": "city_lrt_devices:31",
+         "status": "on_route",
+         "distance_m": null,
+         "kind": "escalator_out",
+         "effect": "caution",
+         "confidence": "high",
+         "title": "Escalator out of service",
+         "detail": "S3, Platform",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "At S3 Station, which this trip uses. Elevators in service at the last check: Platform."
+        }
+       ]
+      },
+      {
+       "category": "sidewalk",
+       "label": "Sidewalks and paths",
+       "items": []
+      },
+      {
+       "category": "road",
+       "label": "Roads and crossings",
+       "items": []
+      },
+      {
+       "category": "weather",
+       "label": "Weather and ice",
+       "items": []
+      }
+     ]
+    },
+    "google_maps_url": "https://www.google.com/maps/dir/?api=1&origin=53.500000%2C-113.500000&destination=53.500000%2C-113.410000&travelmode=transit",
+    "apple_maps_url": "https://maps.apple.com/?saddr=53.500000%2C-113.500000&daddr=53.500000%2C-113.410000&dirflg=r",
+    "mode": "walk_lrt",
+    "legs": [
+     {
+      "kind": "walk",
+      "from_name": "Start",
+      "to_name": "S1 Station",
+      "distance_m": 101.2,
+      "duration_min": 1.9,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.5,
+         53.5
+        ],
+        [
+         -113.4985,
+         53.50018
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     },
+     {
+      "kind": "ride",
+      "from_name": "S1 Station",
+      "to_name": "X Station",
+      "distance_m": 2877.1,
+      "duration_min": 9.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.4985,
+         53.50018
+        ],
+        [
+         -113.4775,
+         53.50018
+        ],
+        [
+         -113.455,
+         53.50018
+        ]
+       ]
+      },
+      "lines": [
+       "Red Line"
+      ],
+      "line_colors": [
+       "#FF0000"
+      ],
+      "headsigns": [
+       "X"
+      ],
+      "stops": 2,
+      "ride_min": 4.0,
+      "wait": {
+       "minutes": 5.0,
+       "estimate": true,
+       "headway_min": 10.0,
+       "note": "Estimate: half the scheduled time between trains at this hour, from the ETS schedule. Not a live arrival time."
+      }
+     },
+     {
+      "kind": "transfer",
+      "from_name": "X Station",
+      "to_name": "X Station",
+      "distance_m": 0.0,
+      "duration_min": 3.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.455,
+         53.50018
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     },
+     {
+      "kind": "ride",
+      "from_name": "X Station",
+      "to_name": "S3 Station",
+      "distance_m": 2877.1,
+      "duration_min": 8.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.455,
+         53.50018
+        ],
+        [
+         -113.4115,
+         53.50018
+        ]
+       ]
+      },
+      "lines": [
+       "Blue Line"
+      ],
+      "line_colors": [
+       "#0000FF"
+      ],
+      "headsigns": [
+       "S3"
+      ],
+      "stops": 1,
+      "ride_min": 3.0,
+      "wait": {
+       "minutes": 5.0,
+       "estimate": true,
+       "headway_min": 10.0,
+       "note": "Estimate: half the scheduled time between trains at this hour, from the ETS schedule. Not a live arrival time."
+      }
+     },
+     {
+      "kind": "walk",
+      "from_name": "S3 Station",
+      "to_name": "Destination",
+      "distance_m": 101.2,
+      "duration_min": 1.9,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.4115,
+         53.50018
+        ],
+        [
+         -113.41,
+         53.5
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     }
+    ],
+    "lrt": {
+     "stations": [
+      {
+       "id": "S1",
+       "name": "S1 Station",
+       "access": "elevator",
+       "usable": true,
+       "note": "Use an entrance with a working elevator: South.",
+       "devices": [
+        {
+         "device_id": "10",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        },
+        {
+         "device_id": "11",
+         "kind": "elevator",
+         "location": "North",
+         "role": "entrance",
+         "status": "out_of_service"
+        },
+        {
+         "device_id": "12",
+         "kind": "elevator",
+         "location": "South",
+         "role": "entrance",
+         "status": "in_service"
+        },
+        {
+         "device_id": "13",
+         "kind": "escalator",
+         "location": "North",
+         "role": null,
+         "status": "in_service"
+        }
+       ]
+      },
+      {
+       "id": "X",
+       "name": "X Station",
+       "access": "elevator",
+       "usable": true,
+       "note": "Elevators in service at the last check: Platform.",
+       "devices": [
+        {
+         "device_id": "40",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        }
+       ]
+      },
+      {
+       "id": "S3",
+       "name": "S3 Station",
+       "access": "elevator",
+       "usable": true,
+       "note": "Elevators in service at the last check: Platform.",
+       "devices": [
+        {
+         "device_id": "30",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        },
+        {
+         "device_id": "31",
+         "kind": "escalator",
+         "location": "Platform",
+         "role": null,
+         "status": "out_of_service"
+        }
+       ]
+      }
+     ],
+     "walk_distance_m": 202.4,
+     "wait_is_estimate": true,
+     "schedule": "synthetic",
+     "attribution": "Schedule: Edmonton Transit Service, City of Edmonton Open Data",
+     "maps_note": "Google Maps and Apple Maps plan their own transit trip and may not use the same stations or elevators."
+    }
+   },
+   {
+    "rank": 2,
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       -113.5,
+       53.5
+      ],
+      [
+       -113.498497,
+       53.5
+      ],
+      [
+       -113.498497,
+       53.5
+      ],
+      [
+       -113.497002,
+       53.5
+      ],
+      [
+       -113.497002,
+       53.5
+      ],
+      [
+       -113.495499,
+       53.5
+      ],
+      [
+       -113.495499,
+       53.5
+      ],
+      [
+       -113.494003,
+       53.5
+      ],
+      [
+       -113.494003,
+       53.5
+      ],
+      [
+       -113.4925,
+       53.5
+      ],
+      [
+       -113.4925,
+       53.5
+      ],
+      [
+       -113.490997,
+       53.5
+      ],
+      [
+       -113.490997,
+       53.5
+      ],
+      [
+       -113.489502,
+       53.5
+      ],
+      [
+       -113.489502,
+       53.5
+      ],
+      [
+       -113.487999,
+       53.5
+      ],
+      [
+       -113.487999,
+       53.5
+      ],
+      [
+       -113.486504,
+       53.5
+      ],
+      [
+       -113.486504,
+       53.5
+      ],
+      [
+       -113.485001,
+       53.5
+      ],
+      [
+       -113.485001,
+       53.5
+      ],
+      [
+       -113.483498,
+       53.5
+      ],
+      [
+       -113.483498,
+       53.5
+      ],
+      [
+       -113.482002,
+       53.5
+      ],
+      [
+       -113.482002,
+       53.5
+      ],
+      [
+       -113.480499,
+       53.5
+      ],
+      [
+       -113.480499,
+       53.5
+      ],
+      [
+       -113.478996,
+       53.5
+      ],
+      [
+       -113.478996,
+       53.5
+      ],
+      [
+       -113.477501,
+       53.5
+      ],
+      [
+       -113.477501,
+       53.5
+      ],
+      [
+       -113.475998,
+       53.5
+      ],
+      [
+       -113.475998,
+       53.5
+      ],
+      [
+       -113.474503,
+       53.5
+      ],
+      [
+       -113.474503,
+       53.5
+      ],
+      [
+       -113.473,
+       53.5
+      ],
+      [
+       -113.473,
+       53.5
+      ],
+      [
+       -113.471497,
+       53.5
+      ],
+      [
+       -113.471497,
+       53.5
+      ],
+      [
+       -113.470001,
+       53.5
+      ],
+      [
+       -113.470001,
+       53.5
+      ],
+      [
+       -113.468498,
+       53.5
+      ],
+      [
+       -113.468498,
+       53.5
+      ],
+      [
+       -113.467003,
+       53.5
+      ],
+      [
+       -113.467003,
+       53.5
+      ],
+      [
+       -113.4655,
+       53.5
+      ],
+      [
+       -113.4655,
+       53.5
+      ],
+      [
+       -113.463997,
+       53.5
+      ],
+      [
+       -113.463997,
+       53.5
+      ],
+      [
+       -113.462502,
+       53.5
+      ],
+      [
+       -113.462502,
+       53.5
+      ],
+      [
+       -113.460999,
+       53.5
+      ],
+      [
+       -113.460999,
+       53.5
+      ],
+      [
+       -113.459503,
+       53.5
+      ],
+      [
+       -113.459503,
+       53.5
+      ],
+      [
+       -113.458,
+       53.5
+      ],
+      [
+       -113.458,
+       53.5
+      ],
+      [
+       -113.456497,
+       53.5
+      ],
+      [
+       -113.456497,
+       53.5
+      ],
+      [
+       -113.455002,
+       53.5
+      ],
+      [
+       -113.455002,
+       53.5
+      ],
+      [
+       -113.453499,
+       53.5
+      ],
+      [
+       -113.453499,
+       53.5
+      ],
+      [
+       -113.452003,
+       53.5
+      ],
+      [
+       -113.452003,
+       53.5
+      ],
+      [
+       -113.4505,
+       53.5
+      ],
+      [
+       -113.4505,
+       53.5
+      ],
+      [
+       -113.448997,
+       53.5
+      ],
+      [
+       -113.448997,
+       53.5
+      ],
+      [
+       -113.447502,
+       53.5
+      ],
+      [
+       -113.447502,
+       53.5
+      ],
+      [
+       -113.445999,
+       53.5
+      ],
+      [
+       -113.445999,
+       53.5
+      ],
+      [
+       -113.444504,
+       53.5
+      ],
+      [
+       -113.444504,
+       53.5
+      ],
+      [
+       -113.443001,
+       53.5
+      ],
+      [
+       -113.443001,
+       53.5
+      ],
+      [
+       -113.441498,
+       53.5
+      ],
+      [
+       -113.441498,
+       53.5
+      ],
+      [
+       -113.440002,
+       53.5
+      ],
+      [
+       -113.440002,
+       53.5
+      ],
+      [
+       -113.438499,
+       53.5
+      ],
+      [
+       -113.438499,
+       53.5
+      ],
+      [
+       -113.436996,
+       53.5
+      ],
+      [
+       -113.436996,
+       53.5
+      ],
+      [
+       -113.435501,
+       53.5
+      ],
+      [
+       -113.435501,
+       53.5
+      ],
+      [
+       -113.433998,
+       53.5
+      ],
+      [
+       -113.433998,
+       53.5
+      ],
+      [
+       -113.432503,
+       53.5
+      ],
+      [
+       -113.432503,
+       53.5
+      ],
+      [
+       -113.431,
+       53.5
+      ],
+      [
+       -113.431,
+       53.5
+      ],
+      [
+       -113.429497,
+       53.5
+      ],
+      [
+       -113.429497,
+       53.5
+      ],
+      [
+       -113.428001,
+       53.5
+      ],
+      [
+       -113.428001,
+       53.5
+      ],
+      [
+       -113.426498,
+       53.5
+      ],
+      [
+       -113.426498,
+       53.5
+      ],
+      [
+       -113.425003,
+       53.5
+      ],
+      [
+       -113.425003,
+       53.5
+      ],
+      [
+       -113.4235,
+       53.5
+      ],
+      [
+       -113.4235,
+       53.5
+      ],
+      [
+       -113.421997,
+       53.5
+      ],
+      [
+       -113.421997,
+       53.5
+      ],
+      [
+       -113.420502,
+       53.5
+      ],
+      [
+       -113.420502,
+       53.5
+      ],
+      [
+       -113.418999,
+       53.5
+      ],
+      [
+       -113.418999,
+       53.5
+      ],
+      [
+       -113.417503,
+       53.5
+      ],
+      [
+       -113.417503,
+       53.5
+      ],
+      [
+       -113.416,
+       53.5
+      ],
+      [
+       -113.416,
+       53.5
+      ],
+      [
+       -113.414497,
+       53.5
+      ],
+      [
+       -113.414497,
+       53.5
+      ],
+      [
+       -113.413002,
+       53.5
+      ],
+      [
+       -113.413002,
+       53.5
+      ],
+      [
+       -113.411499,
+       53.5
+      ],
+      [
+       -113.411499,
+       53.5
+      ],
+      [
+       -113.410004,
+       53.5
+      ]
+     ]
+    },
+    "distance_m": 5958.0,
+    "eta_min": 110.3,
+    "steps": [
+     {
+      "text": "Follow Main Street for 5960 m",
+      "distance_m": 5958.0
+     }
+    ],
+    "hazards_on_route": [],
+    "hazards_avoided": [],
+    "warnings": [],
+    "reason": null,
+    "report": {
+     "on_route": 0,
+     "nearby": 2,
+     "avoided": 0,
+     "groups": [
+      {
+       "category": "indoor",
+       "label": "Indoor",
+       "items": [
+        {
+         "id": "city_lrt_devices:11",
+         "status": "nearby",
+         "distance_m": 20.0,
+         "kind": "elevator_out",
+         "effect": "blocked",
+         "confidence": "high",
+         "title": "Elevator out of service",
+         "detail": "S1, North",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "Reported for the whole station: the exact elevator or escalator is not mapped, so routes cannot avoid it."
+        },
+        {
+         "id": "city_lrt_devices:31",
+         "status": "nearby",
+         "distance_m": 20.0,
+         "kind": "escalator_out",
+         "effect": "caution",
+         "confidence": "high",
+         "title": "Escalator out of service",
+         "detail": "S3, Platform",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "Reported for the whole station: the exact elevator or escalator is not mapped, so routes cannot avoid it."
+        }
+       ]
+      },
+      {
+       "category": "sidewalk",
+       "label": "Sidewalks and paths",
+       "items": []
+      },
+      {
+       "category": "road",
+       "label": "Roads and crossings",
+       "items": []
+      },
+      {
+       "category": "weather",
+       "label": "Weather and ice",
+       "items": []
+      }
+     ]
+    },
+    "google_maps_url": "https://www.google.com/maps/dir/?api=1&origin=53.500000%2C-113.500000&destination=53.500000%2C-113.410000&travelmode=walking",
+    "apple_maps_url": "https://maps.apple.com/?saddr=53.500000%2C-113.500000&daddr=53.500000%2C-113.410000&dirflg=w",
+    "mode": "walk"
+   }
+  ],
+  "warnings": [],
+  "apple_maps_note": "Apple Maps may not keep this detour; check the route it shows before you set off.",
+  "mode": "walk_lrt"
+ },
+ "low_vision": {
+  "profile": "low_vision",
+  "origin_snap_m": 0.0,
+  "destination_snap_m": 0.0,
+  "routes": [
+   {
+    "rank": 1,
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       -113.5,
+       53.5
+      ],
+      [
+       -113.4985,
+       53.50018
+      ],
+      [
+       -113.4775,
+       53.50018
+      ],
+      [
+       -113.455,
+       53.50018
+      ],
+      [
+       -113.4115,
+       53.50018
+      ],
+      [
+       -113.41,
+       53.5
+      ]
+     ]
+    },
+    "distance_m": 5956.6,
+    "eta_min": 27.4,
+    "steps": [
+     {
+      "text": "Enter S1 Station.",
+      "distance_m": 101.2
+     },
+     {
+      "text": "Ride the Red Line toward X from S1 to X: 2 stops, 4 min scheduled. Wait about 5 min (estimate from the schedule, not a live arrival).",
+      "distance_m": 2877.1
+     },
+     {
+      "text": "Change trains at X Station.",
+      "distance_m": 0.0
+     },
+     {
+      "text": "Ride the Blue Line toward S3 from X to S3: 1 stop, 3 min scheduled. Wait about 5 min (estimate from the schedule, not a live arrival).",
+      "distance_m": 2877.1
+     },
+     {
+      "text": "Leave S3 Station. Escalator out of service: Platform.",
+      "distance_m": 101.2
+     }
+    ],
+    "hazards_on_route": [],
+    "hazards_avoided": [],
+    "warnings": [
+     "Wait times are estimates from the ETS schedule (half the time between trains at this hour), not live arrivals.",
+     "Station elevators are not yet matched to the map, so the walk ends at the station's location; follow the station signs to an elevator."
+    ],
+    "reason": "Walk and LRT: about 72 min faster than walking",
+    "report": {
+     "on_route": 2,
+     "nearby": 0,
+     "avoided": 0,
+     "groups": [
+      {
+       "category": "indoor",
+       "label": "Indoor",
+       "items": [
+        {
+         "id": "city_lrt_devices:11",
+         "status": "on_route",
+         "distance_m": null,
+         "kind": "elevator_out",
+         "effect": "blocked",
+         "confidence": "high",
+         "title": "Elevator out of service",
+         "detail": "S1, North",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "At S1 Station, which this trip uses."
+        },
+        {
+         "id": "city_lrt_devices:31",
+         "status": "on_route",
+         "distance_m": null,
+         "kind": "escalator_out",
+         "effect": "caution",
+         "confidence": "high",
+         "title": "Escalator out of service",
+         "detail": "S3, Platform",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "At S3 Station, which this trip uses. Escalator out of service: Platform."
+        }
+       ]
+      },
+      {
+       "category": "sidewalk",
+       "label": "Sidewalks and paths",
+       "items": []
+      },
+      {
+       "category": "road",
+       "label": "Roads and crossings",
+       "items": []
+      },
+      {
+       "category": "weather",
+       "label": "Weather and ice",
+       "items": []
+      }
+     ]
+    },
+    "google_maps_url": "https://www.google.com/maps/dir/?api=1&origin=53.500000%2C-113.500000&destination=53.500000%2C-113.410000&travelmode=transit",
+    "apple_maps_url": "https://maps.apple.com/?saddr=53.500000%2C-113.500000&daddr=53.500000%2C-113.410000&dirflg=r",
+    "mode": "walk_lrt",
+    "legs": [
+     {
+      "kind": "walk",
+      "from_name": "Start",
+      "to_name": "S1 Station",
+      "distance_m": 101.2,
+      "duration_min": 1.7,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.5,
+         53.5
+        ],
+        [
+         -113.4985,
+         53.50018
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     },
+     {
+      "kind": "ride",
+      "from_name": "S1 Station",
+      "to_name": "X Station",
+      "distance_m": 2877.1,
+      "duration_min": 9.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.4985,
+         53.50018
+        ],
+        [
+         -113.4775,
+         53.50018
+        ],
+        [
+         -113.455,
+         53.50018
+        ]
+       ]
+      },
+      "lines": [
+       "Red Line"
+      ],
+      "line_colors": [
+       "#FF0000"
+      ],
+      "headsigns": [
+       "X"
+      ],
+      "stops": 2,
+      "ride_min": 4.0,
+      "wait": {
+       "minutes": 5.0,
+       "estimate": true,
+       "headway_min": 10.0,
+       "note": "Estimate: half the scheduled time between trains at this hour, from the ETS schedule. Not a live arrival time."
+      }
+     },
+     {
+      "kind": "transfer",
+      "from_name": "X Station",
+      "to_name": "X Station",
+      "distance_m": 0.0,
+      "duration_min": 3.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.455,
+         53.50018
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     },
+     {
+      "kind": "ride",
+      "from_name": "X Station",
+      "to_name": "S3 Station",
+      "distance_m": 2877.1,
+      "duration_min": 8.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.455,
+         53.50018
+        ],
+        [
+         -113.4115,
+         53.50018
+        ]
+       ]
+      },
+      "lines": [
+       "Blue Line"
+      ],
+      "line_colors": [
+       "#0000FF"
+      ],
+      "headsigns": [
+       "S3"
+      ],
+      "stops": 1,
+      "ride_min": 3.0,
+      "wait": {
+       "minutes": 5.0,
+       "estimate": true,
+       "headway_min": 10.0,
+       "note": "Estimate: half the scheduled time between trains at this hour, from the ETS schedule. Not a live arrival time."
+      }
+     },
+     {
+      "kind": "walk",
+      "from_name": "S3 Station",
+      "to_name": "Destination",
+      "distance_m": 101.2,
+      "duration_min": 1.7,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.4115,
+         53.50018
+        ],
+        [
+         -113.41,
+         53.5
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     }
+    ],
+    "lrt": {
+     "stations": [
+      {
+       "id": "S1",
+       "name": "S1 Station",
+       "access": "elevator",
+       "usable": true,
+       "note": null,
+       "devices": [
+        {
+         "device_id": "10",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        },
+        {
+         "device_id": "11",
+         "kind": "elevator",
+         "location": "North",
+         "role": "entrance",
+         "status": "out_of_service"
+        },
+        {
+         "device_id": "12",
+         "kind": "elevator",
+         "location": "South",
+         "role": "entrance",
+         "status": "in_service"
+        },
+        {
+         "device_id": "13",
+         "kind": "escalator",
+         "location": "North",
+         "role": null,
+         "status": "in_service"
+        }
+       ]
+      },
+      {
+       "id": "X",
+       "name": "X Station",
+       "access": "elevator",
+       "usable": true,
+       "note": null,
+       "devices": [
+        {
+         "device_id": "40",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        }
+       ]
+      },
+      {
+       "id": "S3",
+       "name": "S3 Station",
+       "access": "elevator",
+       "usable": true,
+       "note": "Escalator out of service: Platform.",
+       "devices": [
+        {
+         "device_id": "30",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        },
+        {
+         "device_id": "31",
+         "kind": "escalator",
+         "location": "Platform",
+         "role": null,
+         "status": "out_of_service"
+        }
+       ]
+      }
+     ],
+     "walk_distance_m": 202.4,
+     "wait_is_estimate": true,
+     "schedule": "synthetic",
+     "attribution": "Schedule: Edmonton Transit Service, City of Edmonton Open Data",
+     "maps_note": "Google Maps and Apple Maps plan their own transit trip and may not use the same stations or elevators."
+    }
+   },
+   {
+    "rank": 2,
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       -113.5,
+       53.5
+      ],
+      [
+       -113.498497,
+       53.5
+      ],
+      [
+       -113.498497,
+       53.5
+      ],
+      [
+       -113.497002,
+       53.5
+      ],
+      [
+       -113.497002,
+       53.5
+      ],
+      [
+       -113.495499,
+       53.5
+      ],
+      [
+       -113.495499,
+       53.5
+      ],
+      [
+       -113.494003,
+       53.5
+      ],
+      [
+       -113.494003,
+       53.5
+      ],
+      [
+       -113.4925,
+       53.5
+      ],
+      [
+       -113.4925,
+       53.5
+      ],
+      [
+       -113.490997,
+       53.5
+      ],
+      [
+       -113.490997,
+       53.5
+      ],
+      [
+       -113.489502,
+       53.5
+      ],
+      [
+       -113.489502,
+       53.5
+      ],
+      [
+       -113.487999,
+       53.5
+      ],
+      [
+       -113.487999,
+       53.5
+      ],
+      [
+       -113.486504,
+       53.5
+      ],
+      [
+       -113.486504,
+       53.5
+      ],
+      [
+       -113.485001,
+       53.5
+      ],
+      [
+       -113.485001,
+       53.5
+      ],
+      [
+       -113.483498,
+       53.5
+      ],
+      [
+       -113.483498,
+       53.5
+      ],
+      [
+       -113.482002,
+       53.5
+      ],
+      [
+       -113.482002,
+       53.5
+      ],
+      [
+       -113.480499,
+       53.5
+      ],
+      [
+       -113.480499,
+       53.5
+      ],
+      [
+       -113.478996,
+       53.5
+      ],
+      [
+       -113.478996,
+       53.5
+      ],
+      [
+       -113.477501,
+       53.5
+      ],
+      [
+       -113.477501,
+       53.5
+      ],
+      [
+       -113.475998,
+       53.5
+      ],
+      [
+       -113.475998,
+       53.5
+      ],
+      [
+       -113.474503,
+       53.5
+      ],
+      [
+       -113.474503,
+       53.5
+      ],
+      [
+       -113.473,
+       53.5
+      ],
+      [
+       -113.473,
+       53.5
+      ],
+      [
+       -113.471497,
+       53.5
+      ],
+      [
+       -113.471497,
+       53.5
+      ],
+      [
+       -113.470001,
+       53.5
+      ],
+      [
+       -113.470001,
+       53.5
+      ],
+      [
+       -113.468498,
+       53.5
+      ],
+      [
+       -113.468498,
+       53.5
+      ],
+      [
+       -113.467003,
+       53.5
+      ],
+      [
+       -113.467003,
+       53.5
+      ],
+      [
+       -113.4655,
+       53.5
+      ],
+      [
+       -113.4655,
+       53.5
+      ],
+      [
+       -113.463997,
+       53.5
+      ],
+      [
+       -113.463997,
+       53.5
+      ],
+      [
+       -113.462502,
+       53.5
+      ],
+      [
+       -113.462502,
+       53.5
+      ],
+      [
+       -113.460999,
+       53.5
+      ],
+      [
+       -113.460999,
+       53.5
+      ],
+      [
+       -113.459503,
+       53.5
+      ],
+      [
+       -113.459503,
+       53.5
+      ],
+      [
+       -113.458,
+       53.5
+      ],
+      [
+       -113.458,
+       53.5
+      ],
+      [
+       -113.456497,
+       53.5
+      ],
+      [
+       -113.456497,
+       53.5
+      ],
+      [
+       -113.455002,
+       53.5
+      ],
+      [
+       -113.455002,
+       53.5
+      ],
+      [
+       -113.453499,
+       53.5
+      ],
+      [
+       -113.453499,
+       53.5
+      ],
+      [
+       -113.452003,
+       53.5
+      ],
+      [
+       -113.452003,
+       53.5
+      ],
+      [
+       -113.4505,
+       53.5
+      ],
+      [
+       -113.4505,
+       53.5
+      ],
+      [
+       -113.448997,
+       53.5
+      ],
+      [
+       -113.448997,
+       53.5
+      ],
+      [
+       -113.447502,
+       53.5
+      ],
+      [
+       -113.447502,
+       53.5
+      ],
+      [
+       -113.445999,
+       53.5
+      ],
+      [
+       -113.445999,
+       53.5
+      ],
+      [
+       -113.444504,
+       53.5
+      ],
+      [
+       -113.444504,
+       53.5
+      ],
+      [
+       -113.443001,
+       53.5
+      ],
+      [
+       -113.443001,
+       53.5
+      ],
+      [
+       -113.441498,
+       53.5
+      ],
+      [
+       -113.441498,
+       53.5
+      ],
+      [
+       -113.440002,
+       53.5
+      ],
+      [
+       -113.440002,
+       53.5
+      ],
+      [
+       -113.438499,
+       53.5
+      ],
+      [
+       -113.438499,
+       53.5
+      ],
+      [
+       -113.436996,
+       53.5
+      ],
+      [
+       -113.436996,
+       53.5
+      ],
+      [
+       -113.435501,
+       53.5
+      ],
+      [
+       -113.435501,
+       53.5
+      ],
+      [
+       -113.433998,
+       53.5
+      ],
+      [
+       -113.433998,
+       53.5
+      ],
+      [
+       -113.432503,
+       53.5
+      ],
+      [
+       -113.432503,
+       53.5
+      ],
+      [
+       -113.431,
+       53.5
+      ],
+      [
+       -113.431,
+       53.5
+      ],
+      [
+       -113.429497,
+       53.5
+      ],
+      [
+       -113.429497,
+       53.5
+      ],
+      [
+       -113.428001,
+       53.5
+      ],
+      [
+       -113.428001,
+       53.5
+      ],
+      [
+       -113.426498,
+       53.5
+      ],
+      [
+       -113.426498,
+       53.5
+      ],
+      [
+       -113.425003,
+       53.5
+      ],
+      [
+       -113.425003,
+       53.5
+      ],
+      [
+       -113.4235,
+       53.5
+      ],
+      [
+       -113.4235,
+       53.5
+      ],
+      [
+       -113.421997,
+       53.5
+      ],
+      [
+       -113.421997,
+       53.5
+      ],
+      [
+       -113.420502,
+       53.5
+      ],
+      [
+       -113.420502,
+       53.5
+      ],
+      [
+       -113.418999,
+       53.5
+      ],
+      [
+       -113.418999,
+       53.5
+      ],
+      [
+       -113.417503,
+       53.5
+      ],
+      [
+       -113.417503,
+       53.5
+      ],
+      [
+       -113.416,
+       53.5
+      ],
+      [
+       -113.416,
+       53.5
+      ],
+      [
+       -113.414497,
+       53.5
+      ],
+      [
+       -113.414497,
+       53.5
+      ],
+      [
+       -113.413002,
+       53.5
+      ],
+      [
+       -113.413002,
+       53.5
+      ],
+      [
+       -113.411499,
+       53.5
+      ],
+      [
+       -113.411499,
+       53.5
+      ],
+      [
+       -113.410004,
+       53.5
+      ]
+     ]
+    },
+    "distance_m": 5958.0,
+    "eta_min": 99.3,
+    "steps": [
+     {
+      "text": "Follow Main Street for 5960 m",
+      "distance_m": 5958.0
+     }
+    ],
+    "hazards_on_route": [],
+    "hazards_avoided": [],
+    "warnings": [],
+    "reason": null,
+    "report": {
+     "on_route": 0,
+     "nearby": 2,
+     "avoided": 0,
+     "groups": [
+      {
+       "category": "indoor",
+       "label": "Indoor",
+       "items": [
+        {
+         "id": "city_lrt_devices:11",
+         "status": "nearby",
+         "distance_m": 20.0,
+         "kind": "elevator_out",
+         "effect": "blocked",
+         "confidence": "high",
+         "title": "Elevator out of service",
+         "detail": "S1, North",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "Reported for the whole station: the exact elevator or escalator is not mapped, so routes cannot avoid it."
+        },
+        {
+         "id": "city_lrt_devices:31",
+         "status": "nearby",
+         "distance_m": 20.0,
+         "kind": "escalator_out",
+         "effect": "caution",
+         "confidence": "high",
+         "title": "Escalator out of service",
+         "detail": "S3, Platform",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "Reported for the whole station: the exact elevator or escalator is not mapped, so routes cannot avoid it."
+        }
+       ]
+      },
+      {
+       "category": "sidewalk",
+       "label": "Sidewalks and paths",
+       "items": []
+      },
+      {
+       "category": "road",
+       "label": "Roads and crossings",
+       "items": []
+      },
+      {
+       "category": "weather",
+       "label": "Weather and ice",
+       "items": []
+      }
+     ]
+    },
+    "google_maps_url": "https://www.google.com/maps/dir/?api=1&origin=53.500000%2C-113.500000&destination=53.500000%2C-113.410000&travelmode=walking",
+    "apple_maps_url": "https://maps.apple.com/?saddr=53.500000%2C-113.500000&daddr=53.500000%2C-113.410000&dirflg=w",
+    "mode": "walk"
+   }
+  ],
+  "warnings": [],
+  "apple_maps_note": "Apple Maps may not keep this detour; check the route it shows before you set off.",
+  "mode": "walk_lrt"
+ },
+ "standard": {
+  "profile": "standard",
+  "origin_snap_m": 0.0,
+  "destination_snap_m": 0.0,
+  "routes": [
+   {
+    "rank": 1,
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       -113.5,
+       53.5
+      ],
+      [
+       -113.4985,
+       53.50018
+      ],
+      [
+       -113.4775,
+       53.50018
+      ],
+      [
+       -113.455,
+       53.50018
+      ],
+      [
+       -113.4115,
+       53.50018
+      ],
+      [
+       -113.41,
+       53.5
+      ]
+     ]
+    },
+    "distance_m": 5956.6,
+    "eta_min": 26.6,
+    "steps": [
+     {
+      "text": "Enter S1 Station.",
+      "distance_m": 101.2
+     },
+     {
+      "text": "Ride the Red Line toward X from S1 to X: 2 stops, 4 min scheduled. Wait about 5 min (estimate from the schedule, not a live arrival).",
+      "distance_m": 2877.1
+     },
+     {
+      "text": "Change trains at X Station.",
+      "distance_m": 0.0
+     },
+     {
+      "text": "Ride the Blue Line toward S3 from X to S3: 1 stop, 3 min scheduled. Wait about 5 min (estimate from the schedule, not a live arrival).",
+      "distance_m": 2877.1
+     },
+     {
+      "text": "Leave S3 Station. Escalator out of service: Platform.",
+      "distance_m": 101.2
+     }
+    ],
+    "hazards_on_route": [],
+    "hazards_avoided": [],
+    "warnings": [
+     "Wait times are estimates from the ETS schedule (half the time between trains at this hour), not live arrivals.",
+     "Station elevators are not yet matched to the map, so the walk ends at the station's location; follow the station signs to an elevator."
+    ],
+    "reason": "Walk and LRT: about 50 min faster than walking",
+    "report": {
+     "on_route": 2,
+     "nearby": 0,
+     "avoided": 0,
+     "groups": [
+      {
+       "category": "indoor",
+       "label": "Indoor",
+       "items": [
+        {
+         "id": "city_lrt_devices:11",
+         "status": "on_route",
+         "distance_m": null,
+         "kind": "elevator_out",
+         "effect": "blocked",
+         "confidence": "high",
+         "title": "Elevator out of service",
+         "detail": "S1, North",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "At S1 Station, which this trip uses."
+        },
+        {
+         "id": "city_lrt_devices:31",
+         "status": "on_route",
+         "distance_m": null,
+         "kind": "escalator_out",
+         "effect": "caution",
+         "confidence": "high",
+         "title": "Escalator out of service",
+         "detail": "S3, Platform",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "At S3 Station, which this trip uses. Escalator out of service: Platform."
+        }
+       ]
+      },
+      {
+       "category": "sidewalk",
+       "label": "Sidewalks and paths",
+       "items": []
+      },
+      {
+       "category": "road",
+       "label": "Roads and crossings",
+       "items": []
+      },
+      {
+       "category": "weather",
+       "label": "Weather and ice",
+       "items": []
+      }
+     ]
+    },
+    "google_maps_url": "https://www.google.com/maps/dir/?api=1&origin=53.500000%2C-113.500000&destination=53.500000%2C-113.410000&travelmode=transit",
+    "apple_maps_url": "https://maps.apple.com/?saddr=53.500000%2C-113.500000&daddr=53.500000%2C-113.410000&dirflg=r",
+    "mode": "walk_lrt",
+    "legs": [
+     {
+      "kind": "walk",
+      "from_name": "Start",
+      "to_name": "S1 Station",
+      "distance_m": 101.2,
+      "duration_min": 1.3,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.5,
+         53.5
+        ],
+        [
+         -113.4985,
+         53.50018
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     },
+     {
+      "kind": "ride",
+      "from_name": "S1 Station",
+      "to_name": "X Station",
+      "distance_m": 2877.1,
+      "duration_min": 9.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.4985,
+         53.50018
+        ],
+        [
+         -113.4775,
+         53.50018
+        ],
+        [
+         -113.455,
+         53.50018
+        ]
+       ]
+      },
+      "lines": [
+       "Red Line"
+      ],
+      "line_colors": [
+       "#FF0000"
+      ],
+      "headsigns": [
+       "X"
+      ],
+      "stops": 2,
+      "ride_min": 4.0,
+      "wait": {
+       "minutes": 5.0,
+       "estimate": true,
+       "headway_min": 10.0,
+       "note": "Estimate: half the scheduled time between trains at this hour, from the ETS schedule. Not a live arrival time."
+      }
+     },
+     {
+      "kind": "transfer",
+      "from_name": "X Station",
+      "to_name": "X Station",
+      "distance_m": 0.0,
+      "duration_min": 3.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.455,
+         53.50018
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     },
+     {
+      "kind": "ride",
+      "from_name": "X Station",
+      "to_name": "S3 Station",
+      "distance_m": 2877.1,
+      "duration_min": 8.0,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.455,
+         53.50018
+        ],
+        [
+         -113.4115,
+         53.50018
+        ]
+       ]
+      },
+      "lines": [
+       "Blue Line"
+      ],
+      "line_colors": [
+       "#0000FF"
+      ],
+      "headsigns": [
+       "S3"
+      ],
+      "stops": 1,
+      "ride_min": 3.0,
+      "wait": {
+       "minutes": 5.0,
+       "estimate": true,
+       "headway_min": 10.0,
+       "note": "Estimate: half the scheduled time between trains at this hour, from the ETS schedule. Not a live arrival time."
+      }
+     },
+     {
+      "kind": "walk",
+      "from_name": "S3 Station",
+      "to_name": "Destination",
+      "distance_m": 101.2,
+      "duration_min": 1.3,
+      "geometry": {
+       "type": "LineString",
+       "coordinates": [
+        [
+         -113.4115,
+         53.50018
+        ],
+        [
+         -113.41,
+         53.5
+        ]
+       ]
+      },
+      "lines": null,
+      "line_colors": null,
+      "headsigns": null,
+      "stops": null,
+      "ride_min": null,
+      "wait": null
+     }
+    ],
+    "lrt": {
+     "stations": [
+      {
+       "id": "S1",
+       "name": "S1 Station",
+       "access": "elevator",
+       "usable": true,
+       "note": null,
+       "devices": [
+        {
+         "device_id": "10",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        },
+        {
+         "device_id": "11",
+         "kind": "elevator",
+         "location": "North",
+         "role": "entrance",
+         "status": "out_of_service"
+        },
+        {
+         "device_id": "12",
+         "kind": "elevator",
+         "location": "South",
+         "role": "entrance",
+         "status": "in_service"
+        },
+        {
+         "device_id": "13",
+         "kind": "escalator",
+         "location": "North",
+         "role": null,
+         "status": "in_service"
+        }
+       ]
+      },
+      {
+       "id": "X",
+       "name": "X Station",
+       "access": "elevator",
+       "usable": true,
+       "note": null,
+       "devices": [
+        {
+         "device_id": "40",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        }
+       ]
+      },
+      {
+       "id": "S3",
+       "name": "S3 Station",
+       "access": "elevator",
+       "usable": true,
+       "note": "Escalator out of service: Platform.",
+       "devices": [
+        {
+         "device_id": "30",
+         "kind": "elevator",
+         "location": "Platform",
+         "role": "platform",
+         "status": "in_service"
+        },
+        {
+         "device_id": "31",
+         "kind": "escalator",
+         "location": "Platform",
+         "role": null,
+         "status": "out_of_service"
+        }
+       ]
+      }
+     ],
+     "walk_distance_m": 202.4,
+     "wait_is_estimate": true,
+     "schedule": "synthetic",
+     "attribution": "Schedule: Edmonton Transit Service, City of Edmonton Open Data",
+     "maps_note": "Google Maps and Apple Maps plan their own transit trip and may not use the same stations or elevators."
+    }
+   },
+   {
+    "rank": 2,
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       -113.5,
+       53.5
+      ],
+      [
+       -113.498497,
+       53.5
+      ],
+      [
+       -113.498497,
+       53.5
+      ],
+      [
+       -113.497002,
+       53.5
+      ],
+      [
+       -113.497002,
+       53.5
+      ],
+      [
+       -113.495499,
+       53.5
+      ],
+      [
+       -113.495499,
+       53.5
+      ],
+      [
+       -113.494003,
+       53.5
+      ],
+      [
+       -113.494003,
+       53.5
+      ],
+      [
+       -113.4925,
+       53.5
+      ],
+      [
+       -113.4925,
+       53.5
+      ],
+      [
+       -113.490997,
+       53.5
+      ],
+      [
+       -113.490997,
+       53.5
+      ],
+      [
+       -113.489502,
+       53.5
+      ],
+      [
+       -113.489502,
+       53.5
+      ],
+      [
+       -113.487999,
+       53.5
+      ],
+      [
+       -113.487999,
+       53.5
+      ],
+      [
+       -113.486504,
+       53.5
+      ],
+      [
+       -113.486504,
+       53.5
+      ],
+      [
+       -113.485001,
+       53.5
+      ],
+      [
+       -113.485001,
+       53.5
+      ],
+      [
+       -113.483498,
+       53.5
+      ],
+      [
+       -113.483498,
+       53.5
+      ],
+      [
+       -113.482002,
+       53.5
+      ],
+      [
+       -113.482002,
+       53.5
+      ],
+      [
+       -113.480499,
+       53.5
+      ],
+      [
+       -113.480499,
+       53.5
+      ],
+      [
+       -113.478996,
+       53.5
+      ],
+      [
+       -113.478996,
+       53.5
+      ],
+      [
+       -113.477501,
+       53.5
+      ],
+      [
+       -113.477501,
+       53.5
+      ],
+      [
+       -113.475998,
+       53.5
+      ],
+      [
+       -113.475998,
+       53.5
+      ],
+      [
+       -113.474503,
+       53.5
+      ],
+      [
+       -113.474503,
+       53.5
+      ],
+      [
+       -113.473,
+       53.5
+      ],
+      [
+       -113.473,
+       53.5
+      ],
+      [
+       -113.471497,
+       53.5
+      ],
+      [
+       -113.471497,
+       53.5
+      ],
+      [
+       -113.470001,
+       53.5
+      ],
+      [
+       -113.470001,
+       53.5
+      ],
+      [
+       -113.468498,
+       53.5
+      ],
+      [
+       -113.468498,
+       53.5
+      ],
+      [
+       -113.467003,
+       53.5
+      ],
+      [
+       -113.467003,
+       53.5
+      ],
+      [
+       -113.4655,
+       53.5
+      ],
+      [
+       -113.4655,
+       53.5
+      ],
+      [
+       -113.463997,
+       53.5
+      ],
+      [
+       -113.463997,
+       53.5
+      ],
+      [
+       -113.462502,
+       53.5
+      ],
+      [
+       -113.462502,
+       53.5
+      ],
+      [
+       -113.460999,
+       53.5
+      ],
+      [
+       -113.460999,
+       53.5
+      ],
+      [
+       -113.459503,
+       53.5
+      ],
+      [
+       -113.459503,
+       53.5
+      ],
+      [
+       -113.458,
+       53.5
+      ],
+      [
+       -113.458,
+       53.5
+      ],
+      [
+       -113.456497,
+       53.5
+      ],
+      [
+       -113.456497,
+       53.5
+      ],
+      [
+       -113.455002,
+       53.5
+      ],
+      [
+       -113.455002,
+       53.5
+      ],
+      [
+       -113.453499,
+       53.5
+      ],
+      [
+       -113.453499,
+       53.5
+      ],
+      [
+       -113.452003,
+       53.5
+      ],
+      [
+       -113.452003,
+       53.5
+      ],
+      [
+       -113.4505,
+       53.5
+      ],
+      [
+       -113.4505,
+       53.5
+      ],
+      [
+       -113.448997,
+       53.5
+      ],
+      [
+       -113.448997,
+       53.5
+      ],
+      [
+       -113.447502,
+       53.5
+      ],
+      [
+       -113.447502,
+       53.5
+      ],
+      [
+       -113.445999,
+       53.5
+      ],
+      [
+       -113.445999,
+       53.5
+      ],
+      [
+       -113.444504,
+       53.5
+      ],
+      [
+       -113.444504,
+       53.5
+      ],
+      [
+       -113.443001,
+       53.5
+      ],
+      [
+       -113.443001,
+       53.5
+      ],
+      [
+       -113.441498,
+       53.5
+      ],
+      [
+       -113.441498,
+       53.5
+      ],
+      [
+       -113.440002,
+       53.5
+      ],
+      [
+       -113.440002,
+       53.5
+      ],
+      [
+       -113.438499,
+       53.5
+      ],
+      [
+       -113.438499,
+       53.5
+      ],
+      [
+       -113.436996,
+       53.5
+      ],
+      [
+       -113.436996,
+       53.5
+      ],
+      [
+       -113.435501,
+       53.5
+      ],
+      [
+       -113.435501,
+       53.5
+      ],
+      [
+       -113.433998,
+       53.5
+      ],
+      [
+       -113.433998,
+       53.5
+      ],
+      [
+       -113.432503,
+       53.5
+      ],
+      [
+       -113.432503,
+       53.5
+      ],
+      [
+       -113.431,
+       53.5
+      ],
+      [
+       -113.431,
+       53.5
+      ],
+      [
+       -113.429497,
+       53.5
+      ],
+      [
+       -113.429497,
+       53.5
+      ],
+      [
+       -113.428001,
+       53.5
+      ],
+      [
+       -113.428001,
+       53.5
+      ],
+      [
+       -113.426498,
+       53.5
+      ],
+      [
+       -113.426498,
+       53.5
+      ],
+      [
+       -113.425003,
+       53.5
+      ],
+      [
+       -113.425003,
+       53.5
+      ],
+      [
+       -113.4235,
+       53.5
+      ],
+      [
+       -113.4235,
+       53.5
+      ],
+      [
+       -113.421997,
+       53.5
+      ],
+      [
+       -113.421997,
+       53.5
+      ],
+      [
+       -113.420502,
+       53.5
+      ],
+      [
+       -113.420502,
+       53.5
+      ],
+      [
+       -113.418999,
+       53.5
+      ],
+      [
+       -113.418999,
+       53.5
+      ],
+      [
+       -113.417503,
+       53.5
+      ],
+      [
+       -113.417503,
+       53.5
+      ],
+      [
+       -113.416,
+       53.5
+      ],
+      [
+       -113.416,
+       53.5
+      ],
+      [
+       -113.414497,
+       53.5
+      ],
+      [
+       -113.414497,
+       53.5
+      ],
+      [
+       -113.413002,
+       53.5
+      ],
+      [
+       -113.413002,
+       53.5
+      ],
+      [
+       -113.411499,
+       53.5
+      ],
+      [
+       -113.411499,
+       53.5
+      ],
+      [
+       -113.410004,
+       53.5
+      ]
+     ]
+    },
+    "distance_m": 5958.0,
+    "eta_min": 76.4,
+    "steps": [
+     {
+      "text": "Follow Main Street for 5960 m",
+      "distance_m": 5958.0
+     }
+    ],
+    "hazards_on_route": [],
+    "hazards_avoided": [],
+    "warnings": [],
+    "reason": null,
+    "report": {
+     "on_route": 0,
+     "nearby": 2,
+     "avoided": 0,
+     "groups": [
+      {
+       "category": "indoor",
+       "label": "Indoor",
+       "items": [
+        {
+         "id": "city_lrt_devices:11",
+         "status": "nearby",
+         "distance_m": 20.0,
+         "kind": "elevator_out",
+         "effect": "blocked",
+         "confidence": "high",
+         "title": "Elevator out of service",
+         "detail": "S1, North",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "Reported for the whole station: the exact elevator or escalator is not mapped, so routes cannot avoid it."
+        },
+        {
+         "id": "city_lrt_devices:31",
+         "status": "nearby",
+         "distance_m": 20.0,
+         "kind": "escalator_out",
+         "effect": "caution",
+         "confidence": "high",
+         "title": "Escalator out of service",
+         "detail": "S3, Platform",
+         "source": "city_lrt_devices",
+         "attribution": "City of Edmonton Open Data",
+         "observed_at": "2026-11-07T20:10:00Z",
+         "starts_at": "2026-11-07T18:10:00Z",
+         "ends_at": null,
+         "url": "https://data.edmonton.ca/d/snws-u3zx",
+         "note": "Reported for the whole station: the exact elevator or escalator is not mapped, so routes cannot avoid it."
+        }
+       ]
+      },
+      {
+       "category": "sidewalk",
+       "label": "Sidewalks and paths",
+       "items": []
+      },
+      {
+       "category": "road",
+       "label": "Roads and crossings",
+       "items": []
+      },
+      {
+       "category": "weather",
+       "label": "Weather and ice",
+       "items": []
+      }
+     ]
+    },
+    "google_maps_url": "https://www.google.com/maps/dir/?api=1&origin=53.500000%2C-113.500000&destination=53.500000%2C-113.410000&travelmode=walking",
+    "apple_maps_url": "https://maps.apple.com/?saddr=53.500000%2C-113.500000&daddr=53.500000%2C-113.410000&dirflg=w",
+    "mode": "walk"
+   }
+  ],
+  "warnings": [],
+  "apple_maps_note": "Apple Maps may not keep this detour; check the route it shows before you set off.",
+  "mode": "walk_lrt"
+ }
+}

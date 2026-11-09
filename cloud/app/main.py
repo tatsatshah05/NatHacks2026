@@ -17,6 +17,8 @@
 - ``SOCRATA_APP_TOKEN``: raises the City open data rate limit. Optional.
 - ``LRT_TRIPS``: ``true`` adds walk and LRT trips to ``/api/route?mode=walk_lrt``
   (OP-311). Off by default; then every route is walking only.
+- ``TRANSIT_BUS``: with ``LRT_TRIPS`` on, ``true`` also loads ``cloud/data/bus.json``
+  so those trips may ride one ETS bus (OP-417). Off by default.
 - ``RATE_LIMIT_PER_MIN``: writes one client may send per minute on the public POST
   and DELETE routes (OP-401, ``rate_limit.py``; default 30, ``0`` turns it off).
 - ``LOG_FORMAT``: ``text`` (the default) or ``json``, one record per line; ``LOG_LEVEL``
@@ -249,7 +251,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # OP-205 wraps it below, once the weather service exists.
         app.state.hazard_provider = HazardProvider(store, network)
         if lrt.enabled(os.environ.get("LRT_TRIPS")):
-            app.state.lrt_planner = lrt.load_planner(app.state.router)
+            bus_path = (
+                lrt.DEFAULT_BUS_PATH
+                if lrt.enabled(os.environ.get("TRANSIT_BUS"))
+                else None
+            )
+            app.state.lrt_planner = lrt.load_planner(
+                app.state.router, bus_path=bus_path
+            )
     # One HTTP client per flavour, shared by every adapter and closed at shutdown.
     async with httpx.AsyncClient(timeout=10) as async_client:
         with httpx.Client(timeout=10) as sync_client:
