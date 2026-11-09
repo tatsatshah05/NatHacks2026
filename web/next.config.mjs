@@ -15,7 +15,8 @@
 // - next/font serves its font files from this host, so `font-src 'self'`.
 // - `next dev` needs eval (source maps) and a WebSocket for reloads: development only.
 // - Permissions-Policy: the planner and the Report button may use the location
-//   ("Use my location"). The camera and microphone are never used; the report photo
+//   ("Use my location"), and the camera guide on the route report (OP-418) opens the
+//   rear camera, on this origin only. The microphone is never used; the report photo
 //   is a file input with `capture`, which needs no permission policy.
 
 const TILE_HOST = "https://tiles.openfreemap.org";
@@ -67,7 +68,7 @@ const securityHeaders = [
   { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "no-referrer" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(self)" },
   { key: "X-Frame-Options", value: "DENY" }
 ];
 
