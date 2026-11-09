@@ -280,6 +280,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/guide/frame": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Guide Frame
+         * @description Describe one camera frame for a blind or low-vision walker (preview).
+         *
+         *     Claude describes what is in front of the camera in one short sentence and lists
+         *     hazards and landmarks. It describes, it does not decide: it never gives turn
+         *     instructions beyond confirming the route context, and never says a path is safe.
+         *     The frame is processed in memory and discarded.
+         */
+        post: operations["post_guide_frame_api_guide_frame_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/priority": {
         parameters: {
             query?: never;
@@ -646,6 +671,67 @@ export interface components {
             type: "Point" | "LineString" | "MultiLineString" | "Polygon" | "MultiPolygon";
             /** Coordinates */
             coordinates: unknown[];
+        };
+        /**
+         * GuideFrameResponse
+         * @description The ``POST /api/guide/frame`` body.
+         */
+        GuideFrameResponse: {
+            /**
+             * Say
+             * @description One sentence to speak, at most 25 words and 160 characters; "" when nothing is new or the frame is unusable.
+             */
+            say: string;
+            /** Hazards */
+            hazards: components["schemas"]["GuideHazard"][];
+            /**
+             * Landmarks
+             * @description Readable signs, storefronts, doors.
+             */
+            landmarks: string[];
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "low" | "medium" | "high";
+            /**
+             * Checked By
+             * @description ["claude"] when the model answered; [] when it did not (then say is "" and confidence is low).
+             */
+            checked_by: "claude"[];
+            /**
+             * Latency Ms
+             * @description Server time spent on this frame.
+             */
+            latency_ms: number;
+            /**
+             * Mode
+             * @description The API's data mode (always live here).
+             * @enum {string}
+             */
+            mode: "live" | "replay";
+        };
+        /**
+         * GuideHazard
+         * @description One thing in the frame a walker should know about.
+         */
+        GuideHazard: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "stairs_down" | "stairs_up" | "curb" | "off_sidewalk" | "vehicle" | "bike" | "person" | "animal" | "pole" | "construction" | "hole" | "water_or_ice" | "door" | "crossing" | "sign" | "other";
+            /**
+             * Where
+             * @description Left, right or ahead, relative to the camera.
+             * @enum {string}
+             */
+            where: "left" | "right" | "ahead" | "unknown";
+            /**
+             * Text
+             * @description One short plain phrase.
+             */
+            text: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1986,6 +2072,144 @@ export interface operations {
             };
             /** @description Too many reports; see the Retry-After header. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    post_guide_frame_api_guide_frame_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Frame
+                     * Format: binary
+                     * @description One JPEG or PNG camera frame, at most 1,500,000 bytes. Processed in memory and never stored.
+                     */
+                    frame: string;
+                    /**
+                     * GuideContext
+                     * @description The ``context`` form field of ``POST /api/guide/frame``: where the walker is on
+                     *     the route and what was last said. Unknown fields are rejected (422).
+                     */
+                    context: {
+                        /**
+                         * Client Id
+                         * @description The device's anonymous id, the same one the Report button uses.
+                         */
+                        client_id: string;
+                        /**
+                         * Profile
+                         * @enum {string}
+                         */
+                        profile: "wheelchair" | "walker_cane" | "low_vision" | "standard";
+                        /**
+                         * Step
+                         * @description The current step text.
+                         */
+                        step?: string | null;
+                        /**
+                         * Next Step
+                         * @description The next step text.
+                         */
+                        next_step?: string | null;
+                        /**
+                         * Distance To Turn M
+                         * @description Metres to the next turn, when known.
+                         */
+                        distance_to_turn_m?: number | null;
+                        /**
+                         * Heading Deg
+                         * @description Compass heading of the camera: 0 is north, clockwise.
+                         */
+                        heading_deg?: number | null;
+                        /** Lat */
+                        lat?: number | null;
+                        /** Lng */
+                        lng?: number | null;
+                        /**
+                         * Off Route M
+                         * @description Distance from the route line in metres.
+                         */
+                        off_route_m?: number | null;
+                        /**
+                         * Nearby
+                         * @description Known barriers near the walker, at most 5.
+                         */
+                        nearby?: {
+                            /**
+                             * Title
+                             * @description The item's title.
+                             */
+                            title: string;
+                            /**
+                             * Kind
+                             * @description The obstruction kind.
+                             */
+                            kind: string;
+                            /**
+                             * Distance M
+                             * @description Distance from the walker in metres.
+                             */
+                            distance_m: number;
+                        }[];
+                        /**
+                         * Previous
+                         * @description The last sentence the guide spoke, so only what is new is said.
+                         */
+                        previous?: string | null;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuideFrameResponse"];
+                };
+            };
+            /** @description The frame is larger than 1,500,000 bytes. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not multipart, or the frame is not a JPEG or PNG. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The context is not valid. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many frames this minute; see Retry-After. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No ANTHROPIC_API_KEY, replay mode, or the Claude call is paused after repeated failures. The route steps still work. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
