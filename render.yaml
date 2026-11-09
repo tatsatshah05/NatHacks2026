@@ -34,7 +34,7 @@ services:
         value: live
       # Walk and LRT trips (OP-311) are on in production: lead decision, November 8.
       - key: LRT_TRIPS
-        value: "false"
+        value: "true"
       # Walk and bus trips (OP-417) are on in production with LRT_TRIPS: lead decision, November 8.
       - key: TRANSIT_BUS
         value: "true"
