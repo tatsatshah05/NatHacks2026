@@ -136,7 +136,7 @@ BUS_WAIT_WARNING = (
 # OP-417: every ETS bus trip in the feed is marked wheelchair accessible
 # (GTFS wheelchair_accessible 1); ETS buses are low-floor (issue #188). The stop
 # itself is a point on the sidewalk, so its conditions are the walking legs'.
-BUS_STOP_NOTE = "Bus stop. Sidewalk conditions here come from the walking legs."
+BUS_STOP_NOTE = "Sidewalk conditions at this stop come from the walking legs."
 BUS_RIDE_NOTE = "low-floor bus"
 UNMAPPED_ENTRY_WARNING = (
     "Station elevators are not yet matched to the map, so the walk ends at the "

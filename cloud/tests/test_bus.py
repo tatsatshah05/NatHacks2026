@@ -373,7 +373,7 @@ def test_walk_bus_walk_trip_on_the_synthetic_street(router) -> None:
     assert trip.reason.startswith("Walk and bus: about")
     texts = [step.text for step in trip.route.steps]
     assert (
-        "Go to Main Street & 2 Street (stop 1001). Bus stop. Sidewalk conditions here come from the walking legs."
+        "Go to Main Street & 2 Street (stop 1001). Sidewalk conditions at this stop come from the walking legs."
         in texts
     )
     assert (
