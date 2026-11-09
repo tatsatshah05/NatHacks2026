@@ -23,6 +23,7 @@ into the 24-hour rate-limit log.
 | Route | Header | Check |
 | --- | --- | --- |
 | `POST /api/ingest/camera` | `X-Worker-Key` | `ingest_api.require_worker_key`: `secrets.compare_digest` on UTF-8 bytes (a non-ASCII header is a plain 401, never a 500). An unset or empty `WORKER_KEY` answers 503: the route is off, never open. |
+| `POST /api/guide/frame` (OP-418) | 30 frames a minute per client id and 600 a minute in total, in memory | its own limits, not `RATE_LIMIT_PER_MIN`: one frame every 2.5 s would exhaust the per-connection window on its own, and every phone behind one venue address shares that connection key; `rate_limit.OWN_LIMIT_ROUTES` lists the route so the audit test still guards every other write |
 | `POST /api/admin/override`, `DELETE /api/admin/override[/{source_ref}]` | `X-Admin-Key` | `admin_api.require_admin_key` (OP-406): the same pattern as the worker key (UTF-8 bytes, constant time; an unset or empty `ADMIN_KEY` answers 503, so the route is off, never open), followed by the keyed limit. Testing only: it stores one labelled test obstruction (`Test override: ...`, source `admin_override`, attribution `Test override, not real data`) that expires within an hour. Render generates `ADMIN_KEY`; the smoke tests never call it. |
 
 `scripts/dev.py` (`make dev`) removes both keys and every other secret from the
@@ -44,7 +45,7 @@ are OP-401's (`cloud/app/rate_limit.py`, a fixed 60 s window per client, in memo
 
 | Route | Per `client_id` | Per connection and minute |
 | --- | --- | --- |
-| `POST /api/reports` | 5 an hour (200 an hour in total), in the database, survives restarts | `RATE_LIMIT_PER_MIN` (default 30) The one exception is `POST /api/guide/frame` (OP-418), which keeps its own limits of 30 frames a minute per client id and 600 in total, because one frame every 2.5 seconds would exhaust the per-connection window on its own and every phone behind one venue address shares that connection key; `rate_limit.OWN_LIMIT_ROUTES` lists it so the audit test still guards every other write. |
+| `POST /api/reports` | 5 an hour (200 an hour in total), in the database, survives restarts | `RATE_LIMIT_PER_MIN` (default 30) |
 | `POST /api/push/subscribe` | 5 subscriptions | same |
 | `POST /api/push/test` | none (503 without VAPID keys) | same |
 | `POST /api/saved-routes` | 10 saved routes | same |
