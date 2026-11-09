@@ -43,6 +43,7 @@ import {
 import { isCityWide, plural } from "@/lib/report-format";
 import { parseTripParams, plannerHref, reportHref } from "@/lib/route-link";
 import { prefersReducedMotion } from "@/lib/settings";
+import { TRANSIT_DEFAULT, readTransitChoice, saveTransitChoice } from "@/lib/transit-choice";
 import styles from "./planner-page.module.css";
 
 // MapLibre is large and needs the browser; load it after the form is usable, and only
@@ -82,7 +83,9 @@ export default function PlannerPage() {
   const [queries, setQueries] = useState<ByField<string>>({ from: "", to: "" });
   const [errors, setErrors] = useState<ByField<string>>({ from: "", to: "" });
   const [profile, setProfile] = useState<TravelProfile>("wheelchair");
-  const [includeLrt, setIncludeLrt] = useState(false);
+  // On by default (lead decision, November 9): transit is on in production and the demo
+  // trips ride it. A person's choice is kept on the device (lib/transit-choice.ts).
+  const [includeLrt, setIncludeLrt] = useState(TRANSIT_DEFAULT);
   const [locationMessage, setLocationMessage] = useState("");
   // The routes shown, the request in flight and the last failure. Any change to the
   // trip clears the routes, so what is shown always matches the form.
@@ -139,7 +142,10 @@ export default function PlannerPage() {
     const trip = parseTripParams(new URLSearchParams(window.location.search));
     savedRef.current = trip.saved;
     setProfile(trip.profile);
-    setIncludeLrt(trip.mode === "walk_lrt");
+    // A trip link decides the box as before (`mode=walk_lrt` on, otherwise off); a bare
+    // planner keeps the choice saved on this device, else the default.
+    if (trip.from && trip.to) setIncludeLrt(trip.mode === "walk_lrt");
+    else setIncludeLrt(readTransitChoice() ?? TRANSIT_DEFAULT);
     const chosen = { from: trip.from, to: trip.to };
     setPlaces(chosen);
     setQueries({ from: trip.from?.name ?? "", to: trip.to?.name ?? "" });
@@ -178,6 +184,7 @@ export default function PlannerPage() {
 
   function chooseLrt(next: boolean) {
     setIncludeLrt(next);
+    saveTransitChoice(next);
     clearResults();
   }
 
@@ -437,6 +444,11 @@ export default function PlannerPage() {
                       reportLink={reportHref(result.query, route.rank, {
                         saved: savedRef.current,
                         demo: result.demo
+                      })}
+                      startLink={reportHref(result.query, route.rank, {
+                        saved: savedRef.current,
+                        demo: result.demo,
+                        start: true
                       })}
                       selected={route.rank === selected?.rank}
                       onSelect={selectRoute}

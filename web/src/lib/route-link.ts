@@ -3,10 +3,13 @@
 //
 //   from=lat,lng&from_name=…&to=lat,lng&to_name=…&profile=wheelchair
 //   [&mode=walk_lrt] [&saved=<id>]                      both pages
-//   [&route=2] [&demo=1]                                the report only
+//   [&route=2] [&demo=1] [&start=1]                     the report only
 //
 // GET /api/route takes the same lat,lng points. `saved` is a saved route's id (OP-306),
 // passed through untouched. `demo=1` marks a report of the labelled demo fallback.
+// `start=1` (OP-419, the planner's Start action) asks the report to focus its Start
+// button and say so; it never starts the trip itself (speech, camera and location need
+// a tap on the new page).
 import { PlannerPlace, PlannerQuery, RouteMode, TravelProfile, isTravelProfile } from "./planner-types";
 
 export type TripParams = {
@@ -23,6 +26,8 @@ export type ReportParams = PlannerQuery & {
   saved: string | null;
   /** The planner fell back to demo routes; the report shows the same labelled demo. */
   demo: boolean;
+  /** Opened from the planner's Start action: focus Start route and announce it. */
+  start: boolean;
 };
 
 type LinkOptions = { saved?: string | null };
@@ -54,10 +59,15 @@ export function plannerHref(query: PlannerQuery, options: LinkOptions = {}): str
 }
 
 /** `/route?…&route=2`: the full report for one route of the trip. */
-export function reportHref(query: PlannerQuery, rank: number, options: LinkOptions & { demo?: boolean } = {}): string {
+export function reportHref(
+  query: PlannerQuery,
+  rank: number,
+  options: LinkOptions & { demo?: boolean; start?: boolean } = {}
+): string {
   const params = tripSearch(query, options);
   params.set("route", String(rank));
   if (options.demo) params.set("demo", "1");
+  if (options.start) params.set("start", "1");
   return `/route?${encode(params)}`;
 }
 
@@ -86,7 +96,8 @@ export function parseReportParams(params: URLSearchParams): ReportParams | null 
     mode: trip.mode,
     saved: trip.saved,
     rank: Number.isInteger(rank) && rank >= 1 && rank <= 3 ? rank : 1,
-    demo: params.get("demo") === "1"
+    demo: params.get("demo") === "1",
+    start: params.get("start") === "1"
   };
 }
 
