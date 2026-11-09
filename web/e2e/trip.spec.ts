@@ -15,6 +15,7 @@ import {
 
 const READY = "Ready to start. Press Start route.";
 const HELP = "PIP describes what the camera sees. It does not decide for you.";
+const PIP_START_HELP = "PIP starts the trip and describes what the camera sees. It does not decide for you.";
 
 test("Start shows the first step large and speaks it, posts nothing, and Stop returns the report", async ({ page }) => {
   await recordSpeech(page);
@@ -24,14 +25,24 @@ test("Start shows the first step large and speaks it, posts nothing, and Stop re
   });
   await openReport(page);
 
-  // Before Start: the report as before, plus the one primary button. No trip, no PIP.
+  // Before Start: the report as before, plus one row with the primary Start route and
+  // PIP beside it (the one-tap start with the camera, guide.spec.ts). No trip yet.
   const start = page.getByRole("button", { name: START_ROUTE });
   await expect(start).toBeVisible();
   const box = await start.boundingBox();
   expect(box?.height ?? 0, "Start route is at least 44 px tall").toBeGreaterThanOrEqual(44);
   expect(box?.width ?? 0, "Start route is at least 44 px wide").toBeGreaterThanOrEqual(44);
+  const topPip = page.getByRole("button", { name: "PIP", exact: true });
+  await expect(topPip).toHaveCount(1);
+  await expect(topPip).toHaveAccessibleDescription(PIP_START_HELP);
+  const pipBox = await topPip.boundingBox();
+  expect(pipBox?.height ?? 0, "PIP is at least 44 px tall").toBeGreaterThanOrEqual(44);
+  expect(pipBox?.width ?? 0, "PIP is at least 44 px wide").toBeGreaterThanOrEqual(44);
+  // PIP sits beside Start route or wraps under it, never before it; nothing asks to save first.
+  expect(pipBox?.y ?? 0, "PIP is not above Start route").toBeGreaterThanOrEqual((box?.y ?? 0) - 1);
+  expect(pipBox?.x ?? 0, "PIP comes after Start route").toBeGreaterThan((box?.x ?? 0) - 1);
   await expect(page.getByRole("region", { name: "Your trip" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "PIP", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Stop PIP", exact: true })).toHaveCount(0);
   const steps = page.getByRole("region", { name: "Steps for route 1" }).getByRole("listitem");
   const stepsBefore = await steps.allTextContents();
   expect(stepsBefore.length).toBeGreaterThanOrEqual(1);
@@ -70,10 +81,11 @@ test("Start shows the first step large and speaks it, posts nothing, and Stop re
   await page.waitForTimeout(2500);
   expect(frames).toEqual([]);
 
-  // Stop returns the page to the report state, with focus on Start route.
+  // Stop returns the page to the report state, with focus on Start route and PIP beside it again.
   await stop.click();
   await expect(page.getByRole("region", { name: "Your trip" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: START_ROUTE })).toBeFocused();
+  await expect(page.getByRole("button", { name: "PIP", exact: true })).toHaveCount(1);
   expect(await page.getByRole("heading", { level: 2 }).allTextContents()).toEqual(headingsBefore);
   expect(frames).toEqual([]);
 });
@@ -92,6 +104,9 @@ test("the planner's Start action opens the report with Start route focused, and 
   const start = page.getByRole("button", { name: START_ROUTE });
   await expect(start).toBeVisible({ timeout: 30_000 });
   await expect(start).toBeFocused();
+  // Start route takes the focus, not the PIP button beside it.
+  await expect(page.getByRole("button", { name: "PIP", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "PIP", exact: true })).not.toBeFocused();
   await expect(page.getByRole("status").filter({ hasText: READY })).toBeVisible();
   // No trip, no speech, no camera: those wait for a tap on this page.
   await expect(page.getByRole("region", { name: "Your trip" })).toHaveCount(0);

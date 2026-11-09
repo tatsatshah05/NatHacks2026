@@ -6,7 +6,8 @@
 //   1. "Start route" (the page's one primary action) begins the trip: the current step
 //      is shown large in a polite live region and spoken, the GPS follows the walker
 //      and says the next step near each turn, and a large Stop ends it. Nothing is
-//      sent to the API while PIP is off.
+//      sent to the API while PIP is off. "PIP" beside it (lead feedback of November 9,
+//      from using v1.1) starts the trip and turns the camera on in one tap.
 //   2. Inside the trip, "PIP" turns the camera guide on: the privacy notice the first
 //      time, then the camera, a frame every two seconds, each sentence spoken and listed
 //      as PIP's. "Stop PIP" turns the camera off while the trip goes on; Stop ends both.
@@ -33,6 +34,8 @@ export const READY_MESSAGE = "Ready to start. Press Start route.";
 
 export const PIP_TITLE = "PIP, the camera guide (preview)";
 export const PIP_HELP = "PIP describes what the camera sees. It does not decide for you.";
+/** The PIP button beside Start route: one tap for the trip and the camera together. */
+export const PIP_START_HELP = "PIP starts the trip and describes what the camera sees. It does not decide for you.";
 export const PIP_PROMISE = "PIP does not replace a cane or a guide dog.";
 // What the API forwards to Anthropic is the frame, the profile, the steps, the distances,
 // the heading, the nearby barriers and the last sentence; the position and the anonymous
@@ -90,6 +93,16 @@ export default function TripPanel({ route, routeCount, profile, destination, rea
     setFocusTarget(id("stop"));
   }
 
+  /** The PIP button beside Start route: the trip begins and PIP opens in the same tap. */
+  function startWithPip() {
+    guide.startTrip();
+    const next = guide.openPip();
+    setReadyMessage("");
+    // The notice the first time (focus on Start PIP); after that the camera starts and
+    // focus lands on Stop PIP, the control for what was just pressed.
+    setFocusTarget(next === "notice" ? id("pip-start") : id("pip"));
+  }
+
   function stop() {
     guide.stopTrip();
     setFocusTarget(id("start"));
@@ -125,11 +138,26 @@ export default function TripPanel({ route, routeCount, profile, destination, rea
   if (guide.trip === "idle") {
     return (
       <div className={styles.start}>
-        <Button id={id("start")} size="large" block onClick={start} aria-describedby={id("start-help")}>
-          {startRouteLabel(route.rank, routeCount)}
-        </Button>
+        <div className={styles.startRow}>
+          <Button id={id("start")} size="large" onClick={start} aria-describedby={id("start-help")}>
+            {startRouteLabel(route.rank, routeCount)}
+          </Button>
+          <Button
+            id={id("pip-from-start")}
+            variant="secondary"
+            size="large"
+            onClick={startWithPip}
+            aria-describedby={id("pip-start-help")}
+          >
+            <CameraGlyph size={20} />
+            PIP
+          </Button>
+        </div>
         <p id={id("start-help")} className={styles.note}>
           {START_HELP}
+        </p>
+        <p id={id("pip-start-help")} className={styles.note}>
+          {PIP_START_HELP}
         </p>
         <StatusLine>{readyMessage}</StatusLine>
       </div>

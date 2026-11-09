@@ -62,6 +62,29 @@ test.describe("accessibility", () => {
     await checkAccessibility(page, testInfo, "route report");
   });
 
+  // OP-419: the row with Start route and PIP beside it, before anything is pressed.
+  test("route report, Start and PIP row", async ({ page }, testInfo) => {
+    await openReport(page);
+    await expect(page.getByRole("button", { name: /^Start route( \d)?$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "PIP", exact: true })).toBeVisible();
+    await checkAccessibility(page, testInfo, "route report Start and PIP row");
+  });
+
+  // OP-419: the trip and the camera started together from the PIP button beside Start route.
+  test("route report, trip with PIP from the top row", async ({ page }, testInfo) => {
+    await fakeCamera(page);
+    await openReport(page);
+    await page.getByRole("button", { name: "PIP", exact: true }).click();
+    const trip = page.getByRole("region", { name: "Your trip" });
+    await expect(trip).toBeVisible();
+    await trip.getByRole("button", { name: "Start PIP", exact: true }).click();
+    await expect(trip.getByRole("button", { name: "Stop PIP", exact: true })).toBeVisible();
+    await expect(
+      trip.getByRole("status").filter({ hasText: /^(PIP is on|Camera guidance unavailable, reading route steps)$/ })
+    ).toBeVisible({ timeout: 20_000 });
+    await checkAccessibility(page, testInfo, "route report trip with PIP from the top row");
+  });
+
   // OP-419: the report with the trip running (the current step, Stop, PIP's section).
   test("route report, trip running", async ({ page }, testInfo) => {
     await openReport(page);

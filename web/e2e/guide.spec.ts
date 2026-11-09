@@ -20,6 +20,7 @@ const PROMISE = "PIP does not replace a cane or a guide dog.";
 const NOTICE =
   "Your camera's view and your current route step are sent to Anthropic to be described and are not stored. " +
   "Your position stays with OpenPath and is not sent to Anthropic. People may appear in the view. Press Stop PIP at any time.";
+const PIP_START_HELP = "PIP starts the trip and describes what the camera sees. It does not decide for you.";
 const UNAVAILABLE_STATUS = "Camera guidance unavailable, reading route steps";
 const CAMERA_DENIED = "Camera not available. I'll read the route steps.";
 const UNAVAILABLE = "Camera guidance is not available right now. The route steps still work.";
@@ -153,6 +154,60 @@ test("a described frame is spoken as it is and listed as PIP's; Stop PIP leaves 
   expect(requests.length).toBe(sent);
   await expect(currentStep(trip)).toHaveText(/^Step 1 of \d+: /);
   await expect(trip.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
+});
+
+// Lead feedback of November 9, from using v1.1: PIP is reachable beside Start route, and one
+// tap starts the trip and the camera together.
+test("PIP beside Start route starts the trip and the camera in one tap; the notice once; Stop ends both", async ({ page }) => {
+  await recordSpeech(page);
+  await fakeCamera(page);
+  await openReport(page);
+
+  const topPip = page.getByRole("button", { name: "PIP", exact: true });
+  await expect(topPip).toHaveAccessibleDescription(PIP_START_HELP);
+  await expect(page.getByRole("region", { name: "Your trip" })).toHaveCount(0);
+  await topPip.focus();
+  await page.keyboard.press("Enter");
+
+  // The trip is running (the first step shown and spoken) and the notice is open, Start PIP focused.
+  const trip = page.getByRole("region", { name: "Your trip" });
+  await expect(trip).toBeVisible();
+  await expect(currentStep(trip)).toHaveText(/^Step 1 of \d+: .+\.$/);
+  const pip = trip.getByRole("region", { name: PIP_TITLE });
+  await expect(pip.getByText(NOTICE)).toBeVisible();
+  const startPip = pip.getByRole("button", { name: "Start PIP", exact: true });
+  await expect(startPip).toBeFocused();
+  expect((await spokenSoFar(page))[0]).toMatch(/^Step 1 of \d+: /);
+
+  // Start PIP: the camera is on while the trip runs (the replay API answers 503 later, which is the fallback).
+  await startPip.click();
+  await expect(pip.getByRole("button", { name: "Stop PIP", exact: true })).toBeFocused();
+  await expect(pip.getByRole("status")).toHaveText(/^(Starting the camera|PIP is on|Camera guidance unavailable, reading route steps)$/);
+  await expect(currentStep(trip)).toHaveText(/^Step 1 of \d+: /);
+  await expect(trip.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
+
+  // Stop ends both: the row with Start route and PIP is back, focus on Start route.
+  await trip.getByRole("button", { name: "Stop", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Your trip" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: START_ROUTE })).toBeFocused();
+  await expect(topPip).toBeVisible();
+
+  // The notice was accepted once on this report, so PIP now goes straight to the camera, with the trip.
+  await topPip.click();
+  await expect(trip).toBeVisible();
+  await expect(pip.getByText(NOTICE)).toHaveCount(0);
+  const stopPip = pip.getByRole("button", { name: "Stop PIP", exact: true });
+  await expect(stopPip).toBeFocused();
+  await expect(pip.getByRole("status")).toHaveText(/^(Starting the camera|PIP is on|Camera guidance unavailable, reading route steps)$/);
+  await expect(currentStep(trip)).toHaveText(/^Step 1 of \d+: /);
+
+  // Start route alone keeps today's behaviour: a trip without the camera.
+  await trip.getByRole("button", { name: "Stop", exact: true }).click();
+  await page.getByRole("button", { name: START_ROUTE }).click();
+  await expect(trip).toBeVisible();
+  await expect(pip.getByRole("button", { name: "PIP", exact: true })).toBeVisible();
+  await expect(pip.getByRole("status")).toHaveCount(0);
+  await expect(trip.getByRole("button", { name: "Stop", exact: true })).toBeFocused();
 });
 
 test("against the replay API, PIP says once that it is unavailable and the steps still work", async ({ page }) => {

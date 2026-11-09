@@ -9,6 +9,18 @@
   gap: 8px;
 }
 
+/* Start route (primary) and PIP (secondary) side by side; they wrap on a narrow phone. */
+.startRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.startRow .button:first-child {
+  flex: 1 1 12rem;
+}
+
 .start :global(.status-line) {
   margin: 0;
 }
