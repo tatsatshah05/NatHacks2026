@@ -1,7 +1,7 @@
 """``GET /api/route``: up to three accessible routes between two points (OP-207).
 
 Query: ``from=lat,lng`` ``to=lat,lng`` ``profile=wheelchair|walker_cane|low_vision|standard``
-``mode=walk|walk_lrt``.
+``mode=walk|walk_lrt`` ``transit=faster|always|only`` (read only with ``walk_lrt``).
 
 The app loads the walking network once at startup (``app.state.router``). Hazards
 come from ``app.state.hazard_provider``: OP-205's ``CameraIceHazardProvider``, which
@@ -18,6 +18,14 @@ response is exactly the walking one: the endpoint leaves unset fields out, and t
 OP-311 fields are set only for ``walk_lrt``. With ``TRANSIT_BUS`` on as well (OP-417)
 the trip may ride one ETS bus instead; each ride leg then says ``vehicle`` (``lrt`` or
 ``bus``) and ``route_short_names``, both additive.
+
+``transit`` (OP-420, additive, read only with ``mode=walk_lrt`` and a loaded planner)
+chooses what the trip search is for. ``faster`` (the default) is the behaviour above.
+``always`` includes the best trip even when it is slower than walking: it is ranked
+after the walking routes that beat it, the slowest walking route makes room so there
+are still at most 3, and its reason says by how much it is slower. ``only`` returns
+transit trips alone (up to 3 distinct ones); when none exists the walking routes
+come back with a warning saying so. The response shape does not change.
 """
 
 from __future__ import annotations
@@ -188,6 +196,16 @@ def get_route(
             "TRANSIT_BUS on, walk and bus trips too)"
         ),
     ] = "walk",
+    transit: Annotated[
+        lrt_trips.TransitChoice,
+        Query(
+            description="Read only with mode=walk_lrt, ignored otherwise. faster "
+            "(default): a bus or LRT trip appears only when it beats walking. "
+            "always: the best trip is included even when it is slower, ranked "
+            "after the walking routes that beat it. only: transit trips alone; "
+            "when none exists, the walking routes come back with a warning."
+        ),
+    ] = "faster",
 ) -> RouteResponse:
     """Best route plus up to two alternates for the chosen mobility profile."""
     from_lat, from_lng = parse_point(from_, "from")
@@ -257,10 +275,17 @@ def get_route(
         now,
         (from_lat, from_lng),
         (to_lat, to_lng),
+        transit,
     )
 
 
 # ------------------------------------------------------------ OP-311 (walk_lrt)
+
+# OP-420: on every transit=only response that had to fall back to walking routes.
+NO_TRANSIT_WARNING = (
+    "No bus or LRT trip was found for this journey; these are walking routes."
+)
+TRANSIT_UNAVAILABLE_WARNING = "Walk and LRT trips are unavailable right now."
 
 
 def lrt_device_status(
@@ -316,6 +341,67 @@ def _hazards_out(hazards: Sequence[EdgeHazard]) -> list[HazardOut]:
     ]
 
 
+def _trip_route(
+    trip: lrt_trips.LrtTrip,
+    plan: lrt_trips.LrtPlan,
+    planner: lrt_trips.LrtPlanner,
+    items: Sequence[ItemIndex],
+    origin: tuple[float, float],
+    destination: tuple[float, float],
+    stale: str | None,
+) -> RouteOut:
+    """One walk and transit trip as a route (rank 0 until it is placed)."""
+    try:
+        report = RouteReportOut.of(lrt_trips.trip_report(trip, plan, items))
+    except Exception:
+        log.exception("LRT REPORT failed; listing only the hazards this trip met")
+        report = RouteReportOut.of(build_report(trip.route, ()))
+    google, apple = lrt_trips.transit_maps_urls(origin, destination)
+    r = trip.route
+    return RouteOut(
+        rank=0,
+        geometry={"type": "LineString", "coordinates": r.coordinates},
+        distance_m=r.distance_m,
+        eta_min=r.eta_min,
+        steps=[
+            StepOut(text=s.text, distance_m=round(s.distance_m, 1)) for s in r.steps
+        ],
+        hazards_on_route=_hazards_out(r.hazards_on_route),
+        hazards_avoided=_hazards_out(r.hazards_avoided),
+        warnings=[*r.warnings, *([stale] if stale else [])],
+        reason=r.reason,
+        report=report,
+        google_maps_url=google,
+        apple_maps_url=apple,
+        mode="walk_lrt",
+        legs=lrt_trips.legs_out(trip),
+        lrt=lrt_trips.trip_out(trip, planner.schedule),
+    )
+
+
+def _place_trip(
+    walks: Sequence[RouteOut], trip: RouteOut, trip_min: float, max_routes: int
+) -> list[RouteOut]:
+    """The walking routes with one trip ranked after those that beat it.
+
+    The slowest walking route (the later one when two tie) makes room first, so
+    the response keeps at most ``max_routes`` and the trip is never the one dropped.
+    ``trip_min`` is the trip's unrounded time: a trip the planner found faster than
+    the best walking route (``transit=faster``, and ``always`` when it wins) is
+    placed first, exactly as before OP-420; a slower one (``always``) goes after
+    every walking route whose ETA it does not beat. Ranks are renumbered from 1.
+    """
+    kept = list(walks)
+    while kept and len(kept) + 1 > max_routes:
+        slowest = max(range(len(kept)), key=lambda i: (kept[i].eta_min, i))
+        kept.pop(slowest)
+    index = sum(1 for route in kept if route.eta_min <= trip_min)
+    routes = [*kept[:index], trip, *kept[index:]]
+    for rank, route in enumerate(routes, start=1):
+        route.rank = rank
+    return routes
+
+
 def add_lrt_trip(
     response: RouteResponse,
     result: RouteResult,
@@ -326,13 +412,17 @@ def add_lrt_trip(
     now: datetime,
     origin: tuple[float, float],
     destination: tuple[float, float],
+    transit: lrt_trips.TransitChoice = "faster",
 ) -> RouteResponse:
-    """The walking response with the best walk and LRT trip first, when one is faster.
+    """The walking response with the walk and transit trips the policy keeps.
 
-    The trip becomes rank 1 and the slowest walking route is dropped, so the response
-    keeps at most ``alternates.max_routes`` (3) routes, best first. When no trip
-    qualifies, the walking routes are unchanged. A failure here never loses the
-    walking routes (AGENTS.md, priority 1).
+    ``faster``: the best trip, when it beats walking, becomes rank 1 and the slowest
+    walking route is dropped, so the response keeps at most ``alternates.max_routes``
+    (3) routes, best first; otherwise the walking routes are unchanged. ``always``:
+    the best trip is kept whatever its time and placed after the walking routes that
+    beat it. ``only``: the trips alone, fastest first; with none, the walking routes
+    plus ``NO_TRANSIT_WARNING``. A failure here never loses the walking routes
+    (AGENTS.md, priority 1).
     """
     for route in response.routes:
         route.mode = "walk"
@@ -353,52 +443,36 @@ def add_lrt_trip(
             now=now,
             walk_eta_min=result.routes[0].eta_min if result.routes else None,
             destination_point=destination,
+            transit=transit,
         )
     except Exception:
         log.exception("LRT trip planning failed; returning walking routes only")
         response.warnings = [
             *response.warnings,
-            "Walk and LRT trips are unavailable right now.",
+            TRANSIT_UNAVAILABLE_WARNING,
+            *([NO_TRANSIT_WARNING] if transit == "only" else []),
         ]
         return response
     warnings = [*plan.warnings]
     if stale:
         warnings.append(stale)
-    trip = plan.trip
-    if trip is not None:
-        try:
-            report = RouteReportOut.of(lrt_trips.trip_report(trip, plan, items))
-        except Exception:
-            log.exception("LRT REPORT failed; listing only the hazards this trip met")
-            report = RouteReportOut.of(build_report(trip.route, ()))
-        google, apple = lrt_trips.transit_maps_urls(origin, destination)
-        r = trip.route
-        first = RouteOut(
-            rank=1,
-            geometry={"type": "LineString", "coordinates": r.coordinates},
-            distance_m=r.distance_m,
-            eta_min=r.eta_min,
-            steps=[
-                StepOut(text=s.text, distance_m=round(s.distance_m, 1)) for s in r.steps
-            ],
-            hazards_on_route=_hazards_out(r.hazards_on_route),
-            hazards_avoided=_hazards_out(r.hazards_avoided),
-            warnings=[*r.warnings, *([stale] if stale else [])],
-            reason=r.reason,
-            report=report,
-            google_maps_url=google,
-            apple_maps_url=apple,
-            mode="walk_lrt",
-            legs=lrt_trips.legs_out(trip),
-            lrt=lrt_trips.trip_out(trip, planner.schedule),
+    trips = [
+        _trip_route(trip, plan, planner, items, origin, destination, stale)
+        for trip in plan.trips
+    ]
+    if transit == "only":
+        if trips:
+            for rank, route in enumerate(trips, start=1):
+                route.rank = rank
+            response.routes = trips
+        else:
+            warnings.insert(0, NO_TRANSIT_WARNING)
+    elif trips:
+        response.routes = _place_trip(
+            response.routes,
+            trips[0],
+            plan.trips[0].total_s / 60,
+            planner.router.config.alternates.max_routes,
         )
-        walks = list(response.routes)
-        while walks and len(walks) + 1 > planner.router.config.alternates.max_routes:
-            # Drop the slowest walking route (the later one when two tie).
-            slowest = max(range(len(walks)), key=lambda i: (walks[i].eta_min, i))
-            walks.pop(slowest)
-        for rank, route in enumerate(walks, start=2):
-            route.rank = rank
-        response.routes = [first, *walks]
     response.warnings = [*response.warnings, *warnings]
     return response
