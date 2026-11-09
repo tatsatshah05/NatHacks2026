@@ -352,6 +352,7 @@ def add_lrt_trip(
             outages=outages,
             now=now,
             walk_eta_min=result.routes[0].eta_min if result.routes else None,
+            destination_point=destination,
         )
     except Exception:
         log.exception("LRT trip planning failed; returning walking routes only")
