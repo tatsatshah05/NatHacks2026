@@ -26,7 +26,6 @@ from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, tzinfo
-from email.utils import parsedate_to_datetime
 from http.client import HTTPException
 from pathlib import Path
 from typing import Any, Protocol
@@ -36,6 +35,7 @@ from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 from cloud.app.adapters._quality import RowQuality
+from cloud.app.adapters._retry import retry_after_s as _retry_after
 
 SOURCE = "city_lrt_devices"
 OUTAGES = "snws-u3zx"
@@ -125,18 +125,6 @@ def _utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         raise ValueError("Fetch time must include a timezone")
     return value.astimezone(UTC)
-
-
-def _retry_after(value: str | None, now: datetime) -> float | None:
-    if not value:
-        return None
-    try:
-        if value.strip().isdigit():
-            return float(value)
-        retry_at = parsedate_to_datetime(value)
-        return max(0.0, (_utc(retry_at) - _utc(now)).total_seconds())
-    except (TypeError, ValueError, OverflowError):
-        return None
 
 
 class DatasetReader(Protocol):

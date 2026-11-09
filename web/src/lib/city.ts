@@ -84,7 +84,7 @@ export const CATEGORY_ORDER: ReadonlyArray<PriorityItem["category"]> = [
   "transit"
 ];
 
-/** "Wet road", "Snow-covered road", "Unknown: camera unavailable". Never "black ice". */
+/** "Wet road", "Snow-covered road", "Camera offline at 511", "Unknown: the model was not sure". Never "black ice". */
 export function readingWords(reading: Pick<CameraReading, "label" | "reason">): string {
   switch (reading.label) {
     case "dry":
@@ -98,6 +98,9 @@ export function readingWords(reading: Pick<CameraReading, "label" | "reason">): 
     case "ice":
       return "Ice risk";
     default:
+      // 511 served its placeholder picture instead of a frame (vision/worker.py): the
+      // camera is off at their end, which is not a reading the model failed to make.
+      if (reading.reason === "camera_unavailable") return "Camera offline at 511";
       return `Unknown: ${unknownReason(reading.reason)}`;
   }
 }
@@ -115,8 +118,8 @@ export function readingShort(label: CameraReading["label"]): string {
   return words[label];
 }
 
+// Why the model gave no reading; camera_unavailable has its own sentence above.
 const UNKNOWN_REASONS: Record<string, string> = {
-  camera_unavailable: "camera unavailable",
   unusable_frame: "picture too unclear to judge",
   model_unusable: "picture too unclear to judge",
   low_confidence: "the model was not sure",

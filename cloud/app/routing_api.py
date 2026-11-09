@@ -15,7 +15,9 @@ exists): when a walk and LRT trip is faster than walking, it comes first (rank 1
 ``legs`` and ``lrt``), and the slowest walking route is dropped so there are still at
 most 3 routes. Otherwise the walking routes are unchanged. Without ``walk_lrt`` the
 response is exactly the walking one: the endpoint leaves unset fields out, and the
-OP-311 fields are set only for ``walk_lrt``.
+OP-311 fields are set only for ``walk_lrt``. With ``TRANSIT_BUS`` on as well (OP-417)
+the trip may ride one ETS bus instead; each ride leg then says ``vehicle`` (``lrt`` or
+``bus``) and ``route_short_names``, both additive.
 """
 
 from __future__ import annotations
@@ -181,7 +183,10 @@ def get_route(
     ] = "standard",
     mode: Annotated[
         Literal["walk", "walk_lrt"],
-        Query(description="walk, or walk_lrt for walk and LRT trips (LRT_TRIPS on)"),
+        Query(
+            description="walk, or walk_lrt for walk and LRT trips (LRT_TRIPS on; with "
+            "TRANSIT_BUS on, walk and bus trips too)"
+        ),
     ] = "walk",
 ) -> RouteResponse:
     """Best route plus up to two alternates for the chosen mobility profile."""

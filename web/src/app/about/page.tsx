@@ -156,8 +156,8 @@ export default function AboutPage() {
               station warning in the report.
             </li>
             <li>
-              <strong>LRT waits are estimates.</strong> Walk and LRT trips, when they are switched on, use waits estimated
-              from the timetable, never live arrivals.
+              <strong>LRT and bus waits are estimates.</strong> Walk and LRT or bus trips, when they are switched on, use
+              waits estimated from the timetable, never live arrivals.
             </li>
             <li>
               <strong>Snow complaints are neighbourhood-wide.</strong> 311 records are located only to the neighbourhood,

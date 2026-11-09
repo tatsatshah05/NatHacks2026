@@ -422,7 +422,7 @@ def build_sources(
             continue
         if built is None:
             continue
-        name, cadence_s, fetch, url, provides_items, quality = built
+        name, cadence_s, fetch, url, provides_items, quality, *rest = built
         sources.append(
             Source(
                 name=name,
@@ -434,6 +434,7 @@ def build_sources(
                 url=url,
                 provides_items=provides_items,
                 quality=quality,
+                warning=rest[0] if rest else None,
             )
         )
     return sources
@@ -441,7 +442,8 @@ def build_sources(
 
 # What a builder returns: source name, default cadence, fetch, official URL,
 # whether it provides items, and the adapter's OP-407 row-quality reader (None
-# for a source with no rows to check).
+# for a source with no rows to check). A seventh element, the reduced-data
+# warning reader (``Source.warning``), is optional; only the weather watch has one.
 Built = (
     tuple[
         str,
@@ -450,6 +452,15 @@ Built = (
         str | None,
         bool,
         Callable[[], QualityReport] | None,
+    ]
+    | tuple[
+        str,
+        float,
+        Callable[[datetime], Any],
+        str | None,
+        bool,
+        Callable[[], QualityReport] | None,
+        Callable[[], str | None] | None,
     ]
     | None
 )
@@ -611,7 +622,12 @@ def _weather(
     _s: httpx.Client,
     weather_service: Any,
 ) -> Built:
-    """The weather watch keeps its own last-good reading; the scheduler only drives refreshes."""
+    """The weather watch keeps its own last-good reading; the scheduler only drives refreshes.
+
+    A refresh fails only when Environment Canada does; without Open-Meteo it
+    succeeds on the station alone and the service's ``warning`` names what is
+    missing, which the scheduler shows as ``last_error`` while the source stays fresh.
+    """
     if weather_service is None:
         return None
     from .weather_service import REFRESH_SECONDS
@@ -621,6 +637,9 @@ def _weather(
         if not ok:
             raise RuntimeError(weather_service.last_error or "weather refresh failed")
 
+    def warning() -> str | None:
+        return getattr(weather_service, "warning", None)
+
     return (
         "weather_watch",
         REFRESH_SECONDS,
@@ -628,6 +647,7 @@ def _weather(
         "https://api.weather.gc.ca/",
         False,
         None,  # no rows to check: the weather watch is its own reading
+        warning,
     )
 
 

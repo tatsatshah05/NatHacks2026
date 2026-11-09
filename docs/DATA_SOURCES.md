@@ -291,6 +291,28 @@ The format version of `search.npz` is now 2: `name_group` marks points of intere
 - A station with no City elevator and no GTFS elevator pathway is treated as reachable without stairs (`at_grade`). That is an inference from the two datasets, not a survey.
 - Live LRT status is the City outage feed (`snws-u3zx`, OP-105), never the GTFS feed. Waits are schedule estimates, never live arrivals.
 
+### The bus part (OP-417)
+
+**What is used.** The same feed's bus routes (`route_type` 3) of Edmonton Transit Service (`agency_id` 1): 182 routes. The six regional agencies in the feed (St. Albert, Strathcona County, Spruce Grove, Fort Saskatchewan, Beaumont and Leduc Transit, 56 routes) are left out, because their fleets and terms are their own; `scripts/build_bus_graph.py --agency all` would keep them. Every one of the 75,687 ETS bus trips with stop times carries `wheelchair_accessible` 1 in `trips.txt` (measured on the feed below); the trip text says "low-floor bus" on that basis and the lead's statement in issue #188.
+
+**How it is read.** `scripts/build_bus_graph.py` (`make bus`) reads the zip with `cloud.app.lrt_gtfs.read_bus` and writes `cloud/data/bus.json` (format 2), committed. A line is one stop pattern: the trips of one route and direction that call at the same stops in the same order. The LRT rule (one order per line, short turns as contiguous runs) does not fit buses: on this feed it would drop 13.5% of trips, and the community routes (5xx, 9xx) are loops that call twice at their transit centre. Ride times are medians over the pattern's trips; headways are the median gap between the pattern's departures from its first stop, per hour, on the busiest date of each day type (weekday, Saturday, Sunday), as for the LRT. Only stops a line serves are written; route short names, headsigns and stop names are kept verbatim, and the planner derives the forms riders see ("002" and "2 Stadium" become bus 2 toward Stadium).
+
+**Measured on November 8, 2026** (`python scripts/build_bus_graph.py --gtfs <zip>`, feed `261023_1059`, downloaded 23:15 UTC):
+
+| Measurement | Value |
+| --- | --- |
+| ETS bus routes / stop patterns (lines) / stops served | 182 / 527 / 5,273 |
+| ETS bus trips with stop times | 75,687 |
+| Lines per route: median / most | 2 / 13 |
+| Stops per line: median / most | 28 / 79 |
+| Loop lines (a stop repeats) / lines with one trip | 26 / 10 |
+| `cloud/data/bus.json` | 0.98 MB (target under 3 MB) |
+| Build time from a downloaded zip | 9.3 s |
+| `LrtSchedule.load` with `bus.json` / `LrtPlanner` start-up / `load_planner` total | 40 ms / 60 ms / 101 ms (target under 150 ms) |
+| Bus stops with no walking-network node within 200 m | 40 (3 outside the network's extent, the rest 201 to 364 m from one) |
+
+**Known limits.** No transfers between vehicles in version 1 (walk, one ride, walk). A pattern with one trip a day has no gap between departures, so no headway and no trip. Holidays are not modelled. Stop `wheelchair_boarding` (6,438 stops `1`, 358 `0` meaning no information, none `2`) is not yet read.
+
 ## Community Reports (OP-308)
 
 **What it is.** Reports of snow, ice or a blocked path that people send from the web app's Report button (`POST /api/reports`), each with an optional photo. A report becomes a `community_report` obstruction and expires per `config/reports.json`. Shown as "Community report".

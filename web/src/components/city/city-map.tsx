@@ -15,6 +15,11 @@ import type { CameraGroup } from "./cameras";
 import styles from "./city-dashboard.module.css";
 
 const EDMONTON: [number, number] = [-113.4938, 53.5461];
+// The camera words ("Dry", "Wet") read only once the map is this close. City-wide
+// they covered the barrier markers around them, which the words in the list already
+// say. "Unknown" is never a word on the map: the glyph alone, the reading in its
+// title and in the list.
+const LABEL_ZOOM = 13;
 
 type Props = {
   items: readonly PriorityItem[];
@@ -41,6 +46,7 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
   const onSelectRef = useRef(onSelect);
   const jumpedRef = useRef<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const [labelsOn, setLabelsOn] = useState(false);
   const surface = useMapSurface();
   const styleKeyRef = useRef(surface.styleKey);
 
@@ -71,6 +77,12 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
         setProblem("The map background did not load. The lists on this page have everything it would show.");
       }
     });
+    // The camera words follow the zoom through a class on the frame (CSS only; the
+    // markers are not rebuilt). React skips the render when the value is unchanged.
+    const followZoom = () => setLabelsOn(map.getZoom() >= LABEL_ZOOM);
+    map.on("zoom", followZoom);
+    map.on("zoomend", followZoom);
+    followZoom();
     mapRef.current = map;
     return () => {
       map.remove();
@@ -111,9 +123,12 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
       element.setAttribute("aria-hidden", "true");
       element.title = `Road camera: ${readingShort(camera.headline.label)}`;
       element.innerHTML = cameraGlyphSvg(20);
-      const word = document.createElement("span");
-      word.textContent = readingShort(camera.headline.label); // text, never HTML
-      element.appendChild(word);
+      if (camera.headline.label !== "unknown") {
+        const word = document.createElement("span");
+        word.className = styles.cameraWord; // shown from LABEL_ZOOM in, by CSS
+        word.textContent = readingShort(camera.headline.label); // text, never HTML
+        element.appendChild(word);
+      }
       element.addEventListener("click", () => onSelectRef.current(camera.id));
       elements.set(camera.id, element);
       markers.push(new maplibregl.Marker({ element, anchor: "center" }).setLngLat([camera.lng, camera.lat]).addTo(map));
@@ -149,8 +164,11 @@ export default function CityMap({ items, cameras, selectedId, onSelect }: Props)
     jumpedRef.current = selectedId;
   }, [selectedId, items, cameras]);
 
+  // The zoom class sits on the frame, which React owns; MapLibre adds its own classes
+  // to the container below, and a React-managed className there would wipe them.
+  const frameClass = `map-frame ${surface.surfaceClass} ${styles.cityMapFrame}${labelsOn ? ` ${styles.labelsOn}` : ""}`;
   return (
-    <div className={`map-frame ${surface.surfaceClass}`}>
+    <div className={frameClass}>
       <div
         ref={containerRef}
         className={`map-canvas ${styles.mapCanvas}`}
