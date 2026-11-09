@@ -18,6 +18,7 @@ from cloud.app.main import create_app
 from cloud.app.rate_limit import (
     DEFAULT_PER_MIN,
     KEYED_FACTOR,
+    OWN_LIMIT_ROUTES,
     RateLimiter,
     RateLimits,
     client_key,
@@ -305,7 +306,8 @@ def test_every_write_route_is_keyed_or_limited(env: None) -> None:
         calls = {dependency.call for dependency in route.dependant.dependencies}
         has_key = require_worker_key in calls or require_admin_key in calls
         keyed = has_key and keyed_write_limit in calls
-        if not (public_write_limit in calls or keyed):
+        own = route.path in OWN_LIMIT_ROUTES  # documented there, with the reason
+        if not (public_write_limit in calls or keyed or own):
             unguarded.append(f"{sorted(route.methods)} {route.path}")
     assert unguarded == []
 

@@ -43,6 +43,14 @@ MAX_CLIENTS = 10_000  # windows kept in memory before the oldest are dropped
 
 Scope = Literal["public", "keyed"]
 
+# Write routes that keep their own limits instead of the per-connection one, and why.
+# ``cloud/tests/test_rate_limit.py`` refuses any other write route without a limit.
+# OP-418: the camera guide sends one frame every 2 to 3 seconds, so the 30-a-minute
+# connection window would stop it alone, and everyone behind one venue NAT shares one
+# connection key; ``guide.GuideLimits`` counts 30 a minute per ``client_id`` and 600 in
+# total instead. A Report from the same connection keeps its own window this way.
+OWN_LIMIT_ROUTES: frozenset[str] = frozenset({"/api/guide/frame"})
+
 
 def limit_per_min(raw: str | None) -> int:
     """Read ``RATE_LIMIT_PER_MIN``: whole requests per client per minute.
