@@ -1,17 +1,28 @@
 """Camera guide for blind and low-vision users (OP-418, a preview).
 
 ``POST /api/guide/frame`` (``guide_api.py``) takes one camera frame and the route
-context and answers one short spoken sentence plus structured hazards and landmarks.
+context and answers one short spoken sentence plus up to two structured hazards.
 This module holds the request and response models, the per-client and global limits,
 the post-filter and ``describe_frame``, which asks Claude and applies the rules.
 
-It describes, it does not decide
-    The model confirms and describes what is in front of the camera. It never writes
-    turn instructions beyond confirming the context it is given, and the spoken
-    sentence never contains "safe to", "safe", "go now", "cross now", "clear to" or
-    "black ice": ``filter_answer`` replaces such a sentence with "" (the hazards and
-    landmarks are kept) and logs ``WARN guide: filtered answer``. The guide does not
-    replace a cane or a guide dog, and the web app says so.
+PIP describes, it does not decide
+    The model speaks as PIP, a calm companion walking beside the user: one sentence in
+    everyday words, at most 20 words and 120 characters (``MAX_SAY_WORDS``,
+    ``MAX_SAY_CHARS``; ``truncate_say`` cuts a longer one at a word boundary). It never
+    writes turn instructions beyond confirming the context it is given, and the spoken
+    sentence never contains "safe to", "safe", "go now", "cross now" or "clear to":
+    ``filter_answer`` replaces such a sentence with "" (the hazards are kept) and logs
+    ``WARN guide: filtered answer``. "black ice" is never asserted either, but that
+    sentence is kept and rewritten, "black ice" becoming "ice" (logged the same way).
+    A sentence equal to ``previous`` (the last one spoken) becomes "", so PIP repeats
+    only when something changed. The guide does not replace a cane or a guide dog,
+    and the web app says so.
+
+The frame sent to the model
+    ``downscale_frame`` shrinks a frame wider than 480 px to 480 px wide (JPEG, in
+    memory) before the call: the walkway is still readable and the request is smaller.
+    ``landmarks`` stays in the response as an empty list; the model no longer returns
+    them (November 9: a smaller answer is a quicker one).
 
 The demo never depends on it
     Without ``ANTHROPIC_API_KEY``, in replay mode, or while the Claude call is paused
@@ -23,7 +34,9 @@ The demo never depends on it
 No stored images
     The frame is bytes in memory for one request and is dropped with it. Nothing here
     writes it to disk, a database or a log. The one log line per request carries the
-    first 8 characters of a SHA-256 of the client id, the latency and two counts.
+    first 8 characters of a SHA-256 of the client id, the latency, two counts and the
+    model's output and cached token counts (to tune ``GUIDE_MAX_TOKENS`` and check
+    that the system prompt is cached).
 
 What is sent to the Anthropic API
     The frame and the route context: the profile, the current and next step, the
@@ -46,11 +59,12 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol, get_args
 
 try:
-    from PIL import Image, UnidentifiedImageError
+    from PIL import Image, ImageOps, UnidentifiedImageError
 except (
     ImportError
 ):  # Pillow ships in cloud/requirements-photo-check.txt; without it the guide is off
     Image = None  # type: ignore[assignment]
+    ImageOps = None  # type: ignore[assignment]
     UnidentifiedImageError = OSError  # type: ignore[assignment,misc]
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -65,23 +79,31 @@ FAILURES_BEFORE_PAUSE = 3
 PAUSE_S = 120.0
 
 MAX_FRAME_BYTES = 1_500_000
-MAX_SAY_CHARS = 160
-MAX_SAY_WORDS = 25
+MAX_SAY_CHARS = 120
+MAX_SAY_WORDS = 20
+MAX_HAZARDS = 2  # the web vibrates on the kinds; two is what the sentence can carry
 MAX_NEARBY = 5
 MAX_TEXT_CHARS = 400  # a step, the previous sentence, a nearby title
 PER_CLIENT_PER_MIN = 30
 TOTAL_PER_MIN = 600
 
+# The frame the model sees: at most this wide, re-encoded as JPEG in memory.
+FRAME_WIDTH_PX = 480
+FRAME_JPEG_QUALITY = 80
+
 # Any spoken sentence with one of these is dropped (lower-case substring check, so
 # "unsafe" and "safely" go too: the guide describes, it never clears anyone to move).
+# "clear to" is a phrase on purpose: "Clear path ahead" is a description and stays.
 FORBIDDEN_PHRASES: tuple[str, ...] = (
     "safe to",
     "safe",
     "go now",
     "cross now",
     "clear to",
-    "black ice",
 )
+# Phrases rewritten instead of dropped: PIP never asserts black ice, but "that looks
+# like black ice" is still worth hearing as "that looks like ice".
+REWRITES: tuple[tuple[str, str], ...] = (("black ice", "ice"),)
 
 Profile = Literal["wheelchair", "walker_cane", "low_vision", "standard"]
 HazardKind = Literal[
@@ -181,11 +203,16 @@ class GuideFrameResponse(BaseModel):
 
     say: str = Field(
         max_length=MAX_SAY_CHARS,
-        description="One sentence to speak, at most 25 words and 160 characters; "
-        '"" when nothing is new or the frame is unusable.',
+        description="One short sentence to speak, at most 20 words and 120 characters; "
+        '"" when nothing changed since the last sentence or the frame is unusable.',
     )
-    hazards: list[GuideHazard]
-    landmarks: list[str] = Field(description="Readable signs, storefronts, doors.")
+    hazards: list[GuideHazard] = Field(
+        description="At most two, the most important first."
+    )
+    landmarks: list[str] = Field(
+        description="Readable signs, storefronts, doors. Always empty since November 9: "
+        "the model no longer returns landmarks, so it answers faster."
+    )
     confidence: GuideConfidence
     checked_by: list[CheckName] = Field(
         description='["claude"] when the model answered; [] when it did not '
@@ -222,6 +249,31 @@ def frame_format(frame: bytes) -> FrameFormat | None:
 def client_hash(client_id: str) -> str:
     """The first 8 hex characters of a SHA-256 of the client id, for the log line."""
     return hashlib.sha256(client_id.encode("utf-8")).hexdigest()[:8]
+
+
+def downscale_frame(frame: bytes, width_px: int = FRAME_WIDTH_PX) -> bytes:
+    """The frame at most ``width_px`` wide, as a JPEG, for the model.
+
+    A frame that is already narrow enough is returned as it came, byte for byte. A
+    wider one is decoded in memory, turned the way its EXIF orientation says, shrunk
+    to ``width_px`` wide with the height in proportion and re-encoded as a JPEG (about
+    5 ms for a 1280 by 720 frame on a laptop, measured November 9); nothing is written
+    anywhere. Any failure returns the original frame: a frame the model can read is
+    better than none.
+    """
+    if Image is None:
+        return frame
+    try:
+        with Image.open(io.BytesIO(frame)) as image:
+            upright = ImageOps.exif_transpose(image) or image
+            if upright.width <= width_px:
+                return frame
+            upright.thumbnail((width_px, width_px * 8))
+            out = io.BytesIO()
+            upright.convert("RGB").save(out, format="JPEG", quality=FRAME_JPEG_QUALITY)
+    except (UnidentifiedImageError, OSError, ValueError):
+        return frame
+    return out.getvalue()
 
 
 # ------------------------------------------------------------------- the limits
@@ -274,7 +326,6 @@ class GuideAnswer:
 
     say: Any
     hazards: Any
-    landmarks: Any
     confidence: Any
     model: str = ""
     usage: Mapping[str, int] = field(default_factory=dict)
@@ -329,13 +380,12 @@ class ClaudeGuideChecker:
         return bool(self.check.paused)
 
     def describe(self, frame: bytes, context: GuideContext) -> GuideAnswer | None:
-        result = self.check.describe(frame, context_for_model(context))
+        result = self.check.describe(downscale_frame(frame), context_for_model(context))
         if result is None:
             return None
         return GuideAnswer(
             say=result.say,
             hazards=result.hazards,
-            landmarks=result.landmarks,
             confidence=result.confidence,
             model=result.model,
             usage=result.usage,
@@ -388,24 +438,62 @@ def _one_line(value: Any, limit: int) -> str:
     return _SPACES.sub(" ", value).strip()[:limit]
 
 
+_REWRITES = tuple(
+    (phrase, re.compile(re.escape(phrase), re.IGNORECASE), replacement)
+    for phrase, replacement in REWRITES
+)
+_TRAILING_PUNCTUATION = " .,;:!?"
+
+
 def forbidden_phrase(text: str) -> str | None:
     """The first forbidden phrase in ``text`` (case-insensitive), or None."""
     lowered = _SPACES.sub(" ", text.lower())
     return next((phrase for phrase in FORBIDDEN_PHRASES if phrase in lowered), None)
 
 
-def truncate_say(text: str, limit: int = MAX_SAY_CHARS) -> str:
-    """At most ``limit`` characters, cut at a word boundary."""
-    if len(text) <= limit:
-        return text
-    cut = text[:limit]
-    if " " in cut:
-        cut = cut.rsplit(" ", 1)[0]
-    return cut.rstrip(" ,;:")
+def rewrite_phrases(text: str) -> tuple[str, list[str]]:
+    """``text`` with every ``REWRITES`` phrase replaced (case-insensitive), and the
+    phrases that were found. A sentence that opened with the phrase keeps its capital."""
+    found: list[str] = []
+    for phrase, pattern, replacement in _REWRITES:
+        rewritten, count = pattern.subn(replacement, text)
+        if count:
+            found.append(phrase)
+            if text[:1].isupper() and rewritten[:1].islower():
+                rewritten = rewritten[:1].upper() + rewritten[1:]
+            text = rewritten
+    return text, found
+
+
+def truncate_say(
+    text: str, limit: int = MAX_SAY_CHARS, words: int = MAX_SAY_WORDS
+) -> str:
+    """At most ``words`` words and ``limit`` characters, cut at a word boundary."""
+    parts = text.split(" ")
+    if len(parts) > words:
+        text = " ".join(parts[:words])
+    if len(text) > limit:
+        text = text[:limit]
+        if " " in text:
+            text = text.rsplit(" ", 1)[0]
+    return text.rstrip(" ,;:")
+
+
+def same_as_previous(say: str, previous: str | None) -> bool:
+    """True when ``say`` repeats the last sentence spoken, give or take case, spacing
+    and the punctuation at the end: PIP speaks again only when something changed."""
+    if not say or not previous:
+        return False
+
+    def plain(text: str) -> str:
+        return _SPACES.sub(" ", text).strip(_TRAILING_PUNCTUATION).lower()
+
+    return plain(say) == plain(previous)
 
 
 def clean_hazards(raw: Any) -> list[GuideHazard]:
-    """Hazards with a kind in the vocabulary (others become ``other``) and a place."""
+    """At most ``MAX_HAZARDS`` hazards with a kind in the vocabulary (others become
+    ``other``) and a place. The model no longer sends ``text``; it stays "" then."""
     if not isinstance(raw, list):
         return []
     hazards: list[GuideHazard] = []
@@ -421,14 +509,9 @@ def clean_hazards(raw: Any) -> list[GuideHazard]:
                 text=_one_line(item.get("text"), MAX_SAY_CHARS),
             )
         )
+        if len(hazards) == MAX_HAZARDS:
+            break
     return hazards
-
-
-def clean_landmarks(raw: Any) -> list[str]:
-    if not isinstance(raw, list):
-        return []
-    cleaned = (_one_line(item, MAX_SAY_CHARS) for item in raw)
-    return [text for text in cleaned if text]
 
 
 def clean_confidence(raw: Any) -> GuideConfidence:
@@ -436,25 +519,27 @@ def clean_confidence(raw: Any) -> GuideConfidence:
 
 
 def filter_answer(
-    answer: GuideAnswer,
-) -> tuple[str, list[GuideHazard], list[str], GuideConfidence]:
+    answer: GuideAnswer, previous: str | None = None
+) -> tuple[str, list[GuideHazard], GuideConfidence]:
     """Apply the spoken-sentence rules to a raw answer.
 
-    A sentence with a forbidden phrase becomes "" (logged); the rest is kept. The
-    sentence is cut to 160 characters at a word boundary.
+    "black ice" is rewritten to "ice" (logged). A sentence with a forbidden phrase
+    becomes "" (logged); the hazards are kept either way. The sentence is cut to 20
+    words and 120 characters at a word boundary, and a sentence that repeats
+    ``previous`` becomes "" so nothing is said twice.
     """
-    say = truncate_say(_one_line(answer.say, 4 * MAX_SAY_CHARS))
+    say, rewritten = rewrite_phrases(_one_line(answer.say, 4 * MAX_SAY_CHARS))
+    for phrase in rewritten:
+        # The phrase only, never the sentence: it could repeat a sign or a name.
+        log.warning("WARN guide: filtered answer (%r rewritten)", phrase)
+    say = truncate_say(say)
     hit = forbidden_phrase(say)
     if hit is not None:
-        # The phrase only, never the sentence: it could repeat a sign or a name.
         log.warning("WARN guide: filtered answer (%r)", hit)
         say = ""
-    return (
-        say,
-        clean_hazards(answer.hazards),
-        clean_landmarks(answer.landmarks),
-        clean_confidence(answer.confidence),
-    )
+    if same_as_previous(say, previous):
+        say = ""
+    return say, clean_hazards(answer.hazards), clean_confidence(answer.confidence)
 
 
 # ----------------------------------------------------------------- one request
@@ -479,23 +564,27 @@ def describe_frame(
         log.exception("GUIDE check failed (%s)", checker.name)
         answer = None
     if answer is None:
-        say, hazards, landmarks, confidence = "", [], [], "low"
+        say, hazards, confidence = "", [], "low"
         checked_by: list[CheckName] = []
+        usage: Mapping[str, int] = {}
     else:
-        say, hazards, landmarks, confidence = filter_answer(answer)
+        say, hazards, confidence = filter_answer(answer, context.previous)
         checked_by = ["claude"]
+        usage = answer.usage
     latency_ms = round((clock() - started) * 1000)
     log.info(
-        "GUIDE client=%s latency_ms=%d hazards=%d say_chars=%d",
+        "GUIDE client=%s latency_ms=%d hazards=%d say_chars=%d tokens_out=%d cache_read=%d",
         client_hash(context.client_id),
         latency_ms,
         len(hazards),
         len(say),
+        usage.get("output", 0),
+        usage.get("cache_read", 0),
     )
     return GuideFrameResponse(
         say=say,
         hazards=hazards,
-        landmarks=landmarks,
+        landmarks=[],
         confidence=confidence,
         checked_by=checked_by,
         latency_ms=latency_ms,
