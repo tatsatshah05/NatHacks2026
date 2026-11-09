@@ -862,7 +862,7 @@
     "eta_min": 99.3,
     "steps": [
      {
-      "text": "Follow Main Street for 5960 m",
+      "text": "Start on Main Street heading east for about 99 minutes (5960 m). Your destination is ahead.",
       "distance_m": 5958.0
      }
     ],
@@ -1804,7 +1804,7 @@
     "eta_min": 110.3,
     "steps": [
      {
-      "text": "Follow Main Street for 5960 m",
+      "text": "Start on Main Street heading east for about 110 minutes (5960 m). Your destination is ahead.",
       "distance_m": 5958.0
      }
     ],
@@ -2746,7 +2746,7 @@
     "eta_min": 99.3,
     "steps": [
      {
-      "text": "Follow Main Street for 5960 m",
+      "text": "Start on Main Street heading east for about 99 minutes (5960 m). Your destination is ahead.",
       "distance_m": 5958.0
      }
     ],
@@ -3688,7 +3688,7 @@
     "eta_min": 76.4,
     "steps": [
      {
-      "text": "Follow Main Street for 5960 m",
+      "text": "Start on Main Street heading east for about 76 minutes (5960 m). Your destination is ahead.",
       "distance_m": 5958.0
      }
     ],

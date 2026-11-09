@@ -521,7 +521,9 @@ def test_flag_off_equals_the_response_recorded_before_this_story(
 ) -> None:
     """TRANSIT_BUS off: the walk and LRT response is today's, plus the two additive
     leg fields. The recording was made on the code before OP-417 with the same
-    synthetic street, schedule and outages (test_lrt's fixtures)."""
+    synthetic street, schedule and outages (test_lrt's fixtures), and re-recorded
+    the same way (one GET per profile, additive leg fields stripped,
+    ``json.dumps(indent=1)``) when the route steps changed to plain words."""
     recorded = json.loads(RECORDED.read_text(encoding="utf-8"))
     client = make_client(
         router, store_with_outages, planner(router, schedule_doc(), None)

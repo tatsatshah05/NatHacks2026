@@ -752,10 +752,13 @@ class LrtPlanner:
         outages: Sequence[DeviceOutage] | None,
         now: datetime,
         walk_eta_min: float | None,
+        destination_point: tuple[float, float] | None = None,
     ) -> LrtPlan:
         """The best walk and LRT trip, or None with the reasons in ``warnings``.
 
         ``outages`` None means device status could not be read at all.
+        ``destination_point`` (lat, lng) is the requested end, so the last walking
+        step can say which side it is on; None says only "ahead".
         """
         step_free = profile.stairs is None
         status_known = outages is not None
@@ -912,6 +915,7 @@ class LrtPlanner:
             (origin_node, pred_start, near_start),
             (destination_node, pred_end, near_end),
             walk_eta_min,
+            destination_point,
         )
         return plan
 
@@ -1089,8 +1093,15 @@ class LrtPlanner:
         hazards: HazardMap,
         speed: float,
         reverse: bool,
+        destination: tuple[float, float] | None = None,
+        destination_name: str = "Your destination",
     ) -> Route:
-        """The walking path from ``source`` to ``target`` (reversed for the last leg)."""
+        """The walking path from ``source`` to ``target`` (reversed for the last leg).
+
+        ``destination`` (lat, lng) and ``destination_name`` end the leg's last step
+        as routing's ``_steps`` does: the station a walk-in leg arrives at, or the
+        trip's end for the walk-out leg.
+        """
         path = [target]
         while path[-1] != source:
             previous = int(predecessors[path[-1]])
@@ -1129,7 +1140,15 @@ class LrtPlanner:
             round(distance, 1),
             round(eta, 1),
             coords,
-            _steps(net, edges),
+            _steps(
+                net,
+                path,
+                edges,
+                speed_m_s=speed,
+                hazards=hazards,
+                destination=destination,
+                destination_name=destination_name,
+            ),
             on_route,
             [],
             warnings,
@@ -1146,6 +1165,7 @@ class LrtPlanner:
         start: tuple[int, np.ndarray, dict[str, tuple[int, float]]],
         end: tuple[int, np.ndarray, dict[str, tuple[int, float]]],
         walk_eta_min: float | None,
+        destination_point: tuple[float, float] | None = None,
     ) -> LrtTrip:
         stations = self.schedule.stations
         entry, exit_ = stations[option.entry], stations[option.exit]
@@ -1160,9 +1180,18 @@ class LrtPlanner:
             hazards,
             speed,
             False,
+            destination=(entry.lat, entry.lng),
+            destination_name=entry.title,
         )
         walk_out = self._walk(
-            end_node, pred_end, near_end[exit_.id][0], weights, hazards, speed, True
+            end_node,
+            pred_end,
+            near_end[exit_.id][0],
+            weights,
+            hazards,
+            speed,
+            True,
+            destination=destination_point,
         )
         entry_pt = [round(entry.lng, 6), round(entry.lat, 6)]
         exit_pt = [round(exit_.lng, 6), round(exit_.lat, 6)]

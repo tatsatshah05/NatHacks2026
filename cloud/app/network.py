@@ -439,7 +439,8 @@ class WalkNetwork:
         return self.geom_coords[self.geom_offsets[edge] : self.geom_offsets[edge + 1]]
 
     def edge_label(self, edge: int) -> str:
-        """A human label for text directions: the street name, else the path type."""
+        """The street name, else the raw OpenStreetMap highway type (for logs and
+        tools; routing's ``_steps`` turns an unnamed way into plain words)."""
         name_index = int(self.edge_name[edge])
         if name_index >= 0:
             return self.names[name_index]

@@ -606,6 +606,33 @@ def test_trip_with_one_transfer_and_estimated_waits(router) -> None:
     assert all("estimate from the schedule" in t for t in texts if t.startswith("Ride"))
 
 
+def test_walk_legs_read_like_walking_routes(router) -> None:
+    """The walk legs use routing's step writer: plain words, a start line, the
+    station or the destination at the end, and never a raw OpenStreetMap tag."""
+    # From node 4 the walk in is one 99 m edge west to the entry node near S1, and
+    # the walk out one edge west from the exit node near S3 to node 56.
+    trip = plan(router, planner_for(router), "wheelchair", start=4, end=56).trip
+    assert trip is not None
+    walk_in, walk_out = trip.legs[0].route, trip.legs[-1].route
+    assert walk_in is not None and walk_out is not None
+    assert [s.text for s in walk_in.steps] == [
+        (
+            "Start on Main Street heading west for about 2 minutes (100 m). "
+            "S1 Station is ahead."
+        )
+    ]
+    assert [s.text for s in walk_out.steps] == [
+        (
+            "Start on Main Street heading west for about 2 minutes (100 m). "
+            "Your destination is ahead."
+        )
+    ]
+    assert trip.route.steps[0] == walk_in.steps[0]
+    assert trip.route.steps[-1] == walk_out.steps[0]
+    for step in trip.route.steps:
+        assert not step.text.startswith("Follow ") and "footway" not in step.text
+
+
 def test_wheelchair_cannot_use_a_station_whose_only_elevator_is_out(router) -> None:
     planner = planner_for(router)
     records = [outage("30", "S3, Platform")]
