@@ -116,8 +116,10 @@ type StopsProps = {
 };
 
 type StopContext = { rank: number; now: Date; compact: boolean };
-// Which line runs past a row: the single walking line or the double LRT line.
+// Which line runs past a row: the single walking line or the double ride line.
 type Rail = "walk" | "ride";
+// What a ride is on (OP-417). The API says "lrt" or "bus" on each ride leg.
+type Vehicle = NonNullable<LegOut["vehicle"]>;
 
 function EndStop({ name, label, first }: { name: string; label: string; first?: boolean }) {
   return (
@@ -191,14 +193,26 @@ export function RouteStops({ route, from, to, now, reveal = false, compact = fal
   );
 }
 
-// ------------------------------------------------- walk and LRT trips (OP-311)
+// ------------------------------- walk and LRT trips (OP-311), bus rides (OP-417)
 
 const minutes = (value: number) => `${Math.max(1, Math.round(value))} min`;
 
-/** "Capital Line toward Century Park", or both lines on a shared track. */
+function vehicleOf(leg: LegOut): Vehicle {
+  return leg.vehicle ?? "lrt";
+}
+
+/**
+ * "Capital Line toward Century Park" (or both lines on a shared track), or for a bus
+ * "Bus 8 toward Abbottsfield": the route number and the destination, as on the bus.
+ */
 function rideTitle(leg: LegOut): string {
-  const lines = leg.lines ?? [];
   const heads = leg.headsigns ?? [];
+  if (vehicleOf(leg) === "bus") {
+    const numbers = leg.route_short_names ?? [];
+    if (!numbers.length) return `Bus toward ${heads.join(" or ") || leg.to_name}`;
+    return numbers.map((number, index) => (heads[index] ? `Bus ${number} toward ${heads[index]}` : `Bus ${number}`)).join(" or ");
+  }
+  const lines = leg.lines ?? [];
   if (!lines.length) return `LRT toward ${heads.join(" or ") || leg.to_name}`;
   return lines.map((line, index) => (heads[index] ? `${line} toward ${heads[index]}` : line)).join(" or ");
 }
@@ -241,12 +255,14 @@ function LegRow({ leg, from, to }: { leg: LegOut; from: string; to: string }) {
 function StationStop({
   name,
   station,
+  vehicle,
   railIn,
   railOut,
   context
 }: {
   name: string;
   station: StationOut | null;
+  vehicle: Vehicle;
   railIn: Rail;
   railOut: Rail;
   context: StopContext;
@@ -254,7 +270,8 @@ function StationStop({
   const classes = ["stop", "is-station", railIn === "ride" ? "ride-in" : "", railOut === "ride" ? "ride-out" : ""]
     .filter(Boolean)
     .join(" ");
-  const access = station?.access === "at_grade" ? "LRT stop at street level" : "LRT station";
+  const access =
+    vehicle === "bus" ? "Bus stop" : station?.access === "at_grade" ? "LRT stop at street level" : "LRT station";
   return (
     <li className={classes}>
       <span className="stop-mark">
@@ -274,10 +291,10 @@ function StationStop({
 const DEVICE_SOURCE = "city_lrt_devices";
 
 /**
- * A walk and LRT trip as a line: walks as the single line, rides as a double line with
- * the line name, stations as rings. A station's elevator and escalator outages are
- * stops beside it, on its walking side. Other conditions have no position yet, so they
- * follow the last leg in the report's order.
+ * A walk and LRT or bus trip as a line: walks as the single line, rides as a double
+ * line with the line name or the bus number, stations and stops as rings. A station's
+ * elevator and escalator outages are stops beside it, on its walking side. Other
+ * conditions have no position yet, so they follow the last leg in the report's order.
  */
 function TripRows({
   route,
@@ -306,6 +323,8 @@ function TripRows({
       const station = stations.find((option) => option.name === leg.from_name) ?? null;
       const railIn: Rail = legs[index - 1].kind === "ride" ? "ride" : "walk";
       const railOut: Rail = leg.kind === "ride" ? "ride" : "walk";
+      // The ride that arrives or leaves says what kind of stop this is.
+      const vehicle = vehicleOf(railOut === "ride" ? leg : legs[index - 1]);
       const conditions = atStation(station).map(({ key, item }) => (
         <ConditionStop key={key} item={item} context={context} rail={railIn === "ride" && railOut === "ride" ? "ride" : "walk"} />
       ));
@@ -314,6 +333,7 @@ function TripRows({
           key={`station-${index}`}
           name={leg.from_name}
           station={station}
+          vehicle={vehicle}
           railIn={railIn}
           railOut={railOut}
           context={context}

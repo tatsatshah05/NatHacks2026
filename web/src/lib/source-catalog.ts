@@ -113,7 +113,8 @@ export const SOURCE_SECTIONS: ReadonlyArray<SourceSection> = [
         name: "ETS GTFS schedule",
         details: ["Published by Edmonton Transit Service at gtfs.edmonton.ca"],
         credit: "Schedule: Edmonton Transit Service, City of Edmonton Open Data",
-        usedFor: "Timetables for walk and LRT trips, which are not switched on yet. Waits are estimates from the schedule, never live arrivals.",
+        usedFor:
+          "Timetables for walk and LRT trips and, where they are switched on, walk and bus trips: one ETS bus ride, no transfers. Waits are estimates from the schedule, never live arrivals.",
         freshness: {
           kind: "fixed",
           text: "Built on November 8, 2026 from the schedule for October 23 to December 12, 2026."

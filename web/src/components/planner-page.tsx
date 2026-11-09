@@ -69,8 +69,8 @@ type Pending = { query: PlannerQuery; slow: boolean };
 
 /**
  * Each route's "Save this route" button (OP-306). A saved route (OP-304) has no mode,
- * so the API watches the trip's walking route; a walk and LRT trip offers no Save
- * rather than promise alerts for a route the API does not watch.
+ * so the API watches the trip's walking route; a walk and LRT or bus trip offers no
+ * Save rather than promise alerts for a route the API does not watch.
  */
 function saveAction(route: RouteOut, query: PlannerQuery): ReactNode {
   if (route.lrt) return null;
@@ -388,10 +388,10 @@ export default function PlannerPage() {
             />
             <CheckField
               id="include-lrt"
-              label="Include LRT trips"
+              label="Include LRT and bus trips"
               checked={includeLrt}
               onChange={chooseLrt}
-              help="Walk, ride the LRT and walk on, when that is faster."
+              help="Walk, ride the LRT or a bus and walk on, when that is faster."
             />
             <Button type="submit" size="large" block>
               Find routes
@@ -488,16 +488,16 @@ export default function PlannerPage() {
   );
 }
 
-/** Notes about the whole trip: where the API moved a point, and whether LRT was used. */
+/** Notes about the whole trip: where the API moved a point, and whether a ride was used. */
 function tripNotes({ query, response, demo }: Result): string[] {
   if (demo || !response.routes.length) return [];
   const notes = [...response.warnings];
   if (query.mode === "walk_lrt") {
-    const unavailable = "LRT trips are not available right now. These are walking routes.";
+    const unavailable = "LRT and bus trips are not available right now. These are walking routes.";
     if (response.mode !== "walk_lrt") notes.push(unavailable);
     else if (!response.routes.some((route) => route.legs?.length)) {
       if (!notes.some((note) => note.startsWith("Walk and LRT trips are unavailable"))) {
-        notes.push("No walk and LRT trip is faster than walking here, so these are walking routes.");
+        notes.push("No LRT or bus trip is faster than walking here, so these are walking routes.");
       }
     }
   }

@@ -15,7 +15,7 @@ REQUIREMENTS := $(sort $(wildcard cloud/requirements*.txt cloud/tests/requiremen
 # The web app (web/) comes from OP-113. Web steps are skipped until it is here.
 HAS_WEB := $(wildcard web/package.json)
 
-.PHONY: setup dev web test lint format build types e2e graph lrt record worker bench demo-check
+.PHONY: setup dev web test lint format build types e2e graph lrt bus record worker bench demo-check
 
 setup:  ## Create .venv (cloud + vision) and install the web app's dependencies
 	$(PYTHON) -m venv .venv
@@ -70,6 +70,9 @@ graph:  ## Rebuild cloud/data/network.npz with OSMnx (laptop only; commit the re
 
 lrt:  ## Rebuild cloud/data/lrt.json from the ETS GTFS schedule (one official download; commit the result)
 	$(VENV_PY) scripts/build_lrt_graph.py
+
+bus:  ## Rebuild cloud/data/bus.json, the ETS bus lines for walk and bus trips (OP-417; one official download; commit the result)
+	$(VENV_PY) scripts/build_bus_graph.py
 
 record:  ## Record a replay snapshot of every source into snapshots/<UTC time>/ (OP-305, no images)
 	$(VENV_PY) scripts/record_snapshot.py $(RECORD_FLAGS)

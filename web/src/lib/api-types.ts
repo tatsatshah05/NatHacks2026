@@ -745,6 +745,16 @@ export interface components {
              */
             ride_min?: number | null;
             wait?: components["schemas"]["WaitOut"] | null;
+            /**
+             * Vehicle
+             * @description Ride legs: lrt or bus (TRANSIT_BUS adds buses).
+             */
+            vehicle?: ("lrt" | "bus") | null;
+            /**
+             * Route Short Names
+             * @description Ride legs: the route number or line name on the vehicle, one per entry of lines.
+             */
+            route_short_names?: string[] | null;
         };
         /**
          * LrtTripOut
@@ -1566,7 +1576,7 @@ export interface operations {
                 to: string;
                 /** @description wheelchair, walker_cane, low_vision or standard */
                 profile?: string;
-                /** @description walk, or walk_lrt for walk and LRT trips (LRT_TRIPS on) */
+                /** @description walk, or walk_lrt for walk and LRT trips (LRT_TRIPS on; with TRANSIT_BUS on, walk and bus trips too) */
                 mode?: "walk" | "walk_lrt";
             };
             header?: never;
